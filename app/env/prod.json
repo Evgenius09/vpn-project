@@ -1,0 +1,1 @@
+{ "FLAVOR": "prod", "API_BASE_URLS": "https://api.example.invalid", "FAKE_VPN": false, "FAKE_API": false }

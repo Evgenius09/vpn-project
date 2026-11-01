@@ -1,0 +1,1 @@
+{ "FLAVOR": "dev", "API_BASE_URLS": "http://localhost:8080", "FAKE_VPN": true, "FAKE_API": false }
