@@ -1,0 +1,127 @@
+{
+  "account": {
+    "id": "a0000000-0000-4000-8000-000000000001",
+    "status": "trial",
+    "expiresAt": "2030-01-01T00:00:00Z",
+    "deviceLimit": 5
+  },
+  "telegramUser": {
+    "telegramId": 1000001,
+    "chatId": 1000001,
+    "username": "seed_user",
+    "firstName": "Seed"
+  },
+  "device": {
+    "id": "d0000000-0000-4000-8000-000000000001",
+    "installId": "e0000000-0000-4000-8000-000000000001",
+    "platform": "android",
+    "model": "Seed Device",
+    "appVersion": "0.1.0",
+    "token": "dev-seed-device-token"
+  },
+  "panelUser": {
+    "remnawaveUuid": "b0000000-0000-4000-8000-000000000001",
+    "shortUuid": "seedshort",
+    "vlessUuid": "c0000000-0000-4000-8000-000000000001",
+    "hysteria2Auth": "seed-hysteria2-auth",
+    "trafficLimitBytes": 107374182400,
+    "trafficUsedBytes": 1048576
+  },
+  "servers": [
+    {
+      "id": "10000000-0000-4000-8000-000000000001",
+      "remnawaveHostUuid": "20000000-0000-4000-8000-000000000001",
+      "group": "regular",
+      "protocol": "vless_reality",
+      "displayName": "Frankfurt",
+      "countryCode": "DE",
+      "city": "Frankfurt",
+      "address": "de1.seed.invalid",
+      "port": 443,
+      "params": {
+        "flow": "xtls-rprx-vision",
+        "serverName": "www.example.com",
+        "publicKey": "seed-reality-public-key-de",
+        "shortId": "0123456789abcdef",
+        "fingerprint": "chrome"
+      },
+      "sortWeight": 10
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000002",
+      "remnawaveHostUuid": "20000000-0000-4000-8000-000000000002",
+      "group": "regular",
+      "protocol": "vless_reality",
+      "displayName": "Amsterdam",
+      "countryCode": "NL",
+      "city": "Amsterdam",
+      "address": "nl1.seed.invalid",
+      "port": 443,
+      "params": {
+        "flow": "xtls-rprx-vision",
+        "serverName": "www.example.org",
+        "publicKey": "seed-reality-public-key-nl",
+        "shortId": "fedcba9876543210",
+        "fingerprint": "firefox"
+      },
+      "sortWeight": 20
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000003",
+      "remnawaveHostUuid": "20000000-0000-4000-8000-000000000003",
+      "group": "regular",
+      "protocol": "hysteria2",
+      "displayName": "Helsinki",
+      "countryCode": "FI",
+      "city": "Helsinki",
+      "address": "fi1.seed.invalid",
+      "port": 443,
+      "params": {
+        "serverName": "fi1.seed.invalid",
+        "obfsSalamanderPassword": "seed-obfs-password",
+        "portHopping": { "ports": "20000-30000", "intervalSec": 30 },
+        "upMbps": 50,
+        "downMbps": 200
+      },
+      "sortWeight": 30
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000004",
+      "remnawaveHostUuid": "20000000-0000-4000-8000-000000000004",
+      "group": "whitelist",
+      "protocol": "vless_reality",
+      "displayName": "Moscow",
+      "countryCode": "RU",
+      "city": "Moscow",
+      "address": "ru1.seed.invalid",
+      "port": 443,
+      "params": {
+        "flow": "xtls-rprx-vision",
+        "serverName": "www.example.ru",
+        "publicKey": "seed-reality-public-key-ru1",
+        "shortId": "1122334455667788",
+        "fingerprint": "chrome"
+      },
+      "sortWeight": 10
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000005",
+      "remnawaveHostUuid": "20000000-0000-4000-8000-000000000005",
+      "group": "whitelist",
+      "protocol": "vless_reality",
+      "displayName": "Saint Petersburg",
+      "countryCode": "RU",
+      "city": "Saint Petersburg",
+      "address": "ru2.seed.invalid",
+      "port": 443,
+      "params": {
+        "flow": "",
+        "serverName": "www.example.su",
+        "publicKey": "seed-reality-public-key-ru2",
+        "shortId": "8877665544332211",
+        "fingerprint": "safari"
+      },
+      "sortWeight": 20
+    }
+  ]
+}
