@@ -1,0 +1,60 @@
+name: app-platforms
+
+# Platform builds are slow, so they run only when their inputs change.
+on:
+  pull_request:
+    paths: &inputs
+      - app/**
+      - contracts/**
+      - .tool-versions
+      - .github/workflows/app-platforms.yml
+  push:
+    branches: [main]
+    paths: *inputs
+
+permissions:
+  contents: read
+
+concurrency:
+  group: app-platforms-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-24.04
+    steps:
+      # The NDK and native libs do not fit next to the preinstalled SDKs.
+      - name: Free disk space
+        run: sudo rm -rf /usr/share/dotnet /usr/local/.ghcup /opt/ghc /opt/hostedtoolcache/CodeQL
+      - uses: actions/checkout@v7.0.1
+      - uses: jdx/mise-action@v5.2.5
+        with:
+          install_args: flutter java
+      - name: Build debug APK
+        working-directory: app
+        run: flutter build apk --debug --target-platform android-arm64,android-x64 --dart-define-from-file=env/dev.json
+
+  windows:
+    runs-on: windows-2022
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - name: Read the pinned Flutter version
+        id: flutter
+        run: echo "version=$(awk '$1 == "flutter" { print $2 }' .tool-versions)" >> "$GITHUB_OUTPUT"
+      - uses: subosito/flutter-action@v2.23.0
+        with:
+          flutter-version: ${{ steps.flutter.outputs.version }}
+          channel: stable
+          cache: true
+      - name: Test without goldens
+        working-directory: app
+        run: flutter test --exclude-tags golden
+      - name: Build
+        working-directory: app
+        run: flutter build windows --debug --dart-define-from-file=env/dev.json
+      - name: Render the kitchen sink
+        working-directory: app
+        run: flutter test integration_test -d windows --dart-define-from-file=env/dev.json

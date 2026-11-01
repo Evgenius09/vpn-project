@@ -37,3 +37,12 @@ local.properties
 
 # Written by flutter pub get
 **/GeneratedPluginRegistrant.*
+
+# Flutter platform artifacts
+/app/.metadata
+/app/windows/flutter/ephemeral/
+/app/android/.gradle/
+/app/android/gradlew
+/app/android/gradlew.bat
+/app/android/gradle/wrapper/gradle-wrapper.jar
+/app/android/app/src/main/java/

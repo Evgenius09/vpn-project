@@ -1,0 +1,52 @@
+{
+  "@@locale": "ru",
+  "appTitle": "VPN Client",
+  "modeRegular": "Обычный VPN",
+  "modeWhitelist": "Белые списки",
+  "settingsTitle": "Настройки",
+  "settingsTooltip": "Открыть настройки",
+  "loginTitle": "Вход",
+  "lockedByProvider": "Задано провайдером",
+  "retry": "Повторить",
+  "cancel": "Отмена",
+  "save": "Сохранить",
+  "pingUnknown": "—",
+  "pingUnreachable": "Нет связи",
+  "emptyScreenTitle": "Скоро здесь будет экран",
+  "powerButtonLabel": "Подключение",
+  "kitchenSinkTitle": "Витрина компонентов",
+  "themeLight": "Светлая тема",
+  "themeDark": "Тёмная тема",
+  "pingMs": "{value} мс",
+  "@pingMs": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "speedBytes": "{value} Б/с",
+  "@speedBytes": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "speedKilobytes": "{value} КБ/с",
+  "@speedKilobytes": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "speedMegabytes": "{value} МБ/с",
+  "@speedMegabytes": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  }
+}

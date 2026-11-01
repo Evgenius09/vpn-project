@@ -1,0 +1,1 @@
+{ "FLAVOR": "staging", "API_BASE_URLS": "https://staging.example.invalid", "FAKE_VPN": false, "FAKE_API": false }
