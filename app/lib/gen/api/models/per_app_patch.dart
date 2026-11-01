@@ -10,13 +10,11 @@ part 'per_app_patch.g.dart';
 
 @JsonSerializable()
 class PerAppPatch {
-  const PerAppPatch({
-    this.mode,
-    this.apps,
-  });
-  
-  factory PerAppPatch.fromJson(Map<String, Object?> json) => _$PerAppPatchFromJson(json);
-  
+  const PerAppPatch({this.mode, this.apps});
+
+  factory PerAppPatch.fromJson(Map<String, Object?> json) =>
+      _$PerAppPatchFromJson(json);
+
   final PerAppMode? mode;
   final List<String>? apps;
 

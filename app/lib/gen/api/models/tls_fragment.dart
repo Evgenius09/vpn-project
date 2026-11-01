@@ -8,13 +8,11 @@ part 'tls_fragment.g.dart';
 
 @JsonSerializable()
 class TlsFragment {
-  const TlsFragment({
-    required this.enabled,
-    required this.record,
-  });
-  
-  factory TlsFragment.fromJson(Map<String, Object?> json) => _$TlsFragmentFromJson(json);
-  
+  const TlsFragment({required this.enabled, required this.record});
+
+  factory TlsFragment.fromJson(Map<String, Object?> json) =>
+      _$TlsFragmentFromJson(json);
+
   final bool enabled;
   final bool record;
 

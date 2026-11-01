@@ -19,9 +19,10 @@ class TunnelSettings {
     required this.net,
     required this.perApp,
   });
-  
-  factory TunnelSettings.fromJson(Map<String, Object?> json) => _$TunnelSettingsFromJson(json);
-  
+
+  factory TunnelSettings.fromJson(Map<String, Object?> json) =>
+      _$TunnelSettingsFromJson(json);
+
   final RoutingSettings routing;
   final DnsSettings dns;
   final NetSettings net;

@@ -11,14 +11,11 @@ part 'routing_patch.g.dart';
 
 @JsonSerializable()
 class RoutingPatch {
-  const RoutingPatch({
-    this.enabled,
-    this.preset,
-    this.rules,
-  });
-  
-  factory RoutingPatch.fromJson(Map<String, Object?> json) => _$RoutingPatchFromJson(json);
-  
+  const RoutingPatch({this.enabled, this.preset, this.rules});
+
+  factory RoutingPatch.fromJson(Map<String, Object?> json) =>
+      _$RoutingPatchFromJson(json);
+
   final bool? enabled;
   final RoutingPreset? preset;
   final List<RoutingRule>? rules;

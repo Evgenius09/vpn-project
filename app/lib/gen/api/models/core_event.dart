@@ -25,9 +25,10 @@ class CoreEvent {
     this.urlTest,
     this.error,
   });
-  
-  factory CoreEvent.fromJson(Map<String, Object?> json) => _$CoreEventFromJson(json);
-  
+
+  factory CoreEvent.fromJson(Map<String, Object?> json) =>
+      _$CoreEventFromJson(json);
+
   final CoreEventType type;
   final DateTime at;
   final StatePayload? state;

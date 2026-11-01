@@ -13,9 +13,10 @@ class AuthResult {
     required this.accountId,
     required this.token,
   });
-  
-  factory AuthResult.fromJson(Map<String, Object?> json) => _$AuthResultFromJson(json);
-  
+
+  factory AuthResult.fromJson(Map<String, Object?> json) =>
+      _$AuthResultFromJson(json);
+
   final String deviceId;
   final String accountId;
   final String token;

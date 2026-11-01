@@ -25,9 +25,10 @@ class ClientPolicy {
     required this.minAppVersion,
     this.appUpdate,
   });
-  
-  factory ClientPolicy.fromJson(Map<String, Object?> json) => _$ClientPolicyFromJson(json);
-  
+
+  factory ClientPolicy.fromJson(Map<String, Object?> json) =>
+      _$ClientPolicyFromJson(json);
+
   final SettingsPatch defaults;
   final List<SettingsKey> locked;
   final PolicyFlags flags;

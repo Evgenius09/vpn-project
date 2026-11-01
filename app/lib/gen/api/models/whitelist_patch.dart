@@ -8,12 +8,11 @@ part 'whitelist_patch.g.dart';
 
 @JsonSerializable()
 class WhitelistPatch {
-  const WhitelistPatch({
-    this.autoOnCellular,
-  });
-  
-  factory WhitelistPatch.fromJson(Map<String, Object?> json) => _$WhitelistPatchFromJson(json);
-  
+  const WhitelistPatch({this.autoOnCellular});
+
+  factory WhitelistPatch.fromJson(Map<String, Object?> json) =>
+      _$WhitelistPatchFromJson(json);
+
   final bool? autoOnCellular;
 
   Map<String, Object?> toJson() => _$WhitelistPatchToJson(this);

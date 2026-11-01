@@ -10,13 +10,11 @@ part 'per_app_settings.g.dart';
 
 @JsonSerializable()
 class PerAppSettings {
-  const PerAppSettings({
-    required this.mode,
-    required this.apps,
-  });
-  
-  factory PerAppSettings.fromJson(Map<String, Object?> json) => _$PerAppSettingsFromJson(json);
-  
+  const PerAppSettings({required this.mode, required this.apps});
+
+  factory PerAppSettings.fromJson(Map<String, Object?> json) =>
+      _$PerAppSettingsFromJson(json);
+
   final PerAppMode mode;
   final List<String> apps;
 

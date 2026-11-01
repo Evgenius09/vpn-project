@@ -8,13 +8,11 @@ part 'local_rule_set.g.dart';
 
 @JsonSerializable()
 class LocalRuleSet {
-  const LocalRuleSet({
-    required this.id,
-    required this.path,
-  });
-  
-  factory LocalRuleSet.fromJson(Map<String, Object?> json) => _$LocalRuleSetFromJson(json);
-  
+  const LocalRuleSet({required this.id, required this.path});
+
+  factory LocalRuleSet.fromJson(Map<String, Object?> json) =>
+      _$LocalRuleSetFromJson(json);
+
   final String id;
   final String path;
 

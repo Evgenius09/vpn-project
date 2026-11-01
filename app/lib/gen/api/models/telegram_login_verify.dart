@@ -18,9 +18,10 @@ class TelegramLoginVerify {
     required this.model,
     required this.appVersion,
   });
-  
-  factory TelegramLoginVerify.fromJson(Map<String, Object?> json) => _$TelegramLoginVerifyFromJson(json);
-  
+
+  factory TelegramLoginVerify.fromJson(Map<String, Object?> json) =>
+      _$TelegramLoginVerifyFromJson(json);
+
   final String loginId;
   final String code;
   final String installId;

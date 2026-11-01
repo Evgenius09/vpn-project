@@ -17,9 +17,10 @@ class RoutingRule {
     required this.value,
     required this.action,
   });
-  
-  factory RoutingRule.fromJson(Map<String, Object?> json) => _$RoutingRuleFromJson(json);
-  
+
+  factory RoutingRule.fromJson(Map<String, Object?> json) =>
+      _$RoutingRuleFromJson(json);
+
   final String id;
   final RuleMatch match;
 

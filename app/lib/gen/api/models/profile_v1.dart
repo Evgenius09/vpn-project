@@ -23,9 +23,10 @@ class ProfileV1 {
     required this.endpoints,
     this.announcement,
   });
-  
-  factory ProfileV1.fromJson(Map<String, Object?> json) => _$ProfileV1FromJson(json);
-  
+
+  factory ProfileV1.fromJson(Map<String, Object?> json) =>
+      _$ProfileV1FromJson(json);
+
   final int schemaVersion;
   final DateTime generatedAt;
   final AccountInfo account;

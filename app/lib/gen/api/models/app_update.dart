@@ -10,13 +10,11 @@ part 'app_update.g.dart';
 
 @JsonSerializable()
 class AppUpdate {
-  const AppUpdate({
-    this.android,
-    this.windows,
-  });
-  
-  factory AppUpdate.fromJson(Map<String, Object?> json) => _$AppUpdateFromJson(json);
-  
+  const AppUpdate({this.android, this.windows});
+
+  factory AppUpdate.fromJson(Map<String, Object?> json) =>
+      _$AppUpdateFromJson(json);
+
   final AppRelease? android;
   final AppRelease? windows;
 

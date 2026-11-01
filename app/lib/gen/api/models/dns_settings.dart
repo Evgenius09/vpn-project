@@ -15,9 +15,10 @@ class DnsSettings {
     required this.direct,
     required this.strategy,
   });
-  
-  factory DnsSettings.fromJson(Map<String, Object?> json) => _$DnsSettingsFromJson(json);
-  
+
+  factory DnsSettings.fromJson(Map<String, Object?> json) =>
+      _$DnsSettingsFromJson(json);
+
   final String remote;
   final String direct;
   final DnsStrategy strategy;

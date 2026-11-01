@@ -18,9 +18,10 @@ class RoutingSettings {
     required this.rules,
     required this.ruleSets,
   });
-  
-  factory RoutingSettings.fromJson(Map<String, Object?> json) => _$RoutingSettingsFromJson(json);
-  
+
+  factory RoutingSettings.fromJson(Map<String, Object?> json) =>
+      _$RoutingSettingsFromJson(json);
+
   final bool enabled;
   final RoutingPreset preset;
   final List<RoutingRule> rules;

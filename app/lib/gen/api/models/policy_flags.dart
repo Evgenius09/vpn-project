@@ -8,12 +8,11 @@ part 'policy_flags.g.dart';
 
 @JsonSerializable()
 class PolicyFlags {
-  const PolicyFlags({
-    required this.autoWhitelist,
-  });
-  
-  factory PolicyFlags.fromJson(Map<String, Object?> json) => _$PolicyFlagsFromJson(json);
-  
+  const PolicyFlags({required this.autoWhitelist});
+
+  factory PolicyFlags.fromJson(Map<String, Object?> json) =>
+      _$PolicyFlagsFromJson(json);
+
   final bool autoWhitelist;
 
   Map<String, Object?> toJson() => _$PolicyFlagsToJson(this);

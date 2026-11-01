@@ -18,9 +18,10 @@ class Hysteria2Params {
     this.upMbps,
     this.downMbps,
   });
-  
-  factory Hysteria2Params.fromJson(Map<String, Object?> json) => _$Hysteria2ParamsFromJson(json);
-  
+
+  factory Hysteria2Params.fromJson(Map<String, Object?> json) =>
+      _$Hysteria2ParamsFromJson(json);
+
   /// Secret.
   final String password;
   final String serverName;

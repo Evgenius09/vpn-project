@@ -8,14 +8,11 @@ part 'rule_set_ref.g.dart';
 
 @JsonSerializable()
 class RuleSetRef {
-  const RuleSetRef({
-    required this.id,
-    required this.url,
-    required this.sha256,
-  });
-  
-  factory RuleSetRef.fromJson(Map<String, Object?> json) => _$RuleSetRefFromJson(json);
-  
+  const RuleSetRef({required this.id, required this.url, required this.sha256});
+
+  factory RuleSetRef.fromJson(Map<String, Object?> json) =>
+      _$RuleSetRefFromJson(json);
+
   final String id;
   final String url;
   final String sha256;

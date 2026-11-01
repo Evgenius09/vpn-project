@@ -8,12 +8,11 @@ part 'auto_switch_request.g.dart';
 
 @JsonSerializable()
 class AutoSwitchRequest {
-  const AutoSwitchRequest({
-    required this.enabled,
-  });
-  
-  factory AutoSwitchRequest.fromJson(Map<String, Object?> json) => _$AutoSwitchRequestFromJson(json);
-  
+  const AutoSwitchRequest({required this.enabled});
+
+  factory AutoSwitchRequest.fromJson(Map<String, Object?> json) =>
+      _$AutoSwitchRequestFromJson(json);
+
   final bool enabled;
 
   Map<String, Object?> toJson() => _$AutoSwitchRequestToJson(this);

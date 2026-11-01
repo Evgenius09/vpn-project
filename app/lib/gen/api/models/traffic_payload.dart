@@ -14,9 +14,10 @@ class TrafficPayload {
     required this.upTotal,
     required this.downTotal,
   });
-  
-  factory TrafficPayload.fromJson(Map<String, Object?> json) => _$TrafficPayloadFromJson(json);
-  
+
+  factory TrafficPayload.fromJson(Map<String, Object?> json) =>
+      _$TrafficPayloadFromJson(json);
+
   final int upBps;
   final int downBps;
   final int upTotal;

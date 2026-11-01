@@ -14,9 +14,10 @@ class ProfileEndpoints {
     this.support,
     this.web,
   });
-  
-  factory ProfileEndpoints.fromJson(Map<String, Object?> json) => _$ProfileEndpointsFromJson(json);
-  
+
+  factory ProfileEndpoints.fromJson(Map<String, Object?> json) =>
+      _$ProfileEndpointsFromJson(json);
+
   /// The first entry is primary, the rest are fallbacks.
   final List<String> api;
   final String bot;

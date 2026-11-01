@@ -14,9 +14,10 @@ class AppRelease {
     required this.sha256,
     this.notes,
   });
-  
-  factory AppRelease.fromJson(Map<String, Object?> json) => _$AppReleaseFromJson(json);
-  
+
+  factory AppRelease.fromJson(Map<String, Object?> json) =>
+      _$AppReleaseFromJson(json);
+
   final String version;
   final String url;
   final String sha256;

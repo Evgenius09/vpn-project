@@ -15,9 +15,10 @@ class ConnectPatch {
     this.autoConnectStrategy,
     this.autostart,
   });
-  
-  factory ConnectPatch.fromJson(Map<String, Object?> json) => _$ConnectPatchFromJson(json);
-  
+
+  factory ConnectPatch.fromJson(Map<String, Object?> json) =>
+      _$ConnectPatchFromJson(json);
+
   final bool? autoConnect;
   final AutoConnectStrategy? autoConnectStrategy;
   final bool? autostart;

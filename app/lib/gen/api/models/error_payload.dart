@@ -10,13 +10,11 @@ part 'error_payload.g.dart';
 
 @JsonSerializable()
 class ErrorPayload {
-  const ErrorPayload({
-    required this.code,
-    required this.message,
-  });
-  
-  factory ErrorPayload.fromJson(Map<String, Object?> json) => _$ErrorPayloadFromJson(json);
-  
+  const ErrorPayload({required this.code, required this.message});
+
+  factory ErrorPayload.fromJson(Map<String, Object?> json) =>
+      _$ErrorPayloadFromJson(json);
+
   final CoreErrorCode code;
   final String message;
 

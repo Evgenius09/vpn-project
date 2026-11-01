@@ -8,13 +8,11 @@ part 'port_hopping.g.dart';
 
 @JsonSerializable()
 class PortHopping {
-  const PortHopping({
-    required this.ports,
-    required this.intervalSec,
-  });
-  
-  factory PortHopping.fromJson(Map<String, Object?> json) => _$PortHoppingFromJson(json);
-  
+  const PortHopping({required this.ports, required this.intervalSec});
+
+  factory PortHopping.fromJson(Map<String, Object?> json) =>
+      _$PortHoppingFromJson(json);
+
   /// A range such as 20000-30000 or a list such as 443,8443.
   final String ports;
   final int intervalSec;

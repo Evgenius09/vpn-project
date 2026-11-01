@@ -18,9 +18,10 @@ class AccountInfo {
     this.telegramUsername,
     this.expiresAt,
   });
-  
-  factory AccountInfo.fromJson(Map<String, Object?> json) => _$AccountInfoFromJson(json);
-  
+
+  factory AccountInfo.fromJson(Map<String, Object?> json) =>
+      _$AccountInfoFromJson(json);
+
   final AccountStatus status;
   final String? telegramUsername;
   final DateTime? expiresAt;
