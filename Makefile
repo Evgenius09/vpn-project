@@ -22,6 +22,7 @@ gen-go:
 # swagger_parser leaves files of removed schemas behind, so start clean.
 gen-app:
 	cd app && flutter pub get --enforce-lockfile
+	cd app && flutter gen-l10n
 	rm -rf app/lib/gen/api
 	cd app && dart run swagger_parser
 	cd app && dart run build_runner build
