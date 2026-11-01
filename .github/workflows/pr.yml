@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v7.0.1
       - uses: jdx/mise-action@v5.2.5
         with:
-          install_args: go golangci-lint actionlint shellcheck
+          install_args: go golangci-lint actionlint shellcheck oapi-codegen flutter
       - name: Check
         run: make check
       - name: Test

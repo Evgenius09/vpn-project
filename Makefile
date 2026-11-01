@@ -7,13 +7,26 @@ SHELL := bash
 GO_MODULES := $(patsubst %/go.mod,%,$(wildcard backend/go.mod core/go.mod))
 FLUTTER_APP := $(wildcard app/pubspec.yaml)
 SCRIPTS := $(wildcard .github/scripts/*.sh)
-GENERATED := app/lib/gen backend/internal/gen backend/internal/db/sqlc core/internal/contract
+GENERATED := app/lib/gen app/android/app/src/main/kotlin/com/vpnclient/app/gen \
+	backend/internal/gen backend/internal/db/sqlc core/internal/contract
 
-.PHONY: gen check check-repo check-go check-app test test-repo test-go test-app \
+.PHONY: gen gen-go gen-app check check-repo check-go check-app test test-repo test-go test-app \
 	seed dev core-android core-windows installer
 
-gen:
-	@echo "gen: no generators yet"
+gen: gen-go gen-app
+
+gen-go:
+	cd backend && oapi-codegen -config oapi-codegen.yaml ../contracts/openapi.yaml
+	cd core && oapi-codegen -config oapi-codegen.yaml ../contracts/openapi.yaml
+
+# swagger_parser leaves files of removed schemas behind, so start clean.
+gen-app:
+	cd app && flutter pub get --enforce-lockfile
+	rm -rf app/lib/gen/api
+	cd app && dart run swagger_parser
+	cd app && dart run build_runner build
+	cd app && dart run pigeon --input "$$(realpath ../contracts/pigeon/vpn_api.dart)"
+	cd app && dart format lib/gen
 
 check: check-repo check-go check-app
 	@$(MAKE) --no-print-directory gen

@@ -1,0 +1,1 @@
+{ "type": "traffic", "at": "2026-11-01T10:05:01Z", "traffic": { "upBps": 1024, "downBps": 2048, "upTotal": 3000000000, "downTotal": 9000000000 } }

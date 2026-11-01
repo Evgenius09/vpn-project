@@ -1,0 +1,7 @@
+{"dir":"send","msg":{"jsonrpc":"2.0","id":1,"method":"hello","params":{"protocolVersion":1,"appVersion":"0.1.0"}}}
+{"dir":"recv","msg":{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":1,"serviceVersion":"0.1.0"}}}
+{"dir":"send","msg":{"jsonrpc":"2.0","id":2,"method":"subscribe","params":{}}}
+{"dir":"recv","msg":{"jsonrpc":"2.0","id":2,"result":{}}}
+{"dir":"send","msg":{"jsonrpc":"2.0","id":3,"method":"getState","params":{}}}
+{"dir":"recv","msg":{"jsonrpc":"2.0","id":3,"result":{"type":"state","at":"2026-11-01T10:00:00Z","state":{"status":"disconnected","userMode":"regular","effectiveMode":"regular"}}}}
+{"dir":"recv","msg":{"jsonrpc":"2.0","method":"event","params":{"type":"state","at":"2026-11-01T10:00:05Z","state":{"status":"connected","userMode":"regular","effectiveMode":"whitelist","activeServerId":"22222222-2222-4222-8222-222222222222","connectedSince":"2026-11-01T10:00:04Z"}}}}
