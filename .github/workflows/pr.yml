@@ -1,0 +1,40 @@
+name: pr
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# A new push supersedes the previous run and saves runner minutes.
+concurrency:
+  group: pr-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ubuntu:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: jdx/mise-action@v5.2.5
+        with:
+          install_args: go golangci-lint actionlint shellcheck
+      - name: Check
+        run: make check
+      - name: Test
+        run: make test
+
+  windows:
+    runs-on: windows-2022
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: jdx/mise-action@v5.2.5
+        with:
+          install_args: go
+      - name: Test Go modules
+        run: make test-go

@@ -1,0 +1,36 @@
+# Secrets
+.env
+.env.*
+!.env.example
+*.keystore
+*.jks
+*.pfx
+key.properties
+
+# Go
+*.test
+*.out
+/core/build/
+/backend/bin/
+
+# Flutter and Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+/app/build/
+/app/coverage/
+**/test/**/failures/
+
+# Android
+.gradle/
+local.properties
+/app/android/.kotlin/
+/app/android/app/libs/*.aar
+
+# Windows installer
+/installer/windows/Output/
+
+# Editors and OS
+.idea/
+.vscode/
+.DS_Store
