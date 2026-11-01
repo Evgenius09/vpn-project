@@ -5,6 +5,7 @@ on:
   pull_request:
     paths: &inputs
       - app/**
+      - core/**
       - contracts/**
       - .tool-versions
       - .github/workflows/app-platforms.yml
@@ -20,7 +21,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  apk:
+  android:
     runs-on: ubuntu-24.04
     steps:
       # The NDK and native libs do not fit next to the preinstalled SDKs.
@@ -29,10 +30,67 @@ jobs:
       - uses: actions/checkout@v7.0.1
       - uses: jdx/mise-action@v5.2.5
         with:
-          install_args: flutter java
+          install_args: >-
+            go java flutter
+            go:github.com/sagernet/gomobile/cmd/gomobile
+            go:github.com/sagernet/gomobile/cmd/gobind
+      - name: Restore Go caches
+        uses: actions/cache@v6.1.0
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: go-android-${{ hashFiles('core/go.sum', '.tool-versions') }}
+      - name: Build the core
+        run: |
+          export ANDROID_NDK_HOME="$ANDROID_NDK_LATEST_HOME"
+          make core-android
+      - name: Check bindings
+        run: |
+          unzip -p core/build/core.aar classes.jar > bindings.jar
+          unzip -l bindings.jar | grep -q 'com/vpnclient/core/bind/Core.class'
+          unzip -l bindings.jar | grep -q 'com/vpnclient/core/libbox/PlatformInterface.class'
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: core-aar
+          path: core/build/core.aar
+          retention-days: 7
       - name: Build debug APK
         working-directory: app
         run: flutter build apk --debug --target-platform android-arm64,android-x64 --dart-define-from-file=env/dev.json
+      - name: Run host unit tests
+        working-directory: app/android
+        run: ./gradlew :app:testDebugUnitTest
+
+  emulator:
+    runs-on: ubuntu-24.04
+    needs: android
+    steps:
+      - name: Free disk space
+        run: sudo rm -rf /usr/share/dotnet /usr/local/.ghcup /opt/ghc /opt/hostedtoolcache/CodeQL
+      - uses: actions/checkout@v7.0.1
+      - uses: jdx/mise-action@v5.2.5
+        with:
+          install_args: java flutter
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: core-aar
+          path: app/android/app/libs
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2.38.0
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          working-directory: app
+          script: |
+            flutter test integration_test/tunnel_events_test.dart -d emulator-5554 --dart-define=FAKE_VPN=false
+            flutter test integration_test/kitchen_sink_test.dart -d emulator-5554
 
   windows:
     runs-on: windows-2022
@@ -57,4 +115,4 @@ jobs:
         run: flutter build windows --debug --dart-define-from-file=env/dev.json
       - name: Render the kitchen sink
         working-directory: app
-        run: flutter test integration_test -d windows --dart-define-from-file=env/dev.json
+        run: flutter test integration_test/kitchen_sink_test.dart -d windows --dart-define-from-file=env/dev.json

@@ -65,6 +65,8 @@ endif
 
 core-android:
 	$(MAKE) --no-print-directory -C core android
+	mkdir -p app/android/app/libs
+	cp core/build/core.aar app/android/app/libs/core.aar
 
 seed dev core-windows installer:
 	@echo "$@: not available yet, see the skeleton slices in tech.md section 15.1"
