@@ -2,7 +2,7 @@
 // reach Dart (tech.md 15.1, S0-06). Run with FAKE_VPN=false on a device.
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:vpnclient/core/vpn/pigeon_vpn_bridge.dart';
+import 'package:vpnclient/core/providers.dart';
 import 'package:vpnclient/core/vpn/vpn_bridge.dart';
 import 'package:vpnclient/gen/api/export.dart';
 
@@ -36,7 +36,7 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('core events reach Dart', (tester) async {
-    final VpnBridge bridge = PigeonVpnBridge();
+    final VpnBridge bridge = createPlatformBridge()!;
     final statuses = <TunnelStatus>[];
     final subscription = bridge.events.listen((event) {
       final state = event.state;
@@ -70,7 +70,7 @@ void main() {
   });
 
   testWidgets('an invalid request fails with config_invalid', (tester) async {
-    final VpnBridge bridge = PigeonVpnBridge();
+    final VpnBridge bridge = createPlatformBridge()!;
     Object? failure;
     await tester.runAsync(() async {
       try {

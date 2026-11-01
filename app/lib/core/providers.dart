@@ -8,7 +8,12 @@ import 'config/app_config.dart';
 import 'storage/token_store.dart';
 import 'vpn/fake_vpn_bridge.dart';
 import 'vpn/pigeon_vpn_bridge.dart';
+import 'vpn/pipe_transport_windows.dart';
+import 'vpn/pipe_vpn_bridge.dart';
 import 'vpn/vpn_bridge.dart';
+
+const appVersion = '0.1.0';
+const windowsPipeName = r'\\.\pipe\vpnclient-core';
 
 final appConfigProvider = Provider<AppConfig>(
   (ref) => AppConfig.fromEnvironment(),
@@ -48,10 +53,26 @@ final apiClientProvider = Provider<VpnApiClient>((ref) {
   );
 });
 
-/// S0-07 adds the Windows bridge here.
-final vpnBridgeProvider = Provider<VpnBridge>((ref) {
-  if (io.Platform.isAndroid && !ref.watch(appConfigProvider).fakeVpn) {
+/// The bridge of this platform, or null where none exists.
+VpnBridge? createPlatformBridge() {
+  if (io.Platform.isAndroid) {
     return PigeonVpnBridge();
+  }
+  if (io.Platform.isWindows) {
+    return PipeVpnBridge(
+      connect: () => Win32PipeTransport.connect(windowsPipeName),
+      appVersion: appVersion,
+    );
+  }
+  return null;
+}
+
+final vpnBridgeProvider = Provider<VpnBridge>((ref) {
+  final platform = ref.watch(appConfigProvider).fakeVpn
+      ? null
+      : createPlatformBridge();
+  if (platform != null) {
+    return platform;
   }
   final bridge = FakeVpnBridge();
   ref.onDispose(bridge.dispose);
