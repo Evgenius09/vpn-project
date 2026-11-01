@@ -1,11 +1,12 @@
 # tech.md — ядро проекта VPN-клиента
 
-Версия ядра: **v1** (2026-11-01)
+Версия ядра: **v2** (2026-11-01)
 Владелец: тимлид. Файл меняется только append-only, только через PR с меткой `contract-change`. Каждое изменение контракта бампает версию и добавляет строку в changelog.
 
 ## Changelog
 
 - v1 — 2026-11-01 — первая версия: продуктовые решения (дизайн 2, свайп), платформы Android и Windows, вход через Telegram-бота, стек, монорепо, контракты API v1 / TunnelRequest v1 / CoreEvent v1 / VpnApi v1 / IPC vpnsvc v1, схема БД, джобы River, UI-примитивы, тесты, слайсы стадий 0–5.
+- v2 — 2026-11-01 — поправки §19: работа без серверов на стадии 0, порядок слайсов, GitHub Issues вместо Linear, источники `policy` и `endpoints`, типы настроек, `VpnBridge`, типы клиентов бэкенда, правила `verify` и начальное состояние автопереключения. §1–§18 не менялись; при расхождении прав §19.
 
 ---
 
@@ -1300,3 +1301,130 @@ Long-lead блокирует реальную интеграцию, не раз�
 5. Вход требует доступа к Telegram. При мобильном интернете в режиме белых списков первый вход может не пройти; уже вошедшее устройство работает с кэшированным профилем.
 6. Определение мобильной сети на Windows опирается на признак лимитной сети; раздача с телефона без этого признака распознаётся как Wi-Fi.
 7. Название приложения, application id, `<app-id>` для службы и pipe — плейсхолдеры до решения.
+
+---
+
+## 19. Поправки ядра v2
+
+Раздел имеет приоритет над §1–§18. Рабочий плейсхолдер имени до решения §18.7: `vpnclient`.
+
+### 19.1 Стадия 0 без серверов
+
+- S0-09 делится на две части. **S0-09a**: Compose, роль `api-host`, `deploy-staging.yml` и базовый мониторинг; готово, когда стек поднимается локально и `/healthz` отвечает 200. **S0-09b**: деплой на VPS и домен; готово, когда `curl https://<staging>/healthz` отвечает 200.
+- S0-08 готов, когда вертикаль в main и проверена локально через `make dev`.
+- Пункт §15.3 «задеплоена на staging» заменяется на «проверена локально». Стадия 1 стартует без S0-09b.
+- S0-09b закрывается до S1-13.
+
+### 19.2 Порядок слайсов
+
+- Стадия 0: S0-01, S0-02, S0-03, S0-04, S0-05, S0-06, S0-07, S0-10, S0-09a, S0-08.
+- Стадия 1: S1-13 выполняется до S1-10, потому что S1-10 нужны записанные ответы живой панели.
+- S1-10, S1-13 и S2-07 ждут серверы. Ручная проверка реального туннеля в S1-03 и S1-04 ждёт S1-13.
+
+### 19.3 Трекер задач
+
+GitHub Issues заменяет Linear во всех правилах §12, §13 и §14.
+
+- Ветка: `gh-<issue>-<slice-id>-<short-name>`, например `gh-42-s1-08-power-button`.
+- Заголовок PR: `feat(app): connect flow on power button (#42)`.
+- Метка `bootstrap` освобождает PR от бампа версии, пока не закрыта стадия 0. Вместе с закрытием стадии 0 метка и её обработка в `contract-guard` удаляются.
+
+### 19.4 Сборка
+
+- gomobile и gobind берутся из форка `github.com/sagernet/gomobile`, который использует upstream sing-box. Версия зафиксирована в `.tool-versions`.
+- Dart входит в Flutter и отдельно не фиксируется. Inno Setup устанавливается только на windows-раннере и в `.tool-versions` не входит.
+- Golden-тесты выполняются только на ubuntu-раннере, потому что рендер шрифтов зависит от платформы.
+
+### 19.5 Источники данных профиля
+
+- Новые переменные `.env.example`: `PUBLIC_API_URLS` (через запятую, обязательна), `SUPPORT_URL`, `WEB_URL`, `POLICY_FILE=config/policy.yaml`.
+- `endpoints.api` берётся из `PUBLIC_API_URLS`, `endpoints.bot` — из `TELEGRAM_BOT_USERNAME`, `support` и `web` — из `SUPPORT_URL` и `WEB_URL`.
+- `backend/config/policy.yaml` появляется в S0-08 и содержит `ClientPolicy`. S3-07 добавляет к нему применение `defaults` и `locked` в приложении.
+
+### 19.6 Типы настроек
+
+`SettingsKey` остаётся строковым enum с путями через точку. `SettingsPatch` — вложенный объект: `routing`, `dns`, `net`, `perApp`, `ping`, `connect`, `ui`, `whitelist`. Типы `routing`, `dns`, `net`, `perApp` совпадают с `TunnelSettings`. Остальные:
+
+| Ключ | Тип |
+|---|---|
+| `ping.type` | `tcp \| url_test` |
+| `ping.url` | string |
+| `ping.timeoutMs` | int |
+| `ping.onOpen` | bool |
+| `connect.autoConnect` | bool |
+| `connect.autoConnectStrategy` | `last_used \| lowest_ping \| random` |
+| `connect.autostart` | bool |
+| `ui.sortByPing` | bool |
+| `ui.locale` | `system \| ru \| en` |
+| `ui.theme` | `system \| light \| dark` |
+| `whitelist.autoOnCellular` | bool |
+
+`whitelist.autoOnCellular` не входит в `TunnelSettings`, а передаётся как `TunnelRequest.autoSwitch.enabled`.
+
+### 19.7 VpnBridge
+
+`VpnBridge` содержит методы `VpnHostApi`, кроме `listApps`, и два метода с разной реализацией на платформах:
+
+```dart
+Future<List<SelectableApp>> listSelectableApps(); // Android: listApps; Windows: listProcesses
+Future<List<String>> syncRuleSets(List<RuleSetRef> ruleSets); // Android: скачивание в Dart; Windows: IPC syncRuleSets
+
+class SelectableApp { final String id; final String label; }
+```
+
+`id` — имя пакета на Android и имя процесса на Windows.
+
+### 19.8 Типы клиентов бэкенда
+
+```go
+type CreateUserInput struct {
+    Username     string
+    ExpiresAt    time.Time
+    TrafficLimit int64
+}
+
+type UpdateUserInput struct {
+    ExpiresAt    time.Time
+    TrafficLimit int64
+}
+
+type InlineButton struct {
+    Text         string
+    URL          string // заполнено ровно одно из URL и CallbackData
+    CallbackData string
+}
+
+type UpdateKind string
+
+const (
+    UpdateMessage      UpdateKind = "message"
+    UpdateCallback     UpdateKind = "callback"
+    UpdateBotBlocked   UpdateKind = "bot_blocked"
+    UpdateBotUnblocked UpdateKind = "bot_unblocked"
+)
+```
+
+`telegram.Update` получает поля `Kind UpdateKind` и `CallbackID string`. `UpdateBotBlocked` и `UpdateBotUnblocked` приходят из `my_chat_member`. Первый ставит `bot_blocked_at = now()`, второй и любое сообщение от пользователя сбрасывают его в `null`.
+
+### 19.9 Вход и устройства
+
+`POST /v1/auth/logout` отвечает 204 без тела.
+
+`POST /v1/auth/telegram/verify` при существующем `installId`:
+
+| Устройство | Результат |
+|---|---|
+| Этот аккаунт, активно | Тот же `deviceId`, новый токен |
+| Этот аккаунт, отозвано | Проверка лимита; тот же `deviceId`, `revoked_at = null`, новый токен |
+| Другой аккаунт | Проверка лимита нового аккаунта; тот же `deviceId`, `account_id` меняется, `revoked_at = null`, новый токен, старый токен перестаёт работать |
+
+Лимит превышен → 409 `device_limit_reached`, устройство не меняется.
+
+Нормализация ника: `^[a-z0-9_]{4,32}$`, потому что в Telegram есть коллекционные ники из 4 символов.
+
+S1-07 добавляет минимальный экран `/settings` с кнопкой выхода. S3-01 заменяет его полными настройками.
+
+### 19.10 Автопереключение
+
+- Начальное состояние при `Start`: `net = other`, `override = false`, `effective` вычисляется по правилу §5.7. Хост отправляет `NetChanged` с текущей сетью сразу после старта.
+- `no_whitelist_servers` отправляется только при изменении состояния: сеть стала `cellular` или `whitelistAvailable` сменился на `false` в сети `cellular`. Это согласует правило с инвариантом I6.
