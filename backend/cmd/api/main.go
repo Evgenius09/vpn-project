@@ -15,6 +15,8 @@ import (
 
 	"github.com/Evgenius09/vpn-project/backend/internal/app"
 	"github.com/Evgenius09/vpn-project/backend/internal/db/sqlc"
+	"github.com/Evgenius09/vpn-project/backend/internal/domain/profile"
+	"github.com/Evgenius09/vpn-project/backend/internal/gen/api"
 	"github.com/Evgenius09/vpn-project/backend/internal/httpapi"
 )
 
@@ -40,10 +42,24 @@ func run(ctx context.Context) error {
 	}
 	defer runtime.Pool.Close()
 
+	queries := sqlc.New(runtime.Pool)
+	policy, err := profile.LoadPolicy(runtime.Config.PolicyFile)
+	if err != nil {
+		return fmt.Errorf("load policy: %w", err)
+	}
+	endpoints := api.ProfileEndpoints{Api: runtime.Config.PublicAPIURLs, Bot: runtime.Config.BotURL()}
+	if url := runtime.Config.SupportURL; url != "" {
+		endpoints.Support = &url
+	}
+	if url := runtime.Config.WebURL; url != "" {
+		endpoints.Web = &url
+	}
+	service := profile.NewService(profile.NewPostgresStore(queries), profile.Options{Policy: policy, Endpoints: endpoints})
+
 	metrics := httpapi.NewMetrics()
 	router := httpapi.NewRouter(httpapi.Deps{
-		Handlers: httpapi.Unimplemented{},
-		Devices:  httpapi.NewPostgresDevices(sqlc.New(runtime.Pool), runtime.Logger),
+		Handlers: handlers{profile: profile.NewHandler(service)},
+		Devices:  httpapi.NewPostgresDevices(queries, runtime.Logger),
 		Pepper:   []byte(runtime.Config.TokenPepper),
 		Logger:   runtime.Logger,
 		Metrics:  metrics,
@@ -58,6 +74,17 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("serve: %w", err)
 	}
 	return nil
+}
+
+// handlers composes the domain slices. Operations without a slice stay
+// unimplemented.
+type handlers struct {
+	httpapi.Unimplemented
+	profile *profile.Handler
+}
+
+func (h handlers) GetProfile(ctx context.Context, request api.GetProfileRequestObject) (api.GetProfileResponseObject, error) {
+	return h.profile.GetProfile(ctx, request) //nolint:wrapcheck // The handler already returns a problem or a wrapped error.
 }
 
 func metricsMux(metrics *httpapi.Metrics) http.Handler {
