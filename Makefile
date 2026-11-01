@@ -4,7 +4,6 @@ SHELL := bash
 
 # Later slices add modules and generators here; targets skip what does not
 # exist yet so that every slice can run the same commands.
-GO_MODULES := $(patsubst %/go.mod,%,$(wildcard backend/go.mod core/go.mod))
 FLUTTER_APP := $(wildcard app/pubspec.yaml)
 SCRIPTS := $(wildcard .github/scripts/*.sh)
 GENERATED := app/lib/gen app/android/app/src/main/kotlin/com/vpnclient/app/gen \
@@ -39,11 +38,9 @@ check-repo:
 	shellcheck $(SCRIPTS)
 
 check-go:
-	@for module in $(GO_MODULES); do \
-		echo "check-go: $$module"; \
-		test -z "$$(cd $$module && gofmt -l .)" || { echo "gofmt needed in $$module"; exit 1; }; \
-		(cd $$module && go vet ./... && golangci-lint run --config ../.golangci.yml ./...); \
-	done
+	test -z "$$(cd backend && gofmt -l .)" || { echo "gofmt needed in backend"; exit 1; }
+	cd backend && go vet ./... && golangci-lint run --config ../.golangci.yml ./...
+	$(MAKE) --no-print-directory -C core check
 
 check-app:
 ifneq ($(FLUTTER_APP),)
@@ -57,16 +54,17 @@ test-repo:
 	bash .github/scripts/contract_guard_test.sh
 
 test-go:
-	@for module in $(GO_MODULES); do \
-		echo "test-go: $$module"; \
-		(cd $$module && go test ./...); \
-	done
+	cd backend && go test ./...
+	$(MAKE) --no-print-directory -C core test
 
 test-app:
 ifneq ($(FLUTTER_APP),)
 	cd app && flutter test
 endif
 
-seed dev core-android core-windows installer:
+core-android:
+	$(MAKE) --no-print-directory -C core android
+
+seed dev core-windows installer:
 	@echo "$@: not available yet, see the skeleton slices in tech.md section 15.1"
 	@exit 1
