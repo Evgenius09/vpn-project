@@ -1,0 +1,1302 @@
+# tech.md — ядро проекта VPN-клиента
+
+Версия ядра: **v1** (2026-11-01)
+Владелец: тимлид. Файл меняется только append-only, только через PR с меткой `contract-change`. Каждое изменение контракта бампает версию и добавляет строку в changelog.
+
+## Changelog
+
+- v1 — 2026-11-01 — первая версия: продуктовые решения (дизайн 2, свайп), платформы Android и Windows, вход через Telegram-бота, стек, монорепо, контракты API v1 / TunnelRequest v1 / CoreEvent v1 / VpnApi v1 / IPC vpnsvc v1, схема БД, джобы River, UI-примитивы, тесты, слайсы стадий 0–5.
+
+---
+
+## 0. Как пользоваться файлом
+
+- Это единственный источник истины. Всё, что здесь не определено, не существует. Нужного контракта нет → `CONTRACT GAP` (§13).
+- Каждая сессия нейросети работает против конкретной версии ядра и указывает её в описании PR: `Core: tech.md v1`.
+- Один слайс = одна задача = одна ветка = один PR. Карточки слайсов в §16.
+- Эталонная вертикаль (§15.2) — шаблон структуры. Новый слайс повторяет её раскладку.
+
+---
+
+## 1. Проект
+
+Собственный VPN-сервис: свои серверы, свой клиент, свой бэкенд поверх панели Remnawave, аккаунты через Telegram-бота.
+
+- Для кого: пользователи в РФ, которым нужен стабильный доступ к заблокированным ресурсам, в том числе при ограничении мобильного интернета белыми списками.
+- Цель: клиент уровня Happ по настройкам, проще по интерфейсу, плюс собственные фишки: автопереход на белые списки при смене Wi-Fi на мобильную сеть и сортировка по пингу.
+- Протоколы: VLESS + Reality (TCP, flow `xtls-rprx-vision`) и Hysteria2.
+- Платформы: **Android** и **Windows** (10 2004+ и 11, x64). Другие платформы вне плана.
+
+---
+
+## 2. Продуктовые решения (заморожены)
+
+### 2.1 Главный экран: вариант дизайна 2 (свайп)
+
+Два экрана-режима, переключаются горизонтальным свайпом (`ModePager`, §8):
+
+| Индекс | Режим `TunnelMode` | Что на экране |
+|---|---|---|
+| 0 | `regular` | «Обычный VPN»: большая круглая кнопка `PowerButton`, статус, под ней `ServerSheet` со списком regular-серверов |
+| 1 | `whitelist` | «Белые списки»: `PowerButton`, статус, `ServerSheet` со списком whitelist-серверов |
+
+```
++--------------------------------+
+| [настройки]     o .   [статус] |   PageDots: o = текущий экран
+|                                |
+|          Обычный VPN           |
+|            (  O  )             |   PowerButton
+|     Подключено  00:12:31       |
+|                                |
+| +---------- ServerSheet -----+ |   тянется вверх (DraggableScrollableSheet)
+| | Серверы         [сорт:пинг]| |
+| | DE Frankfurt      42 ms  * | |
+| | NL Amsterdam      55 ms    | |
+| +----------------------------+ |
++--------------------------------+
+        <- свайп ->  экран «Белые списки»
+```
+
+Правила:
+- **Свайп только переключает экран.** Свайп не меняет режим туннеля, не подключает и не отключает.
+- Туннель один. Режим включается кнопкой `PowerButton` на экране этого режима.
+- Состояние `PowerButton` на экране режима `P`:
+
+| Туннель | Кнопка на экране `P` | Тап |
+|---|---|---|
+| отключён | `idle` | `start` с `userMode = P` |
+| подключён, `effectiveMode == P` | `connected` | `stop` |
+| подключён, `effectiveMode != P` | `idle`, подпись «Сейчас активен: <другой режим>» | `setUserMode(P)`: переключение без переподключения |
+| `connecting` / `disconnecting` | то же состояние на обоих экранах | игнорируется |
+
+- Автопереключение (§5.7) меняет `effectiveMode`. UI показывает `StatusBanner` с причиной и анимирует `ModePager` на экран `effectiveMode`.
+- Выбранный сервер хранится отдельно для каждой группы.
+- Windows: окно по умолчанию 420×760, минимум 360×640, контент по центру с максимальной шириной 480. Экраны переключаются перетаскиванием мышью, кликом по `PageDots` и клавишами ← →.
+
+Визуальный дизайн придёт позже. Экраны собираются только из примитивов §8, все цвета, отступы, радиусы, шрифты — из токенов. Редизайн = замена токенов и примитивов, экраны не трогаются.
+
+### 2.2 Аккаунты: Telegram-бот
+
+Аккаунт выдаёт Telegram-бот. Пароли и email не используются.
+
+1. Пользователь открывает бота и нажимает Start. Бот создаёт аккаунт, привязывает его к Telegram ID и запускает выдачу доступа в панели.
+2. В приложении пользователь вводит свой Telegram-ник.
+3. Бэкенд находит пользователя бота по нику и бот присылает 6-значный код.
+4. Пользователь вводит код в приложении. Устройство привязывается к аккаунту, приложение получает токен.
+
+Ограничения Telegram, которые обязан учитывать UI:
+- Бот не может написать тому, кто его не запускал. Ник не найден → экран «Откройте бота и нажмите Start» с кнопкой-ссылкой на бота.
+- У пользователя нет ника в Telegram → бот на `/start` просит задать ник в настройках Telegram.
+- Ник меняется. Идентичность — Telegram ID; ник — последний известный, обновляется на каждом апдейте от пользователя.
+
+Управление устройствами — командой бота `/devices` (стадия 4).
+
+### 2.3 Наши фишки
+
+| Фишка | Где | Ключ настройки |
+|---|---|---|
+| Автопереключение на белые списки при переходе Wi-Fi → мобильная сеть (тумблер) | ядро (§5.7) + мониторинг сети в хосте | `whitelist.autoOnCellular` |
+| Сортировка серверов по пингу (тумблер) | app, чистая функция `sortServers` | `ui.sortByPing` |
+
+### 2.4 Базовые фишки (перенос из Happ)
+
+Клиентское ядро — sing-box, у Happ — Xray. Переносим только то, что sing-box реализует корректно против наших Xray-нод.
+
+| Настройка Happ | Решение | Ключ |
+|---|---|---|
+| Маршрутизация вкл/выкл, профили правил | перенос | `routing.enabled`, `routing.preset` |
+| Свои правила: домены, IP → proxy/direct/block | перенос | `routing.rules` |
+| Прокси для выбранных приложений (on/bypass) | перенос: Android — пакеты, Windows — процессы | `perApp.mode`, `perApp.apps` |
+| DNS удалённый/прямой | перенос | `dns.remote`, `dns.direct`, `dns.strategy` |
+| IPv6 | перенос | `net.ipv6` |
+| Sniffing | перенос | `net.sniffing` |
+| Фрагментация TLS | перенос через `tls.fragment` / `tls.record_fragment` sing-box | `net.tlsFragment` |
+| MTU туннеля | перенос | `net.mtu` |
+| Режим TUN (system/gvisor/mixed) | перенос | `net.tunStack` |
+| Exclude routes, обход локальной сети | перенос | `net.excludeRoutes`, `net.bypassLan` |
+| Режим Proxy / TUN на десктопе | только TUN | — |
+| Тип пинга, URL проверки, таймаут, пинг при открытии | перенос: `tcp` и `url_test`; ICMP нет | `ping.*` |
+| Автоподключение при запуске (last used / lowest ping / random) | перенос | `connect.autoConnect`, `connect.autoConnectStrategy` |
+| Автозапуск | Android — при загрузке устройства; Windows — при входе в систему | `connect.autostart` |
+| Строка трафика и срока, объявления, ссылка поддержки | перенос | приходят в `ProfileV1` |
+| Сортировка серверов | перенос (наша фишка) | `ui.sortByPing` |
+| Язык, тема светлая/тёмная/системная | перенос | `ui.locale`, `ui.theme` |
+| Mux (Xray mux.cool) | **не переносим**: sing-box multiplex несовместим с Xray-сервером, Vision не работает с mux | — |
+| Noises, XHTTP, No Limit Mode, Xray TUN, выбор ядра туннеля | **не переносим**: фичи Xray | — |
+| Скрыть иконку VPN | **не переносим** | — |
+
+Настройки, которые провайдер задаёт по умолчанию или блокирует, приходят в `ClientPolicy` (§5.3).
+
+---
+
+## 3. Стек и версии
+
+| Слой | Технология |
+|---|---|
+| Клиент UI | Flutter (stable), Dart, Riverpod, go_router, gen-l10n (ru, en), flutter_secure_storage |
+| Клиент Windows (desktop-обвязка) | Flutter Windows; tray_manager, window_manager, launch_at_startup; пакет `win32` (FFI) для named pipe |
+| Клиент Android | Kotlin, `VpnService`, foreground service |
+| Мост Flutter ↔ Android | Pigeon (`contracts/pigeon/vpn_api.dart`) |
+| Мост Flutter ↔ Windows | JSON-RPC 2.0 по named pipe к службе `vpnsvc` (§5.6) |
+| Ядро туннеля | Go-модуль `core`: sing-box + наша логика. Android: `gomobile bind` → `.aar` (libbox). Windows: служба `vpnsvc.exe` (Go, `golang.org/x/sys/windows/svc`), wintun |
+| Установщик Windows | Inno Setup: app + `vpnsvc.exe` + регистрация службы |
+| Бэкенд | Go, chi, pgx, sqlc, PostgreSQL, River (очередь на Postgres), goose (миграции), oapi-codegen |
+| Telegram-бот | Go внутри бэкенда, `github.com/go-telegram/bot`; webhook на staging/prod, long polling в dev |
+| Контракты | OpenAPI 3.1 (`contracts/openapi.yaml`) → Go (oapi-codegen), Dart (swagger_parser) |
+| VPN-серверы | Remnawave panel + Remnawave node (Xray-core): VLESS Reality Vision, Hysteria2 |
+| Инфраструктура | Docker Compose, Ansible, Caddy (TLS для API и webhook), GitHub Actions |
+| Мониторинг | Prometheus, Grafana, node_exporter, blackbox_exporter |
+| Тесты Go | `testing`, testify/require, `pgregory.net/rapid` (property-based), kin-openapi (валидация ответов) |
+| Тесты Dart | flutter_test, mocktail, glados (property-based), golden-тесты, integration_test |
+| Тесты натива | JUnit (Android), Go-тесты `vpnsvc` на windows-раннере |
+
+Версии:
+- Все тулчейны фиксируются в `.tool-versions` (mise): Go, Flutter, Dart, Java, gomobile, sqlc, goose, oapi-codegen, Inno Setup.
+- sing-box: ветка **1.14.x**, точный тег в `core/go.mod`. Апгрейд ветки = контрактное изменение, потому что меняется формат опций. Build tags для Android (libbox) и Windows (tun, wintun, quic, utls) — по upstream release build, фиксируются в `core/Makefile`.
+- Remnawave: точная версия образов panel и node в `infra/compose/remnawave/`. Go-клиент панели генерится из её OpenAPI этой версии. Апгрейд панели = контрактное изменение.
+- Перед включением Hysteria2 проверить версию Xray в образе ноды и известные баги статистики Hysteria inbound.
+
+---
+
+## 4. Архитектура
+
+### 4.1 Компоненты
+
+```
+ Flutter app (Dart)                            Backend (Go)
+ - UI, состояние, настройки                    - api: chi, oapi-codegen strict server
+ - вход через Telegram  ---- HTTPS ---->       - bot: Telegram webhook / polling
+ - API-клиент (generated)                      - worker: River jobs
+ - TCP-пинг, собирает TunnelRequest            - PanelClient (Remnawave | fake)
+ - VpnBridge: Pigeon | Pipe | Fake             - TelegramClient (Bot API | fake)
+     |                     |                   - PostgreSQL
+     | Pigeon              | named pipe              |          ^
+     v                     v JSON-RPC                v REST     | Bot API
+ Android host          Windows service           Remnawave      Telegram
+ TunnelService         vpnsvc.exe (SYSTEM)       panel
+ (VpnService)          wintun                      |
+     | gomobile            |                       v
+     v                     v                     Remnawave nodes (Xray)
+ core (Go): sing-box + ConfigBuilder             - VLESS Reality Vision :443/tcp
+ + autoswitch + url_test                          - Hysteria2 :udp (port hopping)
+```
+
+Распределение логики:
+- Сборка конфига sing-box и автопереключение — в `core`, одна реализация на обе платформы, типизированные опции sing-box.
+- Android-хост тонкий: жизненный цикл туннеля, разрешение VPN, уведомление, тип сети.
+- Windows-служба `vpnsvc` — тот же `core` плюс IPC-сервер, мониторинг сети и хранение последнего `TunnelRequest` для автозапуска. Работает от SYSTEM, потому что TUN требует прав администратора. UI работает от обычного пользователя.
+- Dart: UI, состояние, настройки, API, вход, TCP-пинг, сортировка. Платформенный мост скрыт за `VpnBridge` (`app/lib/core/vpn/`).
+
+### 4.2 Поток подключения
+
+1. App: `GET /v1/profile` с `If-None-Match` → кэш профиля на диске.
+2. Тап `PowerButton` → `VpnBridge.prepare()` (Android: разрешение VPN; Windows: служба установлена и запущена) → app собирает `TunnelRequest` (§5.4) → `VpnBridge.start(json)`.
+3. Хост → `core.Start(json)` → валидация → `BuildOptions` → `box.New` → старт.
+4. Ядро шлёт `CoreEvent` (JSON) → хост → Pigeon event stream или pipe-нотификация → app.
+5. Смена сервера или режима при подключённом туннеле → `selectServer` / `setUserMode` → переключение селектора без рестарта.
+6. Смена настроек туннеля → `update(json)` → ядро пересобирает конфиг и перезапускает box.
+
+### 4.3 Структура монорепо
+
+```
+/
+├── tech.md                     # ядро (тимлид)
+├── CLAUDE.md                   # авто-подгрузка ядра
+├── .tool-versions
+├── Makefile                    # make gen | check | test | seed | dev
+├── contracts/                  # тимлид
+│   ├── openapi.yaml            # HTTP API + все общие типы (components/schemas)
+│   ├── pigeon/vpn_api.dart     # мост Flutter <-> Android
+│   └── fixtures/               # профили, TunnelRequest, CoreEvent, IPC-сессии (.jsonl), seed
+├── backend/
+│   ├── cmd/{api,worker,bot,migrate,seed}/main.go   # bot: long polling для dev
+│   └── internal/
+│       ├── config/             # тимлид: env -> Config
+│       ├── httpapi/            # тимлид: роутер, middleware, problem+json
+│       ├── gen/{api,remnawave}/   # generated, руками не править
+│       ├── db/migrations/      # тимлид: goose SQL
+│       ├── db/queries/<domain>.sql  # владелец слайса
+│       ├── db/sqlc/            # generated
+│       ├── jobs/               # тимлид: River client, реестр kind'ов и args
+│       ├── panel/              # тимлид: PanelClient interface + fake; remnawave impl — слайс S1-10
+│       ├── telegram/           # тимлид: TelegramClient interface + fake; botapi impl — слайс S1-05
+│       ├── domain/<domain>/    # слайсы: service.go, handler.go, store.go, *_test.go
+│       └── testutil/           # тимлид
+├── core/
+│   ├── bind/                   # тимлид: gomobile-поверхность (Android)
+│   ├── cmd/vpnsvc/             # Windows-служба
+│   ├── internal/contract/      # generated из openapi.yaml (types only)
+│   ├── internal/config/        # ConfigBuilder
+│   ├── internal/autoswitch/    # state machine
+│   ├── internal/runtime/       # жизненный цикл box, события
+│   ├── internal/ipc/           # JSON-RPC сервер vpnsvc (протокол платформонезависим)
+│   ├── internal/urltest/
+│   └── Makefile                # gomobile bind, сборка vpnsvc, build tags
+├── app/
+│   ├── lib/
+│   │   ├── app/                # тимлид: bootstrap, router, shell, навигация-данные
+│   │   ├── ui/                 # тимлид: токены, тема, примитивы
+│   │   ├── core/               # тимлид: DI, storage, api client wiring, vpn/ (VpnBridge + реализации)
+│   │   ├── gen/                # generated (api, pigeon), руками не править
+│   │   ├── l10n/               # arb: ru, en
+│   │   └── features/<feature>/{data,domain,application,presentation}/
+│   ├── android/                # Kotlin host (TunnelService)
+│   ├── windows/                # Flutter Windows runner (не трогать без нужды)
+│   ├── env/{dev,staging,prod}.json
+│   └── test/ integration_test/
+├── installer/windows/          # Inno Setup скрипт
+├── infra/
+│   ├── ansible/                # роли: api-host, remnawave-panel, remnawave-node, monitoring
+│   ├── compose/                # api, worker, postgres, caddy; remnawave
+│   ├── catalog/servers.yaml    # метаданные серверов (группа, страна, вес)
+│   └── monitoring/             # prometheus rules, grafana dashboards
+└── .github/workflows/          # тимлид
+```
+
+---
+
+## 5. Контракты
+
+### 5.1 Владение
+
+Контрактные пути (правка только тимлидом, только PR с меткой `contract-change` и бампом версии ядра):
+`tech.md`, `contracts/**`, `backend/internal/db/migrations/**`, `backend/internal/jobs/**`, `backend/internal/panel/panel.go`, `backend/internal/telegram/telegram.go`, `backend/internal/config/**`, `backend/internal/httpapi/**`, `core/bind/**`, `core/internal/ipc/protocol.go`, `app/lib/ui/**`, `app/lib/app/**`, `app/lib/core/**`, `installer/**`, `.github/**`, `infra/**`, `.tool-versions`, `Makefile`.
+
+Generated-пути (`*/gen/**`, `backend/internal/db/sqlc/**`, `core/internal/contract/**`) руками не правятся никем. Только `make gen`.
+
+Все общие типы определены один раз в `contracts/openapi.yaml#/components/schemas`. Go-типы бэкенда, Go-типы ядра и Dart-модели генерятся оттуда. Ниже — нормативное описание этих схем; `openapi.yaml` обязан ему соответствовать.
+
+### 5.2 HTTP API v1
+
+База: `https://<api-domain>/v1`. JSON, camelCase, время в RFC 3339 UTC.
+
+Авторизация: `Authorization: Bearer <deviceToken>`. Токен — 32 случайных байта в base64url. В БД хранится `HMAC-SHA256(token, TOKEN_PEPPER)`.
+
+Ошибки: `application/problem+json` (RFC 9457) с обязательным полем `code`:
+`unauthorized | device_revoked | validation_failed | rate_limited | telegram_user_not_found | code_invalid | code_expired | device_limit_reached | panel_unavailable | not_found | internal`.
+Дополнительные поля проблемы: `botUrl` (для `telegram_user_not_found`), `attemptsLeft` (для `code_invalid`), `retryAfterSec` (для `rate_limited`).
+
+| Метод | Путь | Auth | Назначение |
+|---|---|---|---|
+| POST | `/v1/auth/telegram/start` | нет, rate limit | запросить код в боте |
+| POST | `/v1/auth/telegram/verify` | нет, rate limit | обменять код на токен устройства |
+| POST | `/v1/auth/logout` | да | отозвать текущее устройство |
+| GET | `/v1/profile` | да | профиль: аккаунт, серверы, политика, эндпоинты |
+| GET | `/v1/rulesets/{id}.srs` | да | rule set sing-box (может отдаваться Caddy статикой) |
+| POST | `/telegram/webhook` | заголовок `X-Telegram-Bot-Api-Secret-Token` | апдейты Telegram (вне `/v1`, вне `openapi.yaml`) |
+| GET | `/healthz` | нет | liveness |
+| GET | `/metrics` | только внутренняя сеть | Prometheus |
+
+`POST /v1/auth/telegram/start`
+- Request `TelegramLoginStart`: `username: string` (с `@` или без, нормализуется: без `@`, нижний регистр, `^[a-z0-9_]{5,32}$`), `installId: uuid`.
+- Response 200 `TelegramLoginChallenge`: `loginId: uuid`, `expiresAt: datetime`, `resendAfterSec: int`, `botUrl: string`.
+- Ник не найден среди пользователей бота или бот заблокирован пользователем → 404 `telegram_user_not_found` с `botUrl`.
+- Код отправляется джобом `telegram_send_code` (§7). Новый `start` для того же `telegram_id` и `installId` инвалидирует прежний неиспользованный код.
+- Лимиты: повтор не раньше `resendAfterSec` (60 с), не больше 5 кодов в час на Telegram ID, не больше `AUTH_RATE_PER_MIN` запросов с IP.
+
+`POST /v1/auth/telegram/verify`
+- Request `TelegramLoginVerify`: `loginId: uuid`, `code: string` (6 цифр), `installId: uuid`, `platform: Platform`, `model: string`, `appVersion: string`.
+- Response 200 `AuthResult`: `deviceId: uuid`, `accountId: uuid`, `token: string`.
+- Код живёт 5 минут, 5 попыток. Неверный → 400 `code_invalid` с `attemptsLeft`; истёк или попытки кончились → 410 `code_expired`.
+- Устройство с этим `installId` уже есть → тот же `deviceId`, новый токен, старый перестаёт работать. Иначе новое устройство; активных устройств уже `device_limit` → 409 `device_limit_reached`.
+- Код одноразовый: после успеха `consumed_at` выставлен, повтор → `code_expired`.
+
+`GET /v1/profile`
+- Поддерживает `ETag` / `If-None-Match` → 304.
+- Response 200 `ProfileV1`. Пока `panel_provision_user` не завершён: `account.status = provisioning`, `servers = []`, заголовок `Retry-After: 2`.
+- Аккаунт `expired` или `blocked`: 200, `servers = []`.
+- Отозванное устройство → 401 `device_revoked`; app удаляет токен и показывает экран входа.
+
+### 5.3 Общие типы
+
+```
+TunnelMode        = regular | whitelist
+ServerProtocol    = vless_reality | hysteria2
+Platform          = android | windows
+AccountStatus     = provisioning | trial | active | expired | blocked
+
+ServerNode
+  id: string                 # uuid из БД
+  group: TunnelMode
+  name: string
+  countryCode?: string       # ISO 3166-1 alpha-2, верхний регистр
+  city?: string
+  protocol: ServerProtocol
+  address: string            # домен или IP
+  port: int                  # 1..65535
+  vless?: VlessRealityParams        # обязателен при protocol = vless_reality
+  hysteria2?: Hysteria2Params       # обязателен при protocol = hysteria2
+  sortWeight: int            # из каталога
+
+VlessRealityParams
+  uuid: string               # секрет
+  flow: "xtls-rprx-vision" | ""
+  serverName: string         # SNI
+  publicKey: string
+  shortId: string
+  fingerprint: chrome | firefox | safari | ios | android | edge | random
+
+Hysteria2Params
+  password: string           # секрет
+  serverName: string
+  obfsSalamanderPassword?: string
+  portHopping?: { ports: string, intervalSec: int }   # ports: "20000-30000" или "443,8443"
+  upMbps?: int
+  downMbps?: int
+
+AccountInfo
+  status: AccountStatus
+  telegramUsername?: string
+  expiresAt?: datetime
+  trafficUsedBytes: int64
+  trafficLimitBytes: int64   # 0 = без лимита
+  deviceLimit: int
+
+ProfileV1
+  schemaVersion: 1
+  generatedAt: datetime
+  account: AccountInfo
+  servers: ServerNode[]      # обе группы
+  policy: ClientPolicy
+  endpoints: { api: string[], bot: string, support?: string, web?: string }   # api[0] основной, далее fallback
+  announcement?: { text: string, level: info | warning, actionLabel?: string, actionUrl?: string }
+
+ClientPolicy
+  defaults: SettingsPatch    # значения для незаблокированных ключей без пользовательского значения
+  locked: SettingsKey[]      # пользователь не меняет эти ключи
+  flags: { autoWhitelist: bool }
+  ping: { url: string, timeoutMs: int }
+  ruleSets: RuleSetRef[]
+  minAppVersion: { android: string, windows: string }   # semver; ниже — экран «обновите приложение»
+  appUpdate?: { android?: AppRelease, windows?: AppRelease }
+
+AppRelease
+  version: string            # semver
+  url: string                # APK / установщик Windows
+  sha256: string
+  notes?: string
+
+RuleSetRef
+  id: string                 # ru-direct, ads, ...
+  url: string
+  sha256: string
+
+SettingsKey (строковый enum, путь к полю)
+  routing.enabled, routing.preset, routing.rules,
+  dns.remote, dns.direct, dns.strategy,
+  net.ipv6, net.sniffing, net.tlsFragment, net.mtu, net.tunStack, net.excludeRoutes, net.bypassLan,
+  perApp.mode, perApp.apps,
+  ping.type, ping.url, ping.timeoutMs, ping.onOpen,
+  connect.autoConnect, connect.autoConnectStrategy, connect.autostart,
+  ui.sortByPing, ui.locale, ui.theme,
+  whitelist.autoOnCellular
+
+SettingsPatch — объект с теми же путями, все поля опциональны.
+```
+
+Клиентские настройки (только Dart, в `TunnelRequest` не уходят): `ui.*`, `ping.*`, `connect.*`. Остальные уходят в `TunnelSettings`.
+
+### 5.4 TunnelRequest v1 (app → core)
+
+Передаётся как JSON-строка. Ядро валидирует и отвергает с `config_invalid`.
+
+```
+TunnelRequest
+  schemaVersion: 1
+  platform: Platform
+  userMode: TunnelMode
+  selected: { regular?: string, whitelist?: string }   # serverId
+  servers: ServerNode[]
+  autoSwitch: { enabled: bool }
+  settings: TunnelSettings
+  log: { level: warn | info | debug }
+
+TunnelSettings
+  routing:
+    enabled: bool
+    preset: ru_direct | all_proxy | custom
+    rules: RoutingRule[]         # применяются по порядку, до правил пресета
+    ruleSets: LocalRuleSet[]     # app скачивает .srs заранее, ядро читает локально
+  dns:
+    remote: string               # DoH URL, через proxy
+    direct: string               # DoH URL или IP, напрямую
+    strategy: prefer_ipv4 | prefer_ipv6 | ipv4_only | ipv6_only
+  net:
+    ipv6: bool
+    sniffing: bool
+    tlsFragment: { enabled: bool, record: bool }
+    mtu: int                     # 1280..9000, по умолчанию 1500
+    tunStack: system | gvisor | mixed
+    excludeRoutes: string[]      # CIDR
+    bypassLan: bool
+  perApp:
+    mode: off | include | exclude
+    apps: string[]               # Android: имена пакетов; Windows: имена процессов (*.exe)
+
+RoutingRule
+  id: string
+  match: domain | domain_suffix | domain_keyword | ip_cidr | rule_set | app
+  value: string                  # для app: пакет на Android, процесс на Windows
+  action: proxy | direct | block
+
+LocalRuleSet
+  id: string
+  path: string                   # Android: путь в контейнере приложения; Windows: путь в %ProgramData%\<app>\rulesets
+```
+
+На Windows app не передаёт службе файлы напрямую: rule sets скачивает служба по `RuleSetRef` из `policy` и кладёт в свой каталог. App передаёт в `LocalRuleSet.path` только `id`-относительный путь `rulesets/<id>.srs`; служба резолвит его в своём каталоге.
+
+### 5.5 CoreEvent v1 (core → app)
+
+Плоский конверт, чтобы генераторы не спотыкались на `oneOf`. Заполнено ровно одно поле-нагрузка, соответствующее `type`.
+
+```
+CoreEvent
+  type: state | mode | traffic | url_test | error
+  at: datetime
+  state?:   { status: TunnelStatus, userMode: TunnelMode, effectiveMode: TunnelMode,
+              activeServerId?: string, connectedSince?: datetime }
+  mode?:    { from: TunnelMode, to: TunnelMode, reason: ModeSwitchReason }
+  traffic?: { upBps: int64, downBps: int64, upTotal: int64, downTotal: int64 }
+  urlTest?: { results: [{ serverId: string, delayMs?: int, error?: string }] }
+  error?:   { code: CoreErrorCode, message: string }
+
+TunnelStatus     = disconnected | connecting | connected | disconnecting | error
+ModeSwitchReason = user | network_cellular | network_wifi | override_cleared | no_whitelist_servers
+CoreErrorCode    = config_invalid | start_failed | no_servers_in_group | permission_denied
+                 | tun_failed | revoked | service_unavailable | ipc_version_mismatch | internal
+```
+
+`traffic` шлётся раз в 1 секунду только в `connected`. `state` шлётся на каждое изменение и в ответ на `getState`.
+
+### 5.6 Мосты к ядру
+
+Dart-абстракция `VpnBridge` (`app/lib/core/vpn/vpn_bridge.dart`, тимлид) с методами, совпадающими с `VpnHostApi` ниже, и потоком `Stream<CoreEvent>`. Реализации: `PigeonVpnBridge` (Android), `PipeVpnBridge` (Windows), `FakeVpnBridge` (тесты, `FAKE_VPN=true`). Фичи зависят только от `VpnBridge`.
+
+**Android: Pigeon (`contracts/pigeon/vpn_api.dart`)**
+
+```dart
+enum TunnelModeMsg { regular, whitelist }
+enum PrepareResult { granted, denied }
+
+@HostApi()
+abstract class VpnHostApi {
+  @async PrepareResult prepare();                 // VpnService.prepare
+  @async void start(String tunnelRequestJson);
+  @async void update(String tunnelRequestJson);   // смена настроек, рестарт box
+  @async void stop();
+  @async void setUserMode(TunnelModeMsg mode);
+  @async void selectServer(TunnelModeMsg group, String serverId);
+  @async String urlTest(List<String> serverIds);  // JSON CoreEvent type=url_test; только в connected
+  @async String getState();                       // JSON CoreEvent type=state
+  @async List<String> listApps();                 // JSON {package, label} для выбора приложений
+}
+
+@EventChannelApi()
+abstract class VpnEventApi {
+  String events();                                // поток JSON CoreEvent
+}
+```
+
+Ошибки `start/update` пробрасываются как `PlatformException(code: CoreErrorCode)`.
+
+**Windows: IPC vpnsvc v1**
+
+- Транспорт: named pipe `\\.\pipe\<app-id>-core`. ACL: SYSTEM и Administrators — полный доступ, Authenticated Users — чтение и запись.
+- Кадрирование: JSON-RPC 2.0, одно сообщение на строку (`\n`), UTF-8, максимум 4 MiB на сообщение.
+- Первый вызов обязателен: `hello { protocolVersion: 1, appVersion }` → `{ protocolVersion: 1, serviceVersion }`. Несовпадение версий → ошибка `ipc_version_mismatch`.
+- Методы (params → result):
+
+| Метод | Params | Result |
+|---|---|---|
+| `hello` | `{protocolVersion, appVersion}` | `{protocolVersion, serviceVersion}` |
+| `prepare` | `{}` | `{result: granted}` (служба доступна) |
+| `start` | `{tunnelRequest: TunnelRequest}` | `{}` |
+| `update` | `{tunnelRequest: TunnelRequest}` | `{}` |
+| `stop` | `{}` | `{}` |
+| `setUserMode` | `{mode}` | `{}` |
+| `selectServer` | `{group, serverId}` | `{}` |
+| `urlTest` | `{serverIds}` | `CoreEvent` (`url_test`) |
+| `getState` | `{}` | `CoreEvent` (`state`) |
+| `syncRuleSets` | `{ruleSets: RuleSetRef[]}` | `{ready: string[]}` |
+| `listProcesses` | `{}` | `[{name, path}]` запущенных процессов для выбора приложений |
+| `subscribe` | `{}` | `{}`; дальше служба шлёт нотификации `event` с `params: CoreEvent` |
+
+- Ошибки JSON-RPC: `error.code = -32000`, `error.data.code: CoreErrorCode`.
+- Служба не отвечает или не установлена → `PipeVpnBridge` отдаёт `service_unavailable`; UI показывает инструкцию переустановить приложение.
+- Служба хранит последний принятый `TunnelRequest` в `%ProgramData%\<app>\last_request.json` (ACL только SYSTEM и Administrators) для автоподключения при старте системы.
+- Протокол реализован платформонезависимо в `core/internal/ipc` поверх `io.ReadWriteCloser`; pipe-транспорт — тонкая обёртка `go-winio`.
+
+### 5.7 Автопереключение на белые списки: спецификация
+
+Реализация: `core/internal/autoswitch`, чистая функция `Next(State, Event) (State, []Action)`.
+
+```
+NetType = wifi | cellular | ethernet | other | none
+
+State
+  net: NetType
+  userMode: TunnelMode
+  autoSwitch: bool
+  override: bool              # пользователь сам выбрал режим в текущей сети
+  whitelistAvailable: bool    # в запросе есть хотя бы один сервер группы whitelist
+  effective: TunnelMode
+
+Event = NetChanged(NetType) | UserModeSet(TunnelMode) | AutoSwitchSet(bool) | ServersUpdated(whitelistAvailable)
+Action = SelectGroup(TunnelMode) | Emit(ModeEvent)
+```
+
+`UserModeSet` приходит только из тапа по `PowerButton` (§2.1). Свайп событий не порождает.
+
+Правило вычисления `effective`:
+1. `autoSwitch == false` → `userMode`.
+2. `override == true` → `userMode`.
+3. `net == cellular && whitelistAvailable` → `whitelist`.
+4. Иначе → `userMode`.
+
+Переходы:
+- `NetChanged(t)`: `t == none` → состояние не меняется. Иначе `t != net` → `override = false`, `net = t`.
+- `UserModeSet(m)`: `userMode = m`; если `autoSwitch && net == cellular` → `override = true`.
+- `AutoSwitchSet(b)`: `autoSwitch = b`, `override = false`.
+- `ServersUpdated(w)`: `whitelistAvailable = w`.
+- После любого события: если `effective` изменился → `SelectGroup(effective)` и `Emit(ModeEvent)` с причиной: `network_cellular`, `network_wifi` (для wifi/ethernet/other), `user`, `override_cleared`. Правило 3 не сработало из-за `whitelistAvailable == false` на cellular → `Emit` с `no_whitelist_servers` без смены группы.
+
+Инварианты (property-based тесты, rapid):
+- I1. `autoSwitch == false` ⇒ `effective == userMode` после любой последовательности.
+- I2. Ядро никогда не выбирает `whitelist` автоматически при `whitelistAvailable == false`.
+- I3. `wifi → cellular → wifi` без пользовательских событий ⇒ `effective == userMode`.
+- I4. `NetChanged(none)` не меняет состояние.
+- I5. Детерминизм: одинаковая последовательность событий → одинаковое состояние и действия.
+- I6. Повторное одинаковое событие не порождает действий.
+
+Источник `NetChanged`, debounce 1 секунда в хосте:
+- Android: `ConnectivityManager.NetworkCallback` в `TunnelService`, транспорт активной сети → `NetType`.
+- Windows: `vpnsvc` подписывается на изменения сети (`NotifyNetworkConnectivityHintChange`). `cellular`, если активный интерфейс WWAN или стоимость подключения не `unrestricted` (лимитная сеть: раздача с телефона). Иначе `wifi` / `ethernet` по типу интерфейса. Интерфейс wintun при определении игнорируется.
+
+### 5.8 Сборка конфига sing-box (`core/internal/config`)
+
+`BuildOptions(TunnelRequest) (option.Options, error)` — чистая функция на типизированных опциях sing-box.
+
+Теги и структура:
+- Outbound на каждый сервер: `srv-<serverId>`.
+- Селекторы `grp-regular` и `grp-whitelist` по группе сервера. Пустая группа не создаётся.
+- Селектор `proxy`: `[grp-regular, grp-whitelist]`, default = `effective`, `interrupt_exist_connections: true`.
+- `direct`. Блокировка — rule action `reject`, не outbound.
+- `route.final = proxy`.
+- Порядок правил: `sniff` (если `net.sniffing`) → `hijack-dns` для DNS → `bypassLan` (private IP → direct) → адреса всех серверов → direct → пользовательские `routing.rules` по порядку → правила пресета → final.
+- DNS: только новый формат серверов (1.12+), legacy-поля запрещены. `remote` через `proxy`, `direct` через `direct`. `strategy` из настроек; `ipv6 == false` форсирует `ipv4_only`.
+- Inbound `tun`: адрес `172.19.0.1/30` (+ `fdfe:dcba:9876::1/126` при `ipv6`), `mtu`, `stack`, `auto_route`, `strict_route`.
+- `perApp`:
+  - Android: `include_package` / `exclude_package` на tun; собственный пакет приложения всегда в `exclude_package`.
+  - Windows: `route.find_process: true`; `include` → правило `process_name ∈ apps → proxy` и `final = direct`; `exclude` → правило `process_name ∈ apps → direct`. Правило `match: app` в `routing.rules` → `process_name` на Windows, `package_name` на Android.
+- VLESS: `flow` из параметров, `packet_encoding: xudp`, `tls.reality`, `utls.fingerprint`. `multiplex` на VLESS не включается никогда.
+- Hysteria2: `server_ports` и `hop_interval` из `portHopping`, `obfs.salamander`, `tls.server_name`.
+- `tlsFragment.enabled` → `tls.fragment: true` на TLS-outbound'ах; совместимость с Reality фиксируется ADR в S3-04. `record` → `tls.record_fragment`.
+- `experimental.cache_file` включён в рабочей директории ядра.
+
+Инварианты (rapid):
+- C1. Любой валидный `TunnelRequest` даёт опции, которые проходят `box.New` без ошибок (эквивалент `sing-box check`) для обеих платформ.
+- C2. Каждый сервер из запроса имеет ровно один outbound `srv-*`, и он входит ровно в одну группу, совпадающую с `group`.
+- C3. `selected.*`, указывающий на отсутствующий сервер, → первый сервер группы по `sortWeight`, без ошибки.
+- C4. Адрес каждого сервера маршрутизируется в `direct`.
+- C5. `platform = windows` ⇒ нет `include_package` / `exclude_package`; `platform = android` ⇒ нет `process_name`.
+- C6. Секреты (`uuid`, `password`) не появляются в логах ядра.
+
+### 5.9 Поверхность core
+
+Android (`core/bind`, gomobile: только базовые типы, строки, интерфейсы):
+
+```go
+type EventSink interface { OnEvent(coreEventJSON string) }
+
+func NewCore(platform libbox.PlatformInterface, sink EventSink, workDir string) *Core
+func (c *Core) Start(tunnelRequestJSON string) error
+func (c *Core) Update(tunnelRequestJSON string) error
+func (c *Core) Stop() error
+func (c *Core) SetUserMode(mode string) error           // "regular" | "whitelist"
+func (c *Core) SelectServer(group, serverID string) error
+func (c *Core) OnNetworkChanged(netType string)          // NetType
+func (c *Core) URLTest(serverIDsJSON string) (string, error)   // JSON CoreEvent url_test
+func (c *Core) State() string                            // JSON CoreEvent state
+```
+
+Kotlin-хост реализует `libbox.PlatformInterface` по образцу официального Android-клиента sing-box.
+
+Windows: `core/cmd/vpnsvc` использует `core/internal/runtime` напрямую (без gomobile) и `core/internal/ipc`. Набор операций runtime тот же, что у `bind.Core`.
+
+### 5.10 Внешние клиенты бэкенда
+
+**PanelClient (`backend/internal/panel/panel.go`)**
+
+```go
+type PanelUser struct {
+    UUID          uuid.UUID
+    ShortUUID     string
+    Username      string
+    ExpiresAt     time.Time
+    TrafficLimit  int64
+    TrafficUsed   int64
+    VlessUUID     string // секрет
+    Hysteria2Auth string // секрет
+}
+
+type PanelHost struct {
+    UUID     uuid.UUID
+    Protocol string // vless_reality | hysteria2
+    Address  string
+    Port     int
+    Params   json.RawMessage // несекретные параметры inbound/host
+    Enabled  bool
+}
+
+type PanelClient interface {
+    GetUserByUsername(ctx context.Context, username string) (PanelUser, error) // ErrNotFound
+    CreateUser(ctx context.Context, in CreateUserInput) (PanelUser, error)     // ErrConflict, если username занят
+    UpdateUser(ctx context.Context, uuid uuid.UUID, in UpdateUserInput) (PanelUser, error)
+    ListHosts(ctx context.Context) ([]PanelHost, error)
+}
+```
+
+- Username в панели: `tg_<telegram_id>`.
+- Ошибки: `panel.ErrNotFound`, `panel.ErrConflict`, `panel.ErrUnavailable` (5xx, таймаут, сеть).
+- Реализации: `panel/fake` (сид-данные, программные сбои `FailNext(op, err)`), `panel/remnawave` (generated-клиент).
+- Откуда брать `Hysteria2Auth` и параметры Reality из API панели — решается в S1-10 по OpenAPI зафиксированной версии, записывается ADR + бампом ядра.
+
+**TelegramClient (`backend/internal/telegram/telegram.go`)**
+
+```go
+type Update struct {
+    UpdateID   int64
+    TelegramID int64
+    ChatID     int64
+    Username   string // без @, нижний регистр; "" если ника нет
+    FirstName  string
+    Text       string // текст сообщения или команда
+    CallbackData string
+}
+
+type TelegramClient interface {
+    SendMessage(ctx context.Context, chatID int64, text string, buttons []InlineButton) (messageID int64, err error)
+    AnswerCallback(ctx context.Context, callbackID string, text string) error
+}
+// Ошибки: telegram.ErrBotBlocked (пользователь заблокировал бота, 403), telegram.ErrUnavailable (5xx, сеть, 429)
+```
+
+- Реализации: `telegram/botapi` (поверх `go-telegram/bot`), `telegram/fake` (записывает отправленные сообщения, сбои `FailNext`; в dev пишет код в лог).
+- Апдейты: webhook (`/telegram/webhook`) и long polling (`cmd/bot`) мапят входящее в `Update` и зовут один и тот же `domain/telegram.HandleUpdate`. Обработка идемпотентна по `UpdateID`.
+- Тексты бота — в `backend/internal/domain/telegram/messages_ru.go` (бот только на русском в v1).
+
+---
+
+## 6. Схема БД (goose, `backend/internal/db/migrations/00001_init.sql`)
+
+```sql
+-- +goose Up
+create extension if not exists citext;
+
+create type platform        as enum ('android', 'windows');
+create type server_group    as enum ('regular', 'whitelist');
+create type server_protocol as enum ('vless_reality', 'hysteria2');
+create type account_status  as enum ('provisioning', 'trial', 'active', 'expired', 'blocked');
+
+create table accounts (
+    id           uuid primary key default gen_random_uuid(),
+    status       account_status not null default 'provisioning',
+    expires_at   timestamptz,
+    device_limit int not null default 5,
+    created_at   timestamptz not null default now(),
+    updated_at   timestamptz not null default now()
+);
+
+create table telegram_users (
+    telegram_id    bigint primary key,
+    account_id     uuid not null unique references accounts(id) on delete cascade,
+    chat_id        bigint not null,
+    username       citext unique,          -- последний известный ник без @; null, если ника нет
+    first_name     text not null default '',
+    bot_blocked_at timestamptz,
+    last_update_id bigint not null default 0,
+    created_at     timestamptz not null default now(),
+    updated_at     timestamptz not null default now()
+);
+
+create table login_codes (
+    id          uuid primary key default gen_random_uuid(),
+    telegram_id bigint not null references telegram_users(telegram_id) on delete cascade,
+    install_id  uuid not null,
+    code_hash   bytea not null,            -- HMAC-SHA256(code, TOKEN_PEPPER)
+    attempts    int not null default 0,
+    expires_at  timestamptz not null,
+    sent_at     timestamptz,
+    consumed_at timestamptz,
+    invalidated_at timestamptz,
+    created_at  timestamptz not null default now()
+);
+create index login_codes_tg_created_idx on login_codes (telegram_id, created_at desc);
+
+create table devices (
+    id           uuid primary key default gen_random_uuid(),
+    account_id   uuid not null references accounts(id) on delete cascade,
+    install_id   uuid not null unique,
+    platform     platform not null,
+    model        text not null default '',
+    app_version  text not null,
+    token_hash   bytea not null unique,
+    created_at   timestamptz not null default now(),
+    last_seen_at timestamptz not null default now(),
+    revoked_at   timestamptz
+);
+create index devices_account_active_idx on devices (account_id) where revoked_at is null;
+
+create table panel_users (
+    account_id          uuid primary key references accounts(id) on delete cascade,
+    remnawave_uuid      uuid not null unique,
+    short_uuid          text not null unique,
+    vless_uuid          text not null,   -- секрет, не логировать
+    hysteria2_auth      text not null,   -- секрет, не логировать
+    traffic_limit_bytes bigint not null default 0,
+    traffic_used_bytes  bigint not null default 0,
+    synced_at           timestamptz not null default now()
+);
+
+create table servers (
+    id                  uuid primary key default gen_random_uuid(),
+    remnawave_host_uuid uuid not null unique,
+    grp                 server_group not null,
+    protocol            server_protocol not null,
+    display_name        text not null,
+    country_code        char(2) not null,
+    city                text,
+    address             text not null,
+    port                int not null check (port between 1 and 65535),
+    params              jsonb not null default '{}'::jsonb,  -- несекретные параметры протокола
+    enabled             boolean not null default true,
+    sort_weight         int not null default 0,
+    content_hash        text not null,                       -- sha256 нормализованных полей
+    updated_at          timestamptz not null default now()
+);
+create index servers_grp_enabled_idx on servers (grp, sort_weight) where enabled;
+
+-- +goose Down
+drop table servers;
+drop table panel_users;
+drop table devices;
+drop table login_codes;
+drop table telegram_users;
+drop table accounts;
+drop type account_status;
+drop type server_protocol;
+drop type server_group;
+drop type platform;
+```
+
+Правило ника: апдейт от пользователя с ником `X` в одной транзакции обнуляет `username = X` у другого `telegram_id` и записывает `X` текущему.
+
+Таблицы River создаются `rivermigrate` в шаге `cmd/migrate` после goose. Биллинг, если решится, добавит таблицы новой миграцией и бампом ядра.
+
+`infra/catalog/servers.yaml` — метаданные, которых нет в панели:
+
+```yaml
+- remnawaveHostUuid: 00000000-0000-0000-0000-000000000000
+  group: regular            # regular | whitelist
+  displayName: Frankfurt
+  countryCode: DE
+  city: Frankfurt
+  sortWeight: 10
+  enabled: true
+```
+
+---
+
+## 7. Очередь: River
+
+Реестр kind'ов и типов args — `backend/internal/jobs/kinds.go` (тимлид). Хендлеры живут в доменах слайсов.
+
+| Kind | Args | Запуск | Эффект | Идемпотентность | Ретраи |
+|---|---|---|---|---|---|
+| `panel_provision_user` | `{accountId}` | первый `/start` в боте | создать пользователя в панели, записать `panel_users`, `accounts.status = trial`, `expires_at = now + TRIAL_DAYS` | unique by args; есть строка `panel_users` → no-op; `ErrConflict` → `GetUserByUsername` и принять существующего; insert `on conflict do nothing` | 10, экспонента; `ErrUnavailable` ретраится, остальное → `JobCancel` |
+| `telegram_send_code` | `{loginId, code}` | `auth/telegram/start` | сообщение с кодом пользователю бота | `sent_at` не null или код инвалидирован/истёк → no-op; после отправки `sent_at = now()` | 3 с интервалом 2 с; `ErrBotBlocked` → `bot_blocked_at = now()`, `JobCancel` |
+| `panel_sync_user` | `{accountId, reason}` | смена статуса, срока, лимита | отправить абсолютные значения срока и лимита в панель | `UpdateUser` с абсолютными значениями | 10 |
+| `catalog_sync` | `{}` | periodic 5 мин + при старте worker | `ListHosts` + `servers.yaml` → upsert `servers` по `remnawave_host_uuid`, отсутствующие → `enabled = false` | upsert только при изменении `content_hash`; повтор не меняет `updated_at` | 3; periodic перекрывает |
+| `account_expire` | `{}` | periodic 1 ч | `trial/active` с `expires_at < now()` → `expired`, на каждый — `panel_sync_user` | условие в `where` + unique by args у дочерних джобов | 3 |
+| `demo_echo` | `{message}` | только скелет | лог | — | 1 |
+
+Код в args `telegram_send_code` хранится в открытом виде только в строке джоба; после выполнения джоб удаляется ретеншеном River через 1 час. В логах args этого kind'а маскируются.
+
+Общие правила:
+- Хендлер обязан выдерживать повторный запуск с тем же payload с ровно одним эффектом. Тест обязателен (§10).
+- Вставка джоба вместе с бизнес-записью — в одной транзакции (`InsertTx`).
+- Таймаут джоба 30 с. Внешние вызовы с контекстом.
+
+---
+
+## 8. UI: токены и примитивы (`app/lib/ui`)
+
+База: Material 3 Flutter, без сторонних UI-китов. Всё визуальное — через токены, примитивы не содержат захардкоженных цветов и размеров. Примитивы работают на тач и мыши (hover, фокус с клавиатуры).
+
+Токены (`tokens.dart`, `theme.dart`):
+- `AppColors` (light, dark): `bg`, `surface`, `surfaceAlt`, `primary`, `onPrimary`, `text`, `textMuted`, `success`, `warning`, `danger`, `connected`, `connecting`, `idle`, `border`.
+- `AppSpacing`: 4, 8, 12, 16, 24, 32, 48.
+- `AppRadius`: sm 8, md 12, lg 20, pill 999.
+- `AppText`: display, title, body, label, caption.
+- `AppDurations`: fast 150 ms, normal 250 ms, slow 400 ms.
+- `AppLayout`: `maxContentWidth = 480`.
+- `AppTheme.light()`, `AppTheme.dark()`; режим `system | light | dark` из `ui.theme`.
+
+Примитивы:
+
+| Компонент | Пропсы (эскиз) |
+|---|---|
+| `AppShell` | `child`; на Windows центрирует контент по `maxContentWidth` |
+| `PowerButton` | `state: PowerState (idle, connecting, connected, disconnecting, error)`, `onPressed: VoidCallback?`, `size: double = 168`, `caption: String?` |
+| `ModePager` | `pages: List<ModePage>`, `index: int`, `onChanged: ValueChanged<int>`; `ModePage { title, child }`; drag мышью и клавиши ← → |
+| `PageDots` | `count: int`, `index: int`, `onTap: ValueChanged<int>?` |
+| `ServerSheet` | `header: Widget`, `body: Widget`, `minExtent: double = 0.22`, `maxExtent: double = 0.9` |
+| `ServerTile` | `title`, `subtitle?`, `countryCode?`, `ping: PingValue`, `selected: bool`, `onTap?`, `trailing?` |
+| `PingBadge` | `value: PingValue (unknown, measuring, ms(int), unreachable)` |
+| `FlagIcon` | `countryCode: String`, `size: double = 20` |
+| `StatusBanner` | `kind: BannerKind (info, warning, error, success)`, `text`, `actionLabel?`, `onAction?` |
+| `TrafficCounter` | `upBps`, `downBps` |
+| `CodeInput` | `length: int = 6`, `onCompleted: ValueChanged<String>`, `errorText?`, `enabled: bool`; вставка кода из буфера |
+| `SettingsSection` | `title`, `children`, `footer?` |
+| `SettingsToggleTile` | `title`, `subtitle?`, `value: bool`, `onChanged?`, `locked: bool = false` |
+| `SettingsSelectTile<T>` | `title`, `value: T`, `options: List<SelectOption<T>>`, `onChanged?`, `locked` |
+| `SettingsNavTile` | `title`, `value?`, `onTap` |
+| `SettingsInputTile` | `title`, `value`, `validator?`, `keyboardType?`, `onSubmitted?`, `locked` |
+| `AppButton` | `label`, `onPressed?`, `variant: primary/secondary/text/danger`, `loading: bool`, `icon?` |
+| `AppTextField` | `controller`, `label?`, `hint?`, `errorText?`, `keyboardType?`, `prefixText?` |
+| `AppDialog.confirm` | `title`, `message`, `confirmLabel`, `danger: bool` → `Future<bool>` |
+| `AppSnack.show` | `context`, `text`, `kind: BannerKind` |
+| `EmptyState` | `icon`, `title`, `message?`, `action?` |
+| `LoadingView` / `ErrorView` | `ErrorView { error, onRetry? }` |
+
+`locked == true` → контрол недоступен, показывается иконка замка и подпись «Задано провайдером».
+
+Kitchen-sink роут `/dev/kitchen-sink` (только debug-сборки) рендерит каждый примитив во всех состояниях в light и dark. Golden-тесты на каждый примитив.
+
+Навигация — данные: `app/lib/app/routes.dart` содержит список роутов (`/login`, `/`, `/settings`, `/settings/*`, `/dev/kitchen-sink`) и гард: нет токена → `/login`. Слайс добавляет роут через issue `contract-change`, не правит роутер сам.
+
+---
+
+## 9. Инфраструктура и владение
+
+- **Миграции**: только тимлид. goose SQL в `backend/internal/db/migrations`. sqlc читает схему из миграций. Применяются в деплой-шаге (`cmd/migrate`: goose up → rivermigrate up). В PR-гейте прогоняются на эфемерном Postgres. Слайсы миграции не пишут.
+- **Сид**: `cmd/seed` + `contracts/fixtures/seed/*.json`. Один набор данных на всё: локальная БД, fake PanelClient, fake TelegramClient, Dart-фикстуры профиля, Go- и Dart-тесты. Состав: 3 regular-сервера (2 VLESS Reality, 1 Hysteria2 с port hopping), 2 whitelist-сервера, 1 аккаунт `trial` с Telegram-пользователем `seed_user`, 1 устройство с известным dev-токеном.
+- **Фейки внешних систем**: `panel/fake`, `telegram/fake` (бэкенд); `FakeVpnBridge` (app: проигрывает сценарии CoreEvent), `FakeApiClient` (app, офлайн-режим из фикстур).
+- **Конфиг бэкенда**: `backend/internal/config` читает env в типизированную структуру, валидирует на старте. `.env.example`:
+
+```
+APP_ENV=dev                     # dev | staging | prod
+HTTP_ADDR=:8080
+METRICS_ADDR=:9090
+LOG_LEVEL=info
+DATABASE_URL=postgres://vpn:vpn@localhost:5432/vpn?sslmode=disable
+PANEL_MODE=fake                 # fake | remnawave
+REMNAWAVE_BASE_URL=
+REMNAWAVE_API_TOKEN=
+TELEGRAM_MODE=fake              # fake | polling | webhook
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_BOT_USERNAME=
+TELEGRAM_WEBHOOK_SECRET=
+CATALOG_FILE=../infra/catalog/servers.yaml
+TOKEN_PEPPER=change-me-32-bytes-min
+TRIAL_DAYS=3
+AUTH_RATE_PER_MIN=10
+```
+
+- **Конфиг app**: `--dart-define-from-file=env/<flavor>.json`: `FLAVOR`, `API_BASE_URLS` (через запятую), `FAKE_VPN` (bool), `FAKE_API` (bool). Флейворы `dev`, `staging`, `prod`. Windows-сборка staging ставится рядом с prod под другим именем службы и pipe.
+- **Разработка без секретов**: `make dev` поднимает Postgres в Docker, бэкенд с `PANEL_MODE=fake` и `TELEGRAM_MODE=fake`, сид. Код входа печатается в лог. App запускается с `FAKE_VPN=true` на Windows-десктопе без службы.
+- **Make-цели**: `make gen` (все генераторы), `make check` (format, lint, analyze, vet, gen без диффа), `make test`, `make seed`, `make dev`, `make core-android` (`.aar`), `make core-windows` (`vpnsvc.exe`), `make installer` (только на Windows).
+- **Приватность**: бэкенд не хранит IP клиентов и логи соединений. Access-лог Caddy без IP. Access-логи Xray на нодах выключены. Секреты (`vless_uuid`, `hysteria2_auth`, токены устройств, коды входа, токен бота) никогда не попадают в логи и метрики.
+
+---
+
+## 10. Стратегия тестов
+
+Тесты привязаны к слайсу и PR. Слайс мёрджится только с тестами, гейт красный без них.
+
+**Главное правило: тесты выводятся из критериев приёмки задачи, не из реализации.** Сначала из карточки слайса пишутся тесты по каждому критерию, потом код. Тест кодирует контракт, не зеркалит код. Тест, который подтверждает, что код делает то, что делает, вместе с багами, не принимается.
+
+Обязательные типы тестов на слайс:
+
+1. **Контрактные на стыках.** Самые ценные.
+   - Бэкенд: каждый ответ handler'а валидируется против `contracts/openapi.yaml` (kin-openapi).
+   - Общие фикстуры `contracts/fixtures/{profile,tunnel_request,core_event}/*.json` проверяются с обеих сторон: Go парсит и валидирует, Dart парсит generated-моделями и сериализует обратно без потерь.
+   - IPC: записанные сессии `contracts/fixtures/ipc/*.jsonl` (запрос → ответ → нотификации) проигрываются против `core/internal/ipc` и против `PipeVpnBridge` с in-memory транспортом.
+   - Ядро: `TunnelRequest` от app валидируется схемой; каждый `CoreEvent` ядра проходит схему.
+   - Фейк — тестовый шов: `panel/fake`, `telegram/fake`, `FakeVpnBridge` валидируют вход против контракта и падают на мусоре.
+2. **Идемпотентность джобов River и апдейтов бота.** На каждый хендлер — тест: дважды с тем же payload, эффект ровно один (одна строка, один `CreateUser`, одно сообщение, неизменный `updated_at`). Повтор апдейта Telegram с тем же `UpdateID` — без эффекта.
+3. **Путь ошибки.** Через фейки: панель вернула 5xx, таймаут, `ErrConflict`; бот заблокирован пользователем; Telegram 429; неверный и истёкший код; ядро вернуло `start_failed`; служба Windows недоступна; API недоступен → fallback-эндпоинт; профиль из кэша.
+4. **Property-based на чистой логике.** Go — `rapid`: `config.BuildOptions` (C1–C6), `autoswitch.Next` (I1–I6), нормализация каталога, нормализация ника. Dart — `glados`: `sortServers`, слияние `ClientPolicy` с пользовательскими настройками, выбор сервера для автоподключения.
+5. **UI.** Widget-тесты на переходы состояний экранов с фейками; golden-тесты на примитивы.
+
+Нативные части: JUnit на маппинг типа сети и проброс событий без изменения JSON; Go-тесты `vpnsvc` (pipe-транспорт, ACL, определение типа сети) на windows-раннере. Ручной чек туннеля на реальном устройстве или машине — пункт в описании PR для слайсов `android`/`windows`.
+
+Если сессия в Claude Code и установлен skill `engineering:testing-strategy` — использовать его для плана тестов слайса.
+
+---
+
+## 11. Правила кода
+
+Общее:
+- Контракты не выдумываются. Нет типа, поля, эндпоинта, kind'а, ключа настройки → `CONTRACT GAP`.
+- Generated-код не правится руками. Изменение контракта → `make gen` → коммит generated.
+- Одна задача за раз, сфокусированный дифф. Не трогать чужие домены и контрактные пути.
+- Строки для пользователя в app — только через l10n (ru, en). Хардкод запрещён. Тексты бота — в `messages_ru.go`.
+- Секреты не коммитятся. Новый env → issue `contract-change` на `.env.example` и `config`.
+
+Go:
+- `gofmt`, `golangci-lint` (конфиг в репо). Ошибки оборачиваются `fmt.Errorf("...: %w", err)`; доменные sentinel-ошибки в пакете домена; паника в handler'ах, джобах и службе запрещена.
+- `context.Context` первым аргументом во всём, что ходит в сеть или БД.
+- Логи — `log/slog`, структурные ключи, без секретов. `vpnsvc` пишет в `%ProgramData%\<app>\logs` с ротацией.
+- Доступ к БД только через sqlc-запросы домена. Транзакции — `pgx.Tx` в сервисе.
+- Handler тонкий: парсинг → сервис → маппинг ответа.
+
+Dart / Flutter:
+- `flutter_lints` + `strict-casts`, `strict-inference`, `strict-raw-types`. `dynamic` запрещён.
+- Слои фичи: `domain` (чистые модели и функции, без Flutter), `data` (репозитории, API), `application` (Riverpod-провайдеры и контроллеры), `presentation` (экраны и локальные виджеты).
+- Состояния — sealed-классы. Логики в виджетах нет.
+- Фичи зависят от `VpnBridge`, не от Pigeon или pipe напрямую. Платформенные ветки (`Platform.isWindows`) только в `app/lib/core`.
+- Экраны собираются из примитивов `lib/ui`. Самописный UI в фиче допустим только как локальная композиция примитивов.
+
+Kotlin:
+- Хост тонкий: жизненный цикл, разрешения, уведомления, тип сети, проброс в core. Бизнес-логики нет. ktlint.
+
+---
+
+## 12. Коммиты, PR, комментарии
+
+Применяют все сессии.
+
+- Язык — только английский: коммиты, заголовки и описания PR, комментарии в коде.
+- Формат коммита фиксированный, всегда: `type(scope): summary`.
+  - `type` ∈ `feat | fix | test | refactor | chore | docs`.
+  - `scope` ∈ `app | android | windows | core | backend | bot | contracts | infra | ci`.
+  - `summary`: императив, со строчной, без точки, до ~50 символов.
+  - Тело только чтобы объяснить почему, не что.
+- Сессия коммитит сама по ходу работы: маленький логический коммит после каждого осмысленного шага. Каждый коммит по возможности проходит тайпчек и анализатор.
+- Ветка: `<linear-id>-<slice-id>-<short-name>`, например `vpn-42-s1-08-power-button`.
+- PR: заголовок краткий, в формате коммита, с ID issue Linear: `feat(app): connect flow on power button (VPN-42)`. Тело:
+  - `Slice:` ID и название;
+  - `Core: tech.md vN`;
+  - что делает слайс;
+  - какие контракты и типы затрагивает (только использует — контракты меняет тимлид);
+  - чем покрыт тестами (по критериям приёмки);
+  - для android/windows — результат ручного чека.
+- Комментарии в коде кратко объясняют почему, не пересказывают код. Закомментированный код в PR не оставлять.
+- Дисциплина `stop-slop` на всю прозу: активный залог, императив, конкретика, без em-dash, без филлеров.
+
+---
+
+## 13. CONTRACT GAP
+
+Не хватает контракта, типа, поля, эндпоинта, kind'а, ключа настройки, роута, примитива, метода IPC → **СТОП**. Код с выдуманным типом не пишется. Сессия выдаёт блок:
+
+```
+CONTRACT GAP
+Slice: S1-09
+Need: <что нужно: поле / тип / эндпоинт / kind / примитив / метод IPC>
+Why: <какой критерий приёмки без этого не выполнить>
+Proposed shape: <точная форма: схема, сигнатура, пропсы>
+Affects: <пути и стороны: backend / bot / core / app / android / windows>
+Workaround until merged: <локальная заглушка в пределах слайса>
+```
+
+Дальше:
+1. Открыть issue Linear с меткой `contract-change`, вставить блок.
+2. Продолжать на локальной заглушке внутри своих путей. Заглушка помечена `// TODO(CONTRACT GAP <issue-id>)` и не уходит в main.
+3. Тимлид аппендит контракт в `tech.md`, бампает версию, правит `contracts/`, запускает `make gen`, мёрджит, закрывает issue.
+4. Сессия ребейзится на main и заменяет заглушку.
+
+Тулинговая защита: workflow `contract-guard` валит PR, который трогает контрактные пути (§5.1) без метки `contract-change` или без бампа версии в `tech.md`.
+
+---
+
+## 14. Definition of Done (одна задача)
+
+- [ ] Все критерии приёмки карточки выполнены.
+- [ ] Тесты выведены из критериев приёмки; есть контрактный тест на стыке слайса; для каждого джоба и обработчика апдейтов — тест идемпотентности; путь ошибки покрыт через фейк; чистая логика — property-based.
+- [ ] `make check` и `make test` зелёные локально; CI зелёный.
+- [ ] `make gen` не даёт диффа.
+- [ ] Build проходит: бэкенд, `flutter build apk --debug`, `flutter build windows`, `vpnsvc.exe`.
+- [ ] Не тронуты чужие домены и контрактные пути.
+- [ ] Новые пользовательские строки в ru и en.
+- [ ] PR привязан к issue Linear, оформлен по §12.
+- [ ] Для android/windows — ручной чек описан в PR.
+
+---
+
+## 15. Скелет
+
+### 15.1 Порядок сборки (тимлид, слайсы S0-xx)
+
+Фичи не начинаются, пока весь чек-лист 15.3 не зелёный.
+
+| ID | Что | Готово когда |
+|---|---|---|
+| S0-01 | Монорепо, `.tool-versions`, Makefile, линтеры, `contract-guard`, workflow `pr.yml` (ubuntu + windows-раннер) | тривиальный PR проходит CI |
+| S0-02 | Контракты v1: `openapi.yaml`, `vpn_api.dart`, IPC-протокол, фикстуры; генерация Go (backend, core) и Dart | `make gen` чистый, фикстуры валидны с обеих сторон |
+| S0-03 | Бэкенд-каркас: config, chi, `/healthz`, `/metrics`, problem+json, auth middleware, миграция 00001, sqlc, River client + worker + `demo_echo`, `panel/fake`, `telegram/fake` | `go test ./...` зелёный, миграции на эфемерном Postgres |
+| S0-04 | Core-каркас: модуль, `runtime`, `bind.Core`, старт box на фикстурном direct-конфиге, события JSON, `make core-android` | `.aar` собирается в CI |
+| S0-05 | App-каркас: Riverpod, go_router, роуты-данные с гардом входа, l10n ru/en, токены, тема light/dark, все примитивы §8, kitchen-sink, `ModePager` с двумя пустыми экранами, `VpnBridge` + `FakeVpnBridge`, storage, generated API-клиент; запуск на Android и Windows | kitchen-sink рендерится на обеих платформах, goldens закоммичены |
+| S0-06 | Android-хост: `TunnelService`, `PigeonVpnBridge`, подключение `.aar`, старт и стоп фикстурного туннеля | события ядра доходят до Dart на эмуляторе |
+| S0-07 | Windows-хост: `vpnsvc` (служба, pipe, `hello`/`start`/`stop`/`getState`/`subscribe`), `PipeVpnBridge`, черновой Inno Setup | установщик ставит службу; события доходят до Dart на Windows-машине |
+| S0-08 | Эталонная вертикаль (15.2) | в main и на staging |
+| S0-09 | Staging: Ansible-роль `api-host`, Compose (api, worker, postgres, caddy), `deploy-staging.yml` на мёрдж в main, Prometheus + Grafana базово | `curl https://<staging>/healthz` 200 после мёржа |
+| S0-10 | Сид: `cmd/seed`, `contracts/fixtures/seed`, общий для fake panel, fake telegram, БД и Dart | `make seed` наполняет БД; фейки отдают те же данные |
+
+### 15.2 Эталонная вертикаль: «профиль → список серверов»
+
+Шаблон для всех слайсов. Новый слайс повторяет эту раскладку файлов и тестов. Вход в эталоне не участвует: используется сид-устройство с dev-токеном.
+
+Бэкенд:
+- `backend/internal/domain/profile/` — `service.go` (Build: аккаунт + серверы + policy + ETag), `handler.go`, `store.go`, `service_test.go` (property: ETag стабилен при неизменных данных и меняется при изменении любого сервера), `handler_contract_test.go`.
+- `backend/internal/db/queries/profile.sql`.
+
+App:
+- `app/lib/features/profile/domain/` — модели-обёртки, `ProfileState` (sealed).
+- `app/lib/features/profile/data/profile_repository.dart` — API + кэш на диске + ETag.
+- `app/lib/features/profile/application/profile_controller.dart` — Riverpod.
+- `app/lib/features/profile/presentation/server_list.dart` — `ServerSheet` + `ServerTile` на экране `regular`, только чтение.
+- Тесты: `test/features/profile/` — репозиторий против `FakeApiClient` и фикстур, контроллер, widget-тест списка, путь ошибки (API 5xx → кэш), 401 → переход на `/login`.
+
+### 15.3 Чек-лист «скелет готов»
+
+- [ ] CI зелёный на тривиальном PR, все джобы `pr.yml` на ubuntu и windows.
+- [ ] `contract-guard` валит PR, трогающий `contracts/` без метки.
+- [ ] Контракты v1 в main, `make gen` без диффа.
+- [ ] Миграции проходят на эфемерном Postgres в CI.
+- [ ] River-worker выполняет `demo_echo`.
+- [ ] `panel/fake` и `telegram/fake` отдают сид-данные; `make seed` наполняет БД.
+- [ ] Shell app, роуты-данные с гардом, `ModePager` с двумя экранами в main, работают на Android и Windows.
+- [ ] Все UI-примитивы отрендерены в `/dev/kitchen-sink` в light и dark, goldens закоммичены.
+- [ ] Транспорт событий: `CoreEvent` доходит до Dart на Android-эмуляторе, на Windows через `vpnsvc` и через `FakeVpnBridge`.
+- [ ] `.aar`, `vpnsvc.exe` и установщик собираются в CI.
+- [ ] Эталонная вертикаль в main и задеплоена на staging; профиль с сид-устройством отдаёт сид-серверы.
+
+---
+
+## 16. Дорожная карта: стадии и слайсы
+
+Каждая карточка = один PR. Формат: пути, контракты, UI, приёмка, тесты. Порядок внутри стадии — сверху вниз, если не указано иное.
+
+### Стадия 1 — Вход и обычный VPN (MVP)
+
+#### S1-01 · core: ConfigBuilder v1
+- Пути: `core/internal/config/`.
+- Контракты: TunnelRequest v1, §5.8.
+- Приёмка: VLESS Reality Vision и Hysteria2 (с port hopping и salamander) собираются в валидные опции для Android и Windows; группы и селекторы по §5.8; `selected` на отсутствующий сервер → первый по `sortWeight`; пустая группа не создаётся.
+- Тесты: rapid C1–C6; фикстуры `contracts/fixtures/tunnel_request/*` → опции проходят `box.New`; невалидный запрос → `config_invalid`.
+
+#### S1-02 · core: жизненный цикл и события
+- Пути: `core/internal/runtime/`, реализация `core/bind/` (сигнатуры заморожены).
+- Контракты: §5.5, §5.9.
+- Приёмка: `Start` → `connecting` → `connected`; `Stop` → `disconnecting` → `disconnected`; `Update` пересобирает и перезапускает; `SelectServer` и `SetUserMode` без рестарта; `traffic` раз в секунду в `connected`.
+- Тесты: каждый эмитированный JSON проходит схему CoreEvent; ошибка старта → `error` с `start_failed`; двойной `Start` не создаёт второй box.
+
+#### S1-03 · android: TunnelService
+- Пути: `app/android/.../tunnel/`.
+- Контракты: VpnApi v1.
+- Приёмка: foreground-уведомление со статусом и кнопкой «Отключить»; поддержка системного always-on; отзыв VPN другим приложением → `revoked`; свой пакет исключён из туннеля.
+- Тесты: JUnit на маппинг событий; ручной чек на устройстве.
+
+#### S1-04 · windows: служба vpnsvc и установщик
+- Пути: `core/cmd/vpnsvc/`, `core/internal/ipc/` (кроме `protocol.go`), `installer/windows/` через тимлида.
+- Контракты: IPC vpnsvc v1 (§5.6).
+- Приёмка: все методы IPC; служба `Automatic`, перезапуск при падении; ACL pipe по §5.6; `last_request.json` сохраняется при `start`; установщик ставит и обновляет службу без перезагрузки, удаление снимает службу и адаптер; две копии UI получают одни и те же события.
+- Тесты: сессии `contracts/fixtures/ipc/*.jsonl` против in-memory транспорта; `ipc_version_mismatch`; неизвестный метод → JSON-RPC `-32601`; Go-тест ACL на windows-раннере; ручной чек на чистой Windows 11.
+
+#### S1-05 · bot: Telegram-бот и выдача аккаунтов
+- Пути: `backend/internal/telegram/botapi/`, `backend/internal/domain/telegram/`, `backend/cmd/bot/`.
+- Контракты: §2.2, §5.10 TelegramClient, таблица `telegram_users`, джоб `panel_provision_user` (постановка).
+- Приёмка: `/start` создаёт аккаунт и `telegram_users`, ставит `panel_provision_user` в той же транзакции, отвечает инструкцией «введите ваш ник в приложении»; повторный `/start` не создаёт второй аккаунт; без ника — просьба задать ник; смена ника обновляет `username` по правилу §6; блокировка бота → `bot_blocked_at`; webhook проверяет секрет.
+- Тесты: идемпотентность по `UpdateID`; дубль `/start` → один аккаунт и один джоб; конфликт ника между двумя пользователями; webhook без секрета → 401; тексты сообщений против fake.
+
+#### S1-06 · backend: вход по коду из бота
+- Пути: `backend/internal/domain/auth/`.
+- Контракты: `/v1/auth/telegram/*`, `/v1/auth/logout`, таблицы `login_codes`, `devices`, джоб `telegram_send_code`.
+- Приёмка: всё из §5.2 для `start`, `verify`, `logout`: нормализация ника, `telegram_user_not_found` с `botUrl`, cooldown 60 с, 5 кодов в час, TTL 5 мин, 5 попыток, одноразовость, повторный `start` инвалидирует прежний код, лимит устройств, переиспользование `deviceId` по `installId`; код в сообщении бота с моделью устройства и предупреждением «если это не вы — проигнорируйте».
+- Тесты: контрактные на все ответы; идемпотентность `telegram_send_code`; property на нормализацию ника; путь ошибки: бот заблокирован, Telegram 429; перебор кода упирается в `code_expired`; гонка двух `verify` с одним кодом даёт один успех.
+
+#### S1-07 · app: экран входа
+- Пути: `app/lib/features/auth/`.
+- Контракты: `/v1/auth/telegram/*`, `AuthResult`.
+- UI: `AppTextField` (префикс `@`), `CodeInput`, `AppButton`, `StatusBanner`, `EmptyState`.
+- Приёмка: ввод ника → экран кода с таймером повторной отправки и кнопкой «Открыть бота»; `telegram_user_not_found` → экран «Откройте бота и нажмите Start» с кнопкой-ссылкой и «Я нажал Start, отправить код»; ввод кода → токен в secure storage → главный экран; ошибки по кодам с оставшимися попытками; выход из аккаунта в настройках.
+- Тесты: widget-тесты каждого шага против `FakeApiClient`; путь ошибки: каждый код ошибки из §5.2 даёт свой текст; 401 на профиле → возврат на вход.
+
+#### S1-08 · app: подключение на экранах режимов
+- Пути: `app/lib/features/connection/`.
+- Контракты: `VpnBridge`, TunnelRequest v1, CoreEvent v1.
+- UI: `PowerButton`, `StatusBanner`, `TrafficCounter`.
+- Приёмка: таблица состояний кнопки из §2.1; отказ в разрешении (Android) или `service_unavailable` (Windows) → баннер; ошибка ядра → `error` + баннер с текстом по коду; таймер подключения из `connectedSince`.
+- Тесты: widget-тесты каждой строки таблицы §2.1 с `FakeVpnBridge`; тап на экране неактивного режима зовёт `setUserMode`, не `start`; `TunnelRequest` из контроллера проходит фикстурную схему; путь ошибки `start_failed`.
+
+#### S1-09 · app: список серверов и выбор
+- Пути: `app/lib/features/servers/`.
+- UI: `ServerSheet`, `ServerTile`, `FlagIcon`, `EmptyState`.
+- Приёмка: на каждом экране режима серверы своей группы; выбор сохраняется для группы; при connected выбор в активной группе → `selectServer` без переподключения; пустой список → `EmptyState`.
+- Тесты: контроллер против фикстур профиля; выбор при connected зовёт `selectServer`, не `start`.
+
+#### S1-10 · backend: Remnawave PanelClient + провижининг
+- Пути: `backend/internal/panel/remnawave/`, `backend/internal/domain/account/`.
+- Контракты: §5.10 PanelClient, джоб `panel_provision_user`.
+- Приёмка: джоб создаёт или принимает пользователя панели; профиль после провижининга отдаёт серверы с кредами пользователя; ADR про поля Reality и Hysteria2 в API панели.
+- Тесты: идемпотентность (дважды → один `CreateUser`, одна строка); `ErrConflict` → принятие существующего; `ErrUnavailable` → ретрай; контрактный тест generated-клиента на записанных ответах панели.
+
+#### S1-11 · backend: синхронизация каталога
+- Пути: `backend/internal/domain/catalog/`.
+- Контракты: джоб `catalog_sync`, `servers.yaml`.
+- Приёмка: хосты панели + yaml → `servers`; хост без записи в yaml не публикуется; исчезнувший хост → `enabled = false`.
+- Тесты: идемпотентность (повтор не меняет `updated_at`); rapid на нормализацию и `content_hash`; панель недоступна → каталог не трогается.
+
+#### S1-12 · app: пинг и сортировка по пингу
+- Пути: `app/lib/features/ping/`.
+- Контракты: `ping.*`, `ui.sortByPing`.
+- UI: `PingBadge`, `SettingsToggleTile` (тумблер в шапке `ServerSheet`).
+- Приёмка: TCP-пинг всех видимых серверов, параллельно не больше 8; пинг при открытии по `ping.onOpen`; тумблер сортировки; `url_test` через ядро в connected.
+- Тесты: glados на `sortServers` (перестановка входа; недоступные в конце; стабильность при равных; выключено → порядок `sortWeight`); таймаут → `unreachable`.
+
+#### S1-13 · infra: Remnawave staging
+- Пути: `infra/ansible/roles/remnawave-*`, `infra/compose/remnawave/`.
+- Приёмка: панель и 2 ноды разворачиваются плейбуком; inbound'ы VLESS Reality Vision TCP 443 и Hysteria2 UDP с port hopping; node_exporter; access-логи Xray выключены; webhook бота за Caddy.
+- Тесты: `ansible-lint`; smoke-скрипт: sing-box с фикстурным конфигом проходит `url_test` через каждую ноду.
+
+### Стадия 2 — Белые списки
+
+#### S2-01 · app: экран «Белые списки»
+- Пути: `app/lib/features/whitelist/`.
+- UI: `ModePager`, `PageDots`, `PowerButton`, `ServerSheet`.
+- Приёмка: второй экран со whitelist-серверами; свайп, клик по `PageDots` и клавиши ← → только переключают экран; нет whitelist-серверов → `EmptyState`.
+- Тесты: widget-тест: свайп не зовёт ни один метод `VpnBridge`.
+
+#### S2-02 · core: автопереключение
+- Пути: `core/internal/autoswitch/`, интеграция в runtime.
+- Контракты: §5.7, CoreEvent `mode`.
+- Приёмка: правила и переходы §5.7; смена группы через селектор `proxy`.
+- Тесты: rapid I1–I6; табличный тест сценариев из §5.7.
+
+#### S2-03 · android: мониторинг сети
+- Пути: `app/android/.../tunnel/NetworkMonitor.kt`.
+- Приёмка: Wi-Fi, cellular, ethernet, none мапятся в `NetType`; debounce 1 с; работает при свёрнутом и убитом UI.
+- Тесты: JUnit на маппинг и debounce; ручной чек: выключить Wi-Fi при подключённом туннеле.
+
+#### S2-04 · windows: мониторинг сети
+- Пути: `core/cmd/vpnsvc/netmon_windows.go`.
+- Приёмка: определение `NetType` по §5.7 (WWAN или лимитная сеть → cellular); адаптер wintun игнорируется; debounce 1 с.
+- Тесты: табличный тест маппинга (тип интерфейса, стоимость) → `NetType`; ручной чек: раздача с Android-телефона, помеченная лимитной.
+
+#### S2-05 · app: тумблер автоперехода и синхронизация UI
+- Пути: `app/lib/features/whitelist/`, `app/lib/features/connection/`.
+- Контракты: `whitelist.autoOnCellular`, `policy.flags.autoWhitelist`.
+- UI: `SettingsToggleTile`, `StatusBanner`.
+- Приёмка: тумблер на экране «Белые списки» и в настройках; событие `mode` с причиной `network_*` показывает баннер и анимирует пейджер на `effectiveMode`; `no_whitelist_servers` → баннер-предупреждение; флаг выключен → тумблер скрыт.
+- Тесты: widget-тесты на каждую причину из `ModeSwitchReason` с `FakeVpnBridge`.
+
+#### S2-06 · app: устойчивость без доступа к API
+- Пути: `app/lib/features/profile/data/` (расширение эталона по issue), `app/lib/core/` через тимлида.
+- Контракты: `endpoints.api`, `policy.ruleSets`.
+- Приёмка: профиль из кэша при недоступном API; перебор `endpoints.api` по порядку с таймаутом 9 с; rule sets из ассетов приложения как fallback; подключение возможно офлайн с кэшированным профилем.
+- Тесты: путь ошибки: основной эндпоинт 5xx → fallback; все недоступны → кэш; нет кэша → `ErrorView`.
+
+#### S2-07 · infra: whitelist-ноды и пробы
+- Пути: `infra/ansible/`, `infra/monitoring/`.
+- Приёмка: whitelist-ноды на хостинге из белых списков операторов; Reality SNI на домене из белого списка; blackbox-пробы из российской точки присутствия; алерт на падение пробы.
+- Тесты: `ansible-lint`; ручная проверка с SIM-картами операторов по чек-листу в PR.
+
+### Стадия 3 — Настройки (база из Happ)
+
+#### S3-01 · app: экран настроек и интерфейс
+- Пути: `app/lib/features/settings/`.
+- UI: `SettingsSection`, `SettingsSelectTile`, `SettingsNavTile`.
+- Приёмка: разделы: Аккаунт, Подключение, Маршрутизация, Приложения, Сеть, DNS, Пинг, Интерфейс; язык ru/en/системный и тема светлая/тёмная/системная применяются без перезапуска.
+- Тесты: glados на слияние `ClientPolicy.defaults` + пользовательские значения + `locked`; widget-тест смены темы и языка.
+
+#### S3-02 · маршрутизация
+- Пути: `app/lib/features/routing/`; правила пресетов в `core/internal/config/presets.go`.
+- Приёмка: вкл/выкл; пресеты `ru_direct` и `all_proxy`; свои правила domain / domain_suffix / domain_keyword / ip_cidr → proxy / direct / block, порядок перетаскиванием; rule sets из `policy.ruleSets` с проверкой `sha256` (Android — app, Windows — служба через `syncRuleSets`).
+- Тесты: валидация значений правил (property: валидный CIDR принимается, мусор нет); неверный `sha256` → файл не используется; фикстуры с правилами проходят C1.
+
+#### S3-03 · раздельное туннелирование приложений
+- Пути: `app/lib/features/split_apps/`.
+- Контракты: `perApp`, `VpnHostApi.listApps`, IPC `listProcesses`.
+- Приёмка: режимы off / include / exclude; Android — выбор из установленных пакетов с поиском, свой пакет нельзя включить в туннель; Windows — выбор из запущенных процессов и ручной ввод имени `.exe`.
+- Тесты: контроллер; опции содержат `include_package` / `exclude_package` на Android и `process_name` на Windows (C5).
+
+#### S3-04 · сеть и DNS
+- Пути: `app/lib/features/network_settings/`.
+- Приёмка: DNS remote/direct, стратегия, IPv6, sniffing, TLS fragment, MTU (1280..9000), TUN stack, exclude routes (CIDR), обход локальной сети; изменение при connected → `update`.
+- Тесты: валидация MTU и CIDR (property); каждая комбинация из фикстур проходит C1; ADR о совместимости фрагментации с Reality.
+
+#### S3-05 · поведение подключения и автозапуск
+- Пути: `app/lib/features/connect_behavior/`.
+- Приёмка: автоподключение при запуске (last_used / lowest_ping / random); `connect.autostart`: Android — `BOOT_COMPLETED` → хост поднимает туннель с последним запросом; Windows — запуск UI при входе в систему, служба подключает по `last_request.json`; тип пинга `tcp` / `url_test`, URL, таймаут.
+- Тесты: glados на выбор сервера по стратегии (lowest_ping никогда не выбирает unreachable при наличии доступных); пустой список → нет автоподключения.
+
+#### S3-06 · windows: трей и окно
+- Пути: `app/lib/features/desktop_shell/` (обвязка через `app/lib/core` по issue).
+- Приёмка: иконка в трее с состоянием и пунктами «Подключить / Отключить / Открыть / Выход»; закрытие окна сворачивает в трей; одна копия приложения; «Выход» закрывает UI, туннель остаётся под службой, пока пользователь не отключит.
+- Тесты: контроллер меню трея против `FakeVpnBridge`; ручной чек.
+
+#### S3-07 · удалённая политика и обновления
+- Пути: `backend/internal/domain/profile/` (policy из `backend/config/policy.yaml` через issue), `app/lib/features/settings/`, `app/lib/features/app_update/`.
+- Приёмка: `defaults` применяются; `locked` блокирует контролы с подписью; `minAppVersion` выше текущей → экран обновления; `appUpdate` → предложение обновиться, на Windows скачивание установщика с проверкой `sha256` и запуск.
+- Тесты: контрактный тест профиля с политикой; glados на слияние; неверный `sha256` → установщик не запускается.
+
+#### S3-08 · статус подписки и объявления
+- Пути: `app/lib/features/account_status/`.
+- UI: `StatusBanner`, `TrafficCounter`.
+- Приёмка: трафик использовано/лимит, срок, ник Telegram; предупреждение за 3 дня и после истечения со ссылкой на бота; объявление из профиля с кнопкой.
+- Тесты: widget-тесты по фикстурам статусов.
+
+### Стадия 4 — Аккаунт и устройства
+
+#### S4-01 · bot: управление устройствами
+- Требует бампа ядра: kind'ов для callback'ов, если понадобятся.
+- Приёмка: команда `/devices` — список устройств аккаунта (платформа, модель, последний вход) с кнопкой «Отключить»; отзыв ставит `revoked_at`, устройство получает `device_revoked`; команда `/status` — статус и срок.
+- Тесты: идемпотентность callback'а отзыва; чужое устройство отозвать нельзя.
+
+#### S4-02 · биллинг
+- Заблокирован решением по оплате (§18). Интерфейс провайдера + fake появятся в ядре вместе с решением. Оплата и продление планируются через бота.
+
+### Стадия 5 — Эксплуатация и релиз
+
+#### S5-01 · мониторинг и алерты
+- Дашборды: API (RPS, latency, 5xx), бот (апдейты, ошибки отправки), River (очереди, ошибки), ноды (CPU, сеть, онлайн), пробы. Алерты в Telegram.
+
+#### S5-02 · прод
+- Окружение prod, `deploy-prod.yml` на тег `v*` с ручным подтверждением environment; бэкапы Postgres (бэкенд и Remnawave) с проверкой восстановления.
+
+#### S5-03 · релизы приложений
+- Android: подпись, декларация VpnService в Play; APK для прямой загрузки с публикацией в `appUpdate`.
+- Windows: подпись `vpnsvc.exe`, приложения и установщика; публикация установщика в `appUpdate`.
+
+---
+
+## 17. Long-lead (запустить в день один)
+
+Long-lead блокирует реальную интеграцию, не разработку. Разработка идёт против фейков с первого дня.
+
+| Что | Блокирует | Заметка |
+|---|---|---|
+| Сертификат подписи кода для Windows | S5-03, ручные проверки на чистых машинах | без подписи SmartScreen и антивирусы блокируют установщик и службу; репутация SmartScreen набирается со временем |
+| Отправка сборок на анализ в Microsoft Defender | S5-03 | Go-бинарники VPN часто ловят ложные срабатывания |
+| Google Play: декларация VpnService | S5-03 | ревью идёт отдельно |
+| Хостинг с IP из белых списков операторов + SIM-карты МТС, Билайн, МегаФон, Т2 для проверки | S2-07 | без этого белые списки проверяются только на фейках |
+| Домены: основной API, fallback-домены, домен webhook бота | S0-09, S2-06 | fallback-домены держать в инфраструктуре, доступной при белых списках |
+| Бот в BotFather: имя, ник, токен, описание | S1-05 | ник бота попадает в `botUrl` и тексты приложения |
+| Платёжный провайдер | S4-02 | решение открыто |
+
+---
+
+## 18. Открытые вопросы и принятые допущения
+
+Каждое допущение меняется только бампом ядра.
+
+1. Биллинг не определён: провайдер, тарифы, цена. Предполагается оплата через бота.
+2. Клиентское ядро sing-box, не Xray. Не переносятся Mux, noises, XHTTP, No Limit Mode.
+3. ICMP-пинг не поддерживается.
+4. Пользователь без ника в Telegram не входит в v1; бот просит задать ник.
+5. Вход требует доступа к Telegram. При мобильном интернете в режиме белых списков первый вход может не пройти; уже вошедшее устройство работает с кэшированным профилем.
+6. Определение мобильной сети на Windows опирается на признак лимитной сети; раздача с телефона без этого признака распознаётся как Wi-Fi.
+7. Название приложения, application id, `<app-id>` для службы и pipe — плейсхолдеры до решения.
