@@ -1,0 +1,14 @@
+swagger_parser:
+  schema_path: ../contracts/openapi.yaml
+  output_directory: lib/gen/api
+  name: vpn_api
+  language: dart
+  json_serializer: json_serializable
+  root_client: true
+  root_client_name: VpnApiClient
+  put_clients_in_folder: true
+  put_in_folder: false
+  export_file: true
+  enums_to_json: true
+  unknown_enum_value: false
+  include_if_null: false
