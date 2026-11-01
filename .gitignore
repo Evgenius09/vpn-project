@@ -34,3 +34,6 @@ local.properties
 .idea/
 .vscode/
 .DS_Store
+
+# Written by flutter pub get
+**/GeneratedPluginRegistrant.*
