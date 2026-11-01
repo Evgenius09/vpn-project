@@ -38,6 +38,14 @@ jobs:
       - uses: jdx/mise-action@v5.2.5
         with:
           install_args: go golangci-lint actionlint shellcheck oapi-codegen sqlc flutter
+      - name: Restore Go caches
+        uses: actions/cache@v6.1.0
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/AppData/Local/go-build
+            ~/go/pkg/mod
+          key: go-${{ runner.os }}-${{ hashFiles('backend/go.sum', 'core/go.sum', '.tool-versions') }}
       - name: Check
         run: make check
       - name: Test
@@ -53,5 +61,13 @@ jobs:
       - uses: jdx/mise-action@v5.2.5
         with:
           install_args: go
+      - name: Restore Go caches
+        uses: actions/cache@v6.1.0
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/AppData/Local/go-build
+            ~/go/pkg/mod
+          key: go-${{ runner.os }}-${{ hashFiles('backend/go.sum', 'core/go.sum', '.tool-versions') }}
       - name: Test Go modules
         run: make test-go
