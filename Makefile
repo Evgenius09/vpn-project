@@ -68,6 +68,12 @@ core-android:
 	mkdir -p app/android/app/libs
 	cp core/build/core.aar app/android/app/libs/core.aar
 
-seed dev core-windows installer:
+core-windows:
+	$(MAKE) --no-print-directory -C core windows
+
+installer:
+	iscc installer/windows/setup.iss
+
+seed dev:
 	@echo "$@: not available yet, see the skeleton slices in tech.md section 15.1"
 	@exit 1
