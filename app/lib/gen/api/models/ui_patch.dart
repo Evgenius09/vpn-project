@@ -11,11 +11,14 @@ part 'ui_patch.g.dart';
 
 @JsonSerializable()
 class UiPatch {
-  const UiPatch({this.sortByPing, this.locale, this.theme});
-
-  factory UiPatch.fromJson(Map<String, Object?> json) =>
-      _$UiPatchFromJson(json);
-
+  const UiPatch({
+    this.sortByPing,
+    this.locale,
+    this.theme,
+  });
+  
+  factory UiPatch.fromJson(Map<String, Object?> json) => _$UiPatchFromJson(json);
+  
   final bool? sortByPing;
   final UiLocale? locale;
   final UiTheme? theme;

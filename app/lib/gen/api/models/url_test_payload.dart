@@ -10,11 +10,12 @@ part 'url_test_payload.g.dart';
 
 @JsonSerializable()
 class UrlTestPayload {
-  const UrlTestPayload({required this.results});
-
-  factory UrlTestPayload.fromJson(Map<String, Object?> json) =>
-      _$UrlTestPayloadFromJson(json);
-
+  const UrlTestPayload({
+    required this.results,
+  });
+  
+  factory UrlTestPayload.fromJson(Map<String, Object?> json) => _$UrlTestPayloadFromJson(json);
+  
   final List<UrlTestResult> results;
 
   Map<String, Object?> toJson() => _$UrlTestPayloadToJson(this);

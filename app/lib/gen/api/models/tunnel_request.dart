@@ -26,10 +26,9 @@ class TunnelRequest {
     required this.settings,
     required this.log,
   });
-
-  factory TunnelRequest.fromJson(Map<String, Object?> json) =>
-      _$TunnelRequestFromJson(json);
-
+  
+  factory TunnelRequest.fromJson(Map<String, Object?> json) => _$TunnelRequestFromJson(json);
+  
   final int schemaVersion;
   final Platform platform;
   final TunnelMode userMode;

@@ -27,10 +27,9 @@ class SettingsPatch {
     this.ui,
     this.whitelist,
   });
-
-  factory SettingsPatch.fromJson(Map<String, Object?> json) =>
-      _$SettingsPatchFromJson(json);
-
+  
+  factory SettingsPatch.fromJson(Map<String, Object?> json) => _$SettingsPatchFromJson(json);
+  
   final RoutingPatch? routing;
   final DnsPatch? dns;
   final NetPatch? net;

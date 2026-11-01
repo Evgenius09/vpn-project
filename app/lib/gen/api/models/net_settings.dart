@@ -20,10 +20,9 @@ class NetSettings {
     required this.excludeRoutes,
     required this.bypassLan,
   });
-
-  factory NetSettings.fromJson(Map<String, Object?> json) =>
-      _$NetSettingsFromJson(json);
-
+  
+  factory NetSettings.fromJson(Map<String, Object?> json) => _$NetSettingsFromJson(json);
+  
   final bool ipv6;
   final bool sniffing;
   final TlsFragment tlsFragment;

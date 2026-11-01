@@ -8,11 +8,13 @@ part 'selected_servers.g.dart';
 
 @JsonSerializable()
 class SelectedServers {
-  const SelectedServers({this.regular, this.whitelist});
-
-  factory SelectedServers.fromJson(Map<String, Object?> json) =>
-      _$SelectedServersFromJson(json);
-
+  const SelectedServers({
+    this.regular,
+    this.whitelist,
+  });
+  
+  factory SelectedServers.fromJson(Map<String, Object?> json) => _$SelectedServersFromJson(json);
+  
   final String? regular;
   final String? whitelist;
 

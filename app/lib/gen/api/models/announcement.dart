@@ -16,10 +16,9 @@ class Announcement {
     this.actionLabel,
     this.actionUrl,
   });
-
-  factory Announcement.fromJson(Map<String, Object?> json) =>
-      _$AnnouncementFromJson(json);
-
+  
+  factory Announcement.fromJson(Map<String, Object?> json) => _$AnnouncementFromJson(json);
+  
   final String text;
   final AnnouncementLevel level;
   final String? actionLabel;

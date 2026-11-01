@@ -26,10 +26,9 @@ class ServerNode {
     this.vless,
     this.hysteria2,
   });
-
-  factory ServerNode.fromJson(Map<String, Object?> json) =>
-      _$ServerNodeFromJson(json);
-
+  
+  factory ServerNode.fromJson(Map<String, Object?> json) => _$ServerNodeFromJson(json);
+  
   final String id;
   final TunnelMode group;
   final String name;

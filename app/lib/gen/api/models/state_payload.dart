@@ -18,10 +18,9 @@ class StatePayload {
     this.activeServerId,
     this.connectedSince,
   });
-
-  factory StatePayload.fromJson(Map<String, Object?> json) =>
-      _$StatePayloadFromJson(json);
-
+  
+  factory StatePayload.fromJson(Map<String, Object?> json) => _$StatePayloadFromJson(json);
+  
   final TunnelStatus status;
   final TunnelMode userMode;
   final TunnelMode effectiveMode;

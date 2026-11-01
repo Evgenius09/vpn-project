@@ -10,11 +10,14 @@ part 'dns_patch.g.dart';
 
 @JsonSerializable()
 class DnsPatch {
-  const DnsPatch({this.remote, this.direct, this.strategy});
-
-  factory DnsPatch.fromJson(Map<String, Object?> json) =>
-      _$DnsPatchFromJson(json);
-
+  const DnsPatch({
+    this.remote,
+    this.direct,
+    this.strategy,
+  });
+  
+  factory DnsPatch.fromJson(Map<String, Object?> json) => _$DnsPatchFromJson(json);
+  
   final String? remote;
   final String? direct;
   final DnsStrategy? strategy;

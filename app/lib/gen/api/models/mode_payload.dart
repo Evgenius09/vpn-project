@@ -16,10 +16,9 @@ class ModePayload {
     required this.to,
     required this.reason,
   });
-
-  factory ModePayload.fromJson(Map<String, Object?> json) =>
-      _$ModePayloadFromJson(json);
-
+  
+  factory ModePayload.fromJson(Map<String, Object?> json) => _$ModePayloadFromJson(json);
+  
   final TunnelMode from;
   final TunnelMode to;
   final ModeSwitchReason reason;

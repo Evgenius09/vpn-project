@@ -14,10 +14,9 @@ class TelegramLoginChallenge {
     required this.resendAfterSec,
     required this.botUrl,
   });
-
-  factory TelegramLoginChallenge.fromJson(Map<String, Object?> json) =>
-      _$TelegramLoginChallengeFromJson(json);
-
+  
+  factory TelegramLoginChallenge.fromJson(Map<String, Object?> json) => _$TelegramLoginChallengeFromJson(json);
+  
   final String loginId;
   final DateTime expiresAt;
   final int resendAfterSec;

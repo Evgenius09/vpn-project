@@ -8,11 +8,13 @@ part 'policy_ping.g.dart';
 
 @JsonSerializable()
 class PolicyPing {
-  const PolicyPing({required this.url, required this.timeoutMs});
-
-  factory PolicyPing.fromJson(Map<String, Object?> json) =>
-      _$PolicyPingFromJson(json);
-
+  const PolicyPing({
+    required this.url,
+    required this.timeoutMs,
+  });
+  
+  factory PolicyPing.fromJson(Map<String, Object?> json) => _$PolicyPingFromJson(json);
+  
   final String url;
   final int timeoutMs;
 

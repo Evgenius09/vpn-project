@@ -20,10 +20,9 @@ class Problem {
     this.attemptsLeft,
     this.retryAfterSec,
   });
-
-  factory Problem.fromJson(Map<String, Object?> json) =>
-      _$ProblemFromJson(json);
-
+  
+  factory Problem.fromJson(Map<String, Object?> json) => _$ProblemFromJson(json);
+  
   final String? type;
   final String title;
   final int status;

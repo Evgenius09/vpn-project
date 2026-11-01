@@ -8,11 +8,13 @@ part 'min_app_version.g.dart';
 
 @JsonSerializable()
 class MinAppVersion {
-  const MinAppVersion({required this.android, required this.windows});
-
-  factory MinAppVersion.fromJson(Map<String, Object?> json) =>
-      _$MinAppVersionFromJson(json);
-
+  const MinAppVersion({
+    required this.android,
+    required this.windows,
+  });
+  
+  factory MinAppVersion.fromJson(Map<String, Object?> json) => _$MinAppVersionFromJson(json);
+  
   final String android;
   final String windows;
 

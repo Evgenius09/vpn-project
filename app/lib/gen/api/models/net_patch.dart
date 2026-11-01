@@ -20,10 +20,9 @@ class NetPatch {
     this.excludeRoutes,
     this.bypassLan,
   });
-
-  factory NetPatch.fromJson(Map<String, Object?> json) =>
-      _$NetPatchFromJson(json);
-
+  
+  factory NetPatch.fromJson(Map<String, Object?> json) => _$NetPatchFromJson(json);
+  
   final bool? ipv6;
   final bool? sniffing;
   final TlsFragment? tlsFragment;

@@ -8,11 +8,14 @@ part 'url_test_result.g.dart';
 
 @JsonSerializable()
 class UrlTestResult {
-  const UrlTestResult({required this.serverId, this.delayMs, this.error});
-
-  factory UrlTestResult.fromJson(Map<String, Object?> json) =>
-      _$UrlTestResultFromJson(json);
-
+  const UrlTestResult({
+    required this.serverId,
+    this.delayMs,
+    this.error,
+  });
+  
+  factory UrlTestResult.fromJson(Map<String, Object?> json) => _$UrlTestResultFromJson(json);
+  
   final String serverId;
   final int? delayMs;
   final String? error;

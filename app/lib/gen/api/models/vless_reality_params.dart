@@ -19,10 +19,9 @@ class VlessRealityParams {
     required this.shortId,
     required this.fingerprint,
   });
-
-  factory VlessRealityParams.fromJson(Map<String, Object?> json) =>
-      _$VlessRealityParamsFromJson(json);
-
+  
+  factory VlessRealityParams.fromJson(Map<String, Object?> json) => _$VlessRealityParamsFromJson(json);
+  
   /// Secret.
   final String uuid;
   final VlessRealityParamsFlow flow;

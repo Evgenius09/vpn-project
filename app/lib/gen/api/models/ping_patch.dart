@@ -10,11 +10,15 @@ part 'ping_patch.g.dart';
 
 @JsonSerializable()
 class PingPatch {
-  const PingPatch({this.type, this.url, this.timeoutMs, this.onOpen});
-
-  factory PingPatch.fromJson(Map<String, Object?> json) =>
-      _$PingPatchFromJson(json);
-
+  const PingPatch({
+    this.type,
+    this.url,
+    this.timeoutMs,
+    this.onOpen,
+  });
+  
+  factory PingPatch.fromJson(Map<String, Object?> json) => _$PingPatchFromJson(json);
+  
   final PingType? type;
   final String? url;
   final int? timeoutMs;
