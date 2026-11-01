@@ -12,3 +12,4 @@ swagger_parser:
   enums_to_json: true
   unknown_enum_value: false
   include_if_null: false
+  original_http_response: true

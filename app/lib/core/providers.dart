@@ -2,7 +2,6 @@ import 'dart:io' as io;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../gen/api/export.dart';
 import 'api/api_client.dart';
 import 'config/app_config.dart';
 import 'storage/token_store.dart';
@@ -45,11 +44,16 @@ final sessionProvider = NotifierProvider<SessionNotifier, bool>(
   SessionNotifier.new,
 );
 
-final apiClientProvider = Provider<VpnApiClient>((ref) {
+final apiClientProvider = Provider<ApiClient>((ref) {
   final config = ref.watch(appConfigProvider);
-  return createApiClient(
-    baseUrl: config.apiBaseUrls.first,
-    tokens: ref.watch(tokenStoreProvider),
+  if (config.fakeApi) {
+    return FakeApiClient();
+  }
+  return HttpApiClient(
+    createGeneratedClient(
+      baseUrl: config.apiBaseUrls.first,
+      tokens: ref.watch(tokenStoreProvider),
+    ),
   );
 });
 

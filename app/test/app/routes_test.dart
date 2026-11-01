@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -5,10 +7,13 @@ import 'package:glados/glados.dart' hide expect, group, test;
 import 'package:vpnclient/app/app.dart';
 import 'package:vpnclient/app/kitchen_sink.dart';
 import 'package:vpnclient/app/routes.dart';
+import 'package:vpnclient/core/api/api_client.dart';
 import 'package:vpnclient/core/providers.dart';
 import 'package:vpnclient/core/storage/token_store.dart';
 import 'package:vpnclient/core/vpn/fake_vpn_bridge.dart';
 import 'package:vpnclient/core/vpn/vpn_bridge.dart';
+import 'package:vpnclient/features/profile/application/profile_controller.dart';
+import 'package:vpnclient/features/profile/data/profile_repository.dart';
 import 'package:vpnclient/ui/ui.dart';
 
 void main() {
@@ -80,6 +85,14 @@ void main() {
             tokenStoreProvider.overrideWithValue(MemoryTokenStore(token)),
             initialTokenProvider.overrideWithValue(token),
             vpnBridgeProvider.overrideWithValue(bridge as VpnBridge),
+            apiClientProvider.overrideWithValue(
+              FakeApiClient(
+                load: () async =>
+                    File('../contracts/fixtures/profile/seed.json')
+                        .readAsStringSync(),
+              ),
+            ),
+            profileCacheProvider.overrideWithValue(MemoryProfileCache()),
           ],
           child: const VpnClientApp(),
         ),

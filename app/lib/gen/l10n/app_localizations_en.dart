@@ -79,4 +79,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String speedMegabytes(String value) {
     return '$value MB/s';
   }
+
+  @override
+  String get serversTitle => 'Servers';
+
+  @override
+  String get serversEmpty => 'No servers yet';
+
+  @override
+  String get profileLoadFailed => 'Could not load the profile';
+
+  @override
+  String get profileFromCache => 'Server unreachable, showing saved data';
 }

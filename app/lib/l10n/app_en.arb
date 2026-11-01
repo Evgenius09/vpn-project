@@ -20,5 +20,9 @@
   "pingMs": "{value} ms",
   "speedBytes": "{value} B/s",
   "speedKilobytes": "{value} KB/s",
-  "speedMegabytes": "{value} MB/s"
+  "speedMegabytes": "{value} MB/s",
+  "serversTitle": "Servers",
+  "serversEmpty": "No servers yet",
+  "profileLoadFailed": "Could not load the profile",
+  "profileFromCache": "Server unreachable, showing saved data"
 }

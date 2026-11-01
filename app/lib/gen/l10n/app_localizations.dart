@@ -223,6 +223,30 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'{value} МБ/с'**
   String speedMegabytes(String value);
+
+  /// No description provided for @serversTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Серверы'**
+  String get serversTitle;
+
+  /// No description provided for @serversEmpty.
+  ///
+  /// In ru, this message translates to:
+  /// **'Серверов пока нет'**
+  String get serversEmpty;
+
+  /// No description provided for @profileLoadFailed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось загрузить профиль'**
+  String get profileLoadFailed;
+
+  /// No description provided for @profileFromCache.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нет связи с сервером, показаны сохранённые данные'**
+  String get profileFromCache;
 }
 
 class _AppLocalizationsDelegate

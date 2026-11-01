@@ -21,14 +21,14 @@ class _ProfileClient implements ProfileClient {
   final ParseErrorLogger? errorLogger;
 
   @override
-  Future<ProfileV1> getProfile({String? ifNoneMatch}) async {
+  Future<HttpResponse<ProfileV1>> getProfile({String? ifNoneMatch}) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     queryParameters.removeWhere((k, v) => v == null);
     final _headers = <String, dynamic>{r'If-None-Match': ifNoneMatch};
     _headers.removeWhere((k, v) => v == null);
     const Map<String, dynamic>? _data = null;
-    final _options = _setStreamType<ProfileV1>(
+    final _options = _setStreamType<HttpResponse<ProfileV1>>(
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
@@ -46,7 +46,8 @@ class _ProfileClient implements ProfileClient {
       errorLogger?.logError(e, s, _options, response: _result);
       rethrow;
     }
-    return _value;
+    final httpResponse = HttpResponse(_value, _result);
+    return httpResponse;
   }
 
   @override

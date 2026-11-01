@@ -48,5 +48,9 @@
         "type": "String"
       }
     }
-  }
+  },
+  "serversTitle": "Серверы",
+  "serversEmpty": "Серверов пока нет",
+  "profileLoadFailed": "Не удалось загрузить профиль",
+  "profileFromCache": "Нет связи с сервером, показаны сохранённые данные"
 }
