@@ -1,0 +1,2 @@
+{"dir":"send","msg":{"jsonrpc":"2.0","id":1,"method":"hello","params":{"protocolVersion":99,"appVersion":"0.1.0"}}}
+{"dir":"recv","msg":{"jsonrpc":"2.0","id":1,"error":{"code":-32000,"message":"protocol version mismatch","data":{"code":"ipc_version_mismatch"}}}}

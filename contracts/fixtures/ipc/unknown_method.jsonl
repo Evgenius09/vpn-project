@@ -1,0 +1,4 @@
+{"dir":"send","msg":{"jsonrpc":"2.0","id":1,"method":"hello","params":{"protocolVersion":1,"appVersion":"0.1.0"}}}
+{"dir":"recv","msg":{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":1,"serviceVersion":"0.1.0"}}}
+{"dir":"send","msg":{"jsonrpc":"2.0","id":2,"method":"reboot","params":{}}}
+{"dir":"recv","msg":{"jsonrpc":"2.0","id":2,"error":{"code":-32601,"message":"method not found"}}}

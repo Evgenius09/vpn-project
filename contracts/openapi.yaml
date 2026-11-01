@@ -1,0 +1,1084 @@
+openapi: 3.1.0
+info:
+  title: VPN client API
+  version: 1.0.0
+  description: >-
+    HTTP API v1 and every shared type (tech.md 5.2 to 5.5 and 19). Operational
+    endpoints (/healthz, /metrics) and the Telegram webhook are not part of the
+    client contract and stay out of this file.
+servers:
+  - url: https://api.example.invalid
+tags:
+  - name: auth
+  - name: profile
+security:
+  - bearerAuth: []
+
+paths:
+  /v1/auth/telegram/start:
+    post:
+      operationId: startTelegramLogin
+      tags: [auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TelegramLoginStart'
+      responses:
+        '200':
+          description: The bot sends a login code.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TelegramLoginChallenge'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /v1/auth/telegram/verify:
+    post:
+      operationId: verifyTelegramLogin
+      tags: [auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TelegramLoginVerify'
+      responses:
+        '200':
+          description: The device is bound to the account.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '410':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /v1/auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      responses:
+        '204':
+          description: The current device is revoked.
+        '401':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /v1/profile:
+    get:
+      operationId: getProfile
+      tags: [profile]
+      parameters:
+        - name: If-None-Match
+          in: header
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The profile of the current account.
+          headers:
+            ETag:
+              required: true
+              schema:
+                type: string
+            Retry-After:
+              description: Seconds to wait while the account is provisioning.
+              required: false
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileV1'
+        '304':
+          description: The cached profile is still current.
+        '401':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /v1/rulesets/{id}.srs:
+    get:
+      operationId: getRuleSet
+      tags: [profile]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A sing-box binary rule set.
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '401':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        default:
+          $ref: '#/components/responses/Problem'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+
+  responses:
+    Problem:
+      description: An RFC 9457 problem.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+  schemas:
+    # Errors
+
+    ProblemCode:
+      type: string
+      enum:
+        - unauthorized
+        - device_revoked
+        - validation_failed
+        - rate_limited
+        - telegram_user_not_found
+        - code_invalid
+        - code_expired
+        - device_limit_reached
+        - panel_unavailable
+        - not_found
+        - internal
+
+    Problem:
+      type: object
+      required: [title, status, code]
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        code:
+          $ref: '#/components/schemas/ProblemCode'
+        botUrl:
+          type: string
+        attemptsLeft:
+          type: integer
+        retryAfterSec:
+          type: integer
+
+    # Auth
+
+    Platform:
+      type: string
+      enum: [android, windows]
+
+    TelegramLoginStart:
+      type: object
+      additionalProperties: false
+      required: [username, installId]
+      properties:
+        username:
+          type: string
+        installId:
+          type: string
+          format: uuid
+
+    TelegramLoginChallenge:
+      type: object
+      additionalProperties: false
+      required: [loginId, expiresAt, resendAfterSec, botUrl]
+      properties:
+        loginId:
+          type: string
+          format: uuid
+        expiresAt:
+          type: string
+          format: date-time
+        resendAfterSec:
+          type: integer
+        botUrl:
+          type: string
+
+    TelegramLoginVerify:
+      type: object
+      additionalProperties: false
+      required: [loginId, code, installId, platform, model, appVersion]
+      properties:
+        loginId:
+          type: string
+          format: uuid
+        code:
+          type: string
+          pattern: '^[0-9]{6}$'
+        installId:
+          type: string
+          format: uuid
+        platform:
+          $ref: '#/components/schemas/Platform'
+        model:
+          type: string
+        appVersion:
+          type: string
+
+    AuthResult:
+      type: object
+      additionalProperties: false
+      required: [deviceId, accountId, token]
+      properties:
+        deviceId:
+          type: string
+          format: uuid
+        accountId:
+          type: string
+          format: uuid
+        token:
+          type: string
+
+    # Profile
+
+    TunnelMode:
+      type: string
+      enum: [regular, whitelist]
+
+    ServerProtocol:
+      type: string
+      enum: [vless_reality, hysteria2]
+
+    AccountStatus:
+      type: string
+      enum: [provisioning, trial, active, expired, blocked]
+
+    UtlsFingerprint:
+      type: string
+      enum: [chrome, firefox, safari, ios, android, edge, random]
+
+    VlessRealityParams:
+      type: object
+      additionalProperties: false
+      required: [uuid, flow, serverName, publicKey, shortId, fingerprint]
+      properties:
+        uuid:
+          type: string
+          description: Secret.
+        flow:
+          type: string
+          enum: [xtls-rprx-vision, '']
+          x-enum-varnames: [vision, none]
+          x-enumNames: [vision, none]
+        serverName:
+          type: string
+        publicKey:
+          type: string
+        shortId:
+          type: string
+        fingerprint:
+          $ref: '#/components/schemas/UtlsFingerprint'
+
+    PortHopping:
+      type: object
+      additionalProperties: false
+      required: [ports, intervalSec]
+      properties:
+        ports:
+          type: string
+          description: A range such as 20000-30000 or a list such as 443,8443.
+        intervalSec:
+          type: integer
+
+    Hysteria2Params:
+      type: object
+      additionalProperties: false
+      required: [password, serverName]
+      properties:
+        password:
+          type: string
+          description: Secret.
+        serverName:
+          type: string
+        obfsSalamanderPassword:
+          type: string
+        portHopping:
+          $ref: '#/components/schemas/PortHopping'
+        upMbps:
+          type: integer
+        downMbps:
+          type: integer
+
+    ServerNode:
+      type: object
+      additionalProperties: false
+      required: [id, group, name, protocol, address, port, sortWeight]
+      properties:
+        id:
+          type: string
+        group:
+          $ref: '#/components/schemas/TunnelMode'
+        name:
+          type: string
+        countryCode:
+          type: string
+          pattern: '^[A-Z]{2}$'
+        city:
+          type: string
+        protocol:
+          $ref: '#/components/schemas/ServerProtocol'
+        address:
+          type: string
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+        vless:
+          $ref: '#/components/schemas/VlessRealityParams'
+        hysteria2:
+          $ref: '#/components/schemas/Hysteria2Params'
+        sortWeight:
+          type: integer
+
+    AccountInfo:
+      type: object
+      additionalProperties: false
+      required: [status, trafficUsedBytes, trafficLimitBytes, deviceLimit]
+      properties:
+        status:
+          $ref: '#/components/schemas/AccountStatus'
+        telegramUsername:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+        trafficUsedBytes:
+          type: integer
+          format: int64
+        trafficLimitBytes:
+          type: integer
+          format: int64
+          description: Zero means no limit.
+        deviceLimit:
+          type: integer
+
+    ProfileEndpoints:
+      type: object
+      additionalProperties: false
+      required: [api, bot]
+      properties:
+        api:
+          type: array
+          description: The first entry is primary, the rest are fallbacks.
+          minItems: 1
+          items:
+            type: string
+        bot:
+          type: string
+        support:
+          type: string
+        web:
+          type: string
+
+    AnnouncementLevel:
+      type: string
+      enum: [info, warning]
+
+    Announcement:
+      type: object
+      additionalProperties: false
+      required: [text, level]
+      properties:
+        text:
+          type: string
+        level:
+          $ref: '#/components/schemas/AnnouncementLevel'
+        actionLabel:
+          type: string
+        actionUrl:
+          type: string
+
+    ProfileV1:
+      type: object
+      additionalProperties: false
+      required: [schemaVersion, generatedAt, account, servers, policy, endpoints]
+      properties:
+        schemaVersion:
+          type: integer
+          minimum: 1
+          maximum: 1
+        generatedAt:
+          type: string
+          format: date-time
+        account:
+          $ref: '#/components/schemas/AccountInfo'
+        servers:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServerNode'
+        policy:
+          $ref: '#/components/schemas/ClientPolicy'
+        endpoints:
+          $ref: '#/components/schemas/ProfileEndpoints'
+        announcement:
+          $ref: '#/components/schemas/Announcement'
+
+    # Policy
+
+    PolicyFlags:
+      type: object
+      additionalProperties: false
+      required: [autoWhitelist]
+      properties:
+        autoWhitelist:
+          type: boolean
+
+    PolicyPing:
+      type: object
+      additionalProperties: false
+      required: [url, timeoutMs]
+      properties:
+        url:
+          type: string
+        timeoutMs:
+          type: integer
+
+    RuleSetRef:
+      type: object
+      additionalProperties: false
+      required: [id, url, sha256]
+      properties:
+        id:
+          type: string
+        url:
+          type: string
+        sha256:
+          type: string
+
+    MinAppVersion:
+      type: object
+      additionalProperties: false
+      required: [android, windows]
+      properties:
+        android:
+          type: string
+        windows:
+          type: string
+
+    AppRelease:
+      type: object
+      additionalProperties: false
+      required: [version, url, sha256]
+      properties:
+        version:
+          type: string
+        url:
+          type: string
+        sha256:
+          type: string
+        notes:
+          type: string
+
+    AppUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        android:
+          $ref: '#/components/schemas/AppRelease'
+        windows:
+          $ref: '#/components/schemas/AppRelease'
+
+    ClientPolicy:
+      type: object
+      additionalProperties: false
+      required: [defaults, locked, flags, ping, ruleSets, minAppVersion]
+      properties:
+        defaults:
+          $ref: '#/components/schemas/SettingsPatch'
+        locked:
+          type: array
+          items:
+            $ref: '#/components/schemas/SettingsKey'
+        flags:
+          $ref: '#/components/schemas/PolicyFlags'
+        ping:
+          $ref: '#/components/schemas/PolicyPing'
+        ruleSets:
+          type: array
+          items:
+            $ref: '#/components/schemas/RuleSetRef'
+        minAppVersion:
+          $ref: '#/components/schemas/MinAppVersion'
+        appUpdate:
+          $ref: '#/components/schemas/AppUpdate'
+
+    # Settings
+
+    SettingsKey:
+      type: string
+      enum:
+        - routing.enabled
+        - routing.preset
+        - routing.rules
+        - dns.remote
+        - dns.direct
+        - dns.strategy
+        - net.ipv6
+        - net.sniffing
+        - net.tlsFragment
+        - net.mtu
+        - net.tunStack
+        - net.excludeRoutes
+        - net.bypassLan
+        - perApp.mode
+        - perApp.apps
+        - ping.type
+        - ping.url
+        - ping.timeoutMs
+        - ping.onOpen
+        - connect.autoConnect
+        - connect.autoConnectStrategy
+        - connect.autostart
+        - ui.sortByPing
+        - ui.locale
+        - ui.theme
+        - whitelist.autoOnCellular
+      x-enum-varnames:
+        - routingEnabled
+        - routingPreset
+        - routingRules
+        - dnsRemote
+        - dnsDirect
+        - dnsStrategy
+        - netIpv6
+        - netSniffing
+        - netTlsFragment
+        - netMtu
+        - netTunStack
+        - netExcludeRoutes
+        - netBypassLan
+        - perAppMode
+        - perAppApps
+        - pingType
+        - pingUrl
+        - pingTimeoutMs
+        - pingOnOpen
+        - connectAutoConnect
+        - connectAutoConnectStrategy
+        - connectAutostart
+        - uiSortByPing
+        - uiLocale
+        - uiTheme
+        - whitelistAutoOnCellular
+      x-enumNames:
+        - routingEnabled
+        - routingPreset
+        - routingRules
+        - dnsRemote
+        - dnsDirect
+        - dnsStrategy
+        - netIpv6
+        - netSniffing
+        - netTlsFragment
+        - netMtu
+        - netTunStack
+        - netExcludeRoutes
+        - netBypassLan
+        - perAppMode
+        - perAppApps
+        - pingType
+        - pingUrl
+        - pingTimeoutMs
+        - pingOnOpen
+        - connectAutoConnect
+        - connectAutoConnectStrategy
+        - connectAutostart
+        - uiSortByPing
+        - uiLocale
+        - uiTheme
+        - whitelistAutoOnCellular
+
+    RoutingPreset:
+      type: string
+      enum: [ru_direct, all_proxy, custom]
+
+    DnsStrategy:
+      type: string
+      enum: [prefer_ipv4, prefer_ipv6, ipv4_only, ipv6_only]
+
+    TunStack:
+      type: string
+      enum: [system, gvisor, mixed]
+
+    PerAppMode:
+      type: string
+      enum: ['off', include, exclude]
+
+    PingType:
+      type: string
+      enum: [tcp, url_test]
+
+    AutoConnectStrategy:
+      type: string
+      enum: [last_used, lowest_ping, random]
+
+    UiLocale:
+      type: string
+      enum: [system, ru, en]
+
+    UiTheme:
+      type: string
+      enum: [system, light, dark]
+
+    RuleMatch:
+      type: string
+      enum: [domain, domain_suffix, domain_keyword, ip_cidr, rule_set, app]
+
+    RuleAction:
+      type: string
+      enum: [proxy, direct, block]
+
+    RoutingRule:
+      type: object
+      additionalProperties: false
+      required: [id, match, value, action]
+      properties:
+        id:
+          type: string
+        match:
+          $ref: '#/components/schemas/RuleMatch'
+        value:
+          type: string
+          description: For match app, a package on Android and a process on Windows.
+        action:
+          $ref: '#/components/schemas/RuleAction'
+
+    TlsFragment:
+      type: object
+      additionalProperties: false
+      required: [enabled, record]
+      properties:
+        enabled:
+          type: boolean
+        record:
+          type: boolean
+
+    RoutingPatch:
+      type: object
+      additionalProperties: false
+      properties:
+        enabled:
+          type: boolean
+        preset:
+          $ref: '#/components/schemas/RoutingPreset'
+        rules:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoutingRule'
+
+    DnsPatch:
+      type: object
+      additionalProperties: false
+      properties:
+        remote:
+          type: string
+        direct:
+          type: string
+        strategy:
+          $ref: '#/components/schemas/DnsStrategy'
+
+    NetPatch:
+      type: object
+      additionalProperties: false
+      properties:
+        ipv6:
+          type: boolean
+        sniffing:
+          type: boolean
+        tlsFragment:
+          $ref: '#/components/schemas/TlsFragment'
+        mtu:
+          type: integer
+          minimum: 1280
+          maximum: 9000
+        tunStack:
+          $ref: '#/components/schemas/TunStack'
+        excludeRoutes:
+          type: array
+          items:
+            type: string
+        bypassLan:
+          type: boolean
+
+    PerAppPatch:
+      type: object
+      additionalProperties: false
+      properties:
+        mode:
+          $ref: '#/components/schemas/PerAppMode'
+        apps:
+          type: array
+          items:
+            type: string
+
+    PingPatch:
+      type: object
+      additionalProperties: false
+      properties:
+        type:
+          $ref: '#/components/schemas/PingType'
+        url:
+          type: string
+        timeoutMs:
+          type: integer
+        onOpen:
+          type: boolean
+
+    ConnectPatch:
+      type: object
+      additionalProperties: false
+      properties:
+        autoConnect:
+          type: boolean
+        autoConnectStrategy:
+          $ref: '#/components/schemas/AutoConnectStrategy'
+        autostart:
+          type: boolean
+
+    UiPatch:
+      type: object
+      additionalProperties: false
+      properties:
+        sortByPing:
+          type: boolean
+        locale:
+          $ref: '#/components/schemas/UiLocale'
+        theme:
+          $ref: '#/components/schemas/UiTheme'
+
+    WhitelistPatch:
+      type: object
+      additionalProperties: false
+      properties:
+        autoOnCellular:
+          type: boolean
+
+    SettingsPatch:
+      type: object
+      additionalProperties: false
+      properties:
+        routing:
+          $ref: '#/components/schemas/RoutingPatch'
+        dns:
+          $ref: '#/components/schemas/DnsPatch'
+        net:
+          $ref: '#/components/schemas/NetPatch'
+        perApp:
+          $ref: '#/components/schemas/PerAppPatch'
+        ping:
+          $ref: '#/components/schemas/PingPatch'
+        connect:
+          $ref: '#/components/schemas/ConnectPatch'
+        ui:
+          $ref: '#/components/schemas/UiPatch'
+        whitelist:
+          $ref: '#/components/schemas/WhitelistPatch'
+
+    # TunnelRequest v1
+
+    SelectedServers:
+      type: object
+      additionalProperties: false
+      properties:
+        regular:
+          type: string
+        whitelist:
+          type: string
+
+    AutoSwitchRequest:
+      type: object
+      additionalProperties: false
+      required: [enabled]
+      properties:
+        enabled:
+          type: boolean
+
+    LocalRuleSet:
+      type: object
+      additionalProperties: false
+      required: [id, path]
+      properties:
+        id:
+          type: string
+        path:
+          type: string
+
+    RoutingSettings:
+      type: object
+      additionalProperties: false
+      required: [enabled, preset, rules, ruleSets]
+      properties:
+        enabled:
+          type: boolean
+        preset:
+          $ref: '#/components/schemas/RoutingPreset'
+        rules:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoutingRule'
+        ruleSets:
+          type: array
+          items:
+            $ref: '#/components/schemas/LocalRuleSet'
+
+    DnsSettings:
+      type: object
+      additionalProperties: false
+      required: [remote, direct, strategy]
+      properties:
+        remote:
+          type: string
+        direct:
+          type: string
+        strategy:
+          $ref: '#/components/schemas/DnsStrategy'
+
+    NetSettings:
+      type: object
+      additionalProperties: false
+      required: [ipv6, sniffing, tlsFragment, mtu, tunStack, excludeRoutes, bypassLan]
+      properties:
+        ipv6:
+          type: boolean
+        sniffing:
+          type: boolean
+        tlsFragment:
+          $ref: '#/components/schemas/TlsFragment'
+        mtu:
+          type: integer
+          minimum: 1280
+          maximum: 9000
+        tunStack:
+          $ref: '#/components/schemas/TunStack'
+        excludeRoutes:
+          type: array
+          items:
+            type: string
+        bypassLan:
+          type: boolean
+
+    PerAppSettings:
+      type: object
+      additionalProperties: false
+      required: [mode, apps]
+      properties:
+        mode:
+          $ref: '#/components/schemas/PerAppMode'
+        apps:
+          type: array
+          items:
+            type: string
+
+    TunnelSettings:
+      type: object
+      additionalProperties: false
+      required: [routing, dns, net, perApp]
+      properties:
+        routing:
+          $ref: '#/components/schemas/RoutingSettings'
+        dns:
+          $ref: '#/components/schemas/DnsSettings'
+        net:
+          $ref: '#/components/schemas/NetSettings'
+        perApp:
+          $ref: '#/components/schemas/PerAppSettings'
+
+    LogLevel:
+      type: string
+      enum: [warn, info, debug]
+
+    TunnelLog:
+      type: object
+      additionalProperties: false
+      required: [level]
+      properties:
+        level:
+          $ref: '#/components/schemas/LogLevel'
+
+    TunnelRequest:
+      type: object
+      additionalProperties: false
+      required: [schemaVersion, platform, userMode, selected, servers, autoSwitch, settings, log]
+      properties:
+        schemaVersion:
+          type: integer
+          minimum: 1
+          maximum: 1
+        platform:
+          $ref: '#/components/schemas/Platform'
+        userMode:
+          $ref: '#/components/schemas/TunnelMode'
+        selected:
+          $ref: '#/components/schemas/SelectedServers'
+        servers:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServerNode'
+        autoSwitch:
+          $ref: '#/components/schemas/AutoSwitchRequest'
+        settings:
+          $ref: '#/components/schemas/TunnelSettings'
+        log:
+          $ref: '#/components/schemas/TunnelLog'
+
+    # CoreEvent v1
+
+    CoreEventType:
+      type: string
+      enum: [state, mode, traffic, url_test, error]
+
+    TunnelStatus:
+      type: string
+      enum: [disconnected, connecting, connected, disconnecting, error]
+
+    ModeSwitchReason:
+      type: string
+      enum: [user, network_cellular, network_wifi, override_cleared, no_whitelist_servers]
+
+    CoreErrorCode:
+      type: string
+      enum:
+        - config_invalid
+        - start_failed
+        - no_servers_in_group
+        - permission_denied
+        - tun_failed
+        - revoked
+        - service_unavailable
+        - ipc_version_mismatch
+        - internal
+
+    StatePayload:
+      type: object
+      additionalProperties: false
+      required: [status, userMode, effectiveMode]
+      properties:
+        status:
+          $ref: '#/components/schemas/TunnelStatus'
+        userMode:
+          $ref: '#/components/schemas/TunnelMode'
+        effectiveMode:
+          $ref: '#/components/schemas/TunnelMode'
+        activeServerId:
+          type: string
+        connectedSince:
+          type: string
+          format: date-time
+
+    ModePayload:
+      type: object
+      additionalProperties: false
+      required: [from, to, reason]
+      properties:
+        from:
+          $ref: '#/components/schemas/TunnelMode'
+        to:
+          $ref: '#/components/schemas/TunnelMode'
+        reason:
+          $ref: '#/components/schemas/ModeSwitchReason'
+
+    TrafficPayload:
+      type: object
+      additionalProperties: false
+      required: [upBps, downBps, upTotal, downTotal]
+      properties:
+        upBps:
+          type: integer
+          format: int64
+        downBps:
+          type: integer
+          format: int64
+        upTotal:
+          type: integer
+          format: int64
+        downTotal:
+          type: integer
+          format: int64
+
+    UrlTestResult:
+      type: object
+      additionalProperties: false
+      required: [serverId]
+      properties:
+        serverId:
+          type: string
+        delayMs:
+          type: integer
+        error:
+          type: string
+
+    UrlTestPayload:
+      type: object
+      additionalProperties: false
+      required: [results]
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/UrlTestResult'
+
+    ErrorPayload:
+      type: object
+      additionalProperties: false
+      required: [code, message]
+      properties:
+        code:
+          $ref: '#/components/schemas/CoreErrorCode'
+        message:
+          type: string
+
+    CoreEvent:
+      type: object
+      additionalProperties: false
+      description: A flat envelope. Exactly one payload is set and it matches type.
+      required: [type, at]
+      properties:
+        type:
+          $ref: '#/components/schemas/CoreEventType'
+        at:
+          type: string
+          format: date-time
+        state:
+          $ref: '#/components/schemas/StatePayload'
+        mode:
+          $ref: '#/components/schemas/ModePayload'
+        traffic:
+          $ref: '#/components/schemas/TrafficPayload'
+        urlTest:
+          $ref: '#/components/schemas/UrlTestPayload'
+        error:
+          $ref: '#/components/schemas/ErrorPayload'
