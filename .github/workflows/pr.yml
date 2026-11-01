@@ -16,11 +16,28 @@ concurrency:
 jobs:
   ubuntu:
     runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: vpn
+          POSTGRES_PASSWORD: vpn
+          POSTGRES_DB: vpn
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U vpn"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgres://vpn:vpn@localhost:5432/vpn?sslmode=disable
+      REQUIRE_POSTGRES: "1"
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: jdx/mise-action@v5.2.5
         with:
-          install_args: go golangci-lint actionlint shellcheck oapi-codegen flutter
+          install_args: go golangci-lint actionlint shellcheck oapi-codegen sqlc flutter
       - name: Check
         run: make check
       - name: Test

@@ -17,6 +17,7 @@ gen: gen-go gen-app
 
 gen-go:
 	cd backend && oapi-codegen -config oapi-codegen.yaml ../contracts/openapi.yaml
+	cd backend && sqlc generate
 	cd core && oapi-codegen -config oapi-codegen.yaml ../contracts/openapi.yaml
 
 # swagger_parser leaves files of removed schemas behind, so start clean.

@@ -11,15 +11,11 @@ servers:
 tags:
   - name: auth
   - name: profile
-security:
-  - bearerAuth: []
-
 paths:
   /v1/auth/telegram/start:
     post:
       operationId: startTelegramLogin
       tags: [auth]
-      security: []
       requestBody:
         required: true
         content:
@@ -46,7 +42,6 @@ paths:
     post:
       operationId: verifyTelegramLogin
       tags: [auth]
-      security: []
       requestBody:
         required: true
         content:
@@ -75,6 +70,8 @@ paths:
     post:
       operationId: logout
       tags: [auth]
+      security:
+        - bearerAuth: []
       responses:
         '204':
           description: The current device is revoked.
@@ -87,6 +84,8 @@ paths:
     get:
       operationId: getProfile
       tags: [profile]
+      security:
+        - bearerAuth: []
       parameters:
         - name: If-None-Match
           in: header
@@ -121,6 +120,8 @@ paths:
     get:
       operationId: getRuleSet
       tags: [profile]
+      security:
+        - bearerAuth: []
       parameters:
         - name: id
           in: path

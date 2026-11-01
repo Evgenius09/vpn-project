@@ -19,7 +19,13 @@ linters:
       # Tests may return raw errors from helpers.
       - path: _test\.go
         linters:
+          - noctx
           - wrapcheck
+      # tech.md 5.10 freezes these names.
+      - path: internal/(panel/panel|telegram/telegram)\.go
+        linters:
+          - revive
+        text: stutters
 
 formatters:
   enable:
