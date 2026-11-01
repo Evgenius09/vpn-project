@@ -1,3 +1,5 @@
+import 'dart:io' as io;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../gen/api/export.dart';
@@ -5,6 +7,7 @@ import 'api/api_client.dart';
 import 'config/app_config.dart';
 import 'storage/token_store.dart';
 import 'vpn/fake_vpn_bridge.dart';
+import 'vpn/pigeon_vpn_bridge.dart';
 import 'vpn/vpn_bridge.dart';
 
 final appConfigProvider = Provider<AppConfig>(
@@ -45,8 +48,11 @@ final apiClientProvider = Provider<VpnApiClient>((ref) {
   );
 });
 
-/// S0-06 and S0-07 add the Android and Windows bridges here.
+/// S0-07 adds the Windows bridge here.
 final vpnBridgeProvider = Provider<VpnBridge>((ref) {
+  if (io.Platform.isAndroid && !ref.watch(appConfigProvider).fakeVpn) {
+    return PigeonVpnBridge();
+  }
   final bridge = FakeVpnBridge();
   ref.onDispose(bridge.dispose);
   return bridge;
