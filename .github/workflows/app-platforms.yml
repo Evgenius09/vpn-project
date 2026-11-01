@@ -23,13 +23,16 @@ jobs:
   apk:
     runs-on: ubuntu-24.04
     steps:
+      # The NDK and native libs do not fit next to the preinstalled SDKs.
+      - name: Free disk space
+        run: sudo rm -rf /usr/share/dotnet /usr/local/.ghcup /opt/ghc /opt/hostedtoolcache/CodeQL
       - uses: actions/checkout@v7.0.1
       - uses: jdx/mise-action@v5.2.5
         with:
           install_args: flutter java
       - name: Build debug APK
         working-directory: app
-        run: flutter build apk --debug --dart-define-from-file=env/dev.json
+        run: flutter build apk --debug --target-platform android-arm64,android-x64 --dart-define-from-file=env/dev.json
 
   windows:
     runs-on: windows-2022
