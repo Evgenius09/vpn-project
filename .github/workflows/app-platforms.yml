@@ -6,6 +6,7 @@ on:
     paths: &inputs
       - app/**
       - core/**
+      - installer/**
       - contracts/**
       - .tool-versions
       - .github/workflows/app-platforms.yml
@@ -99,6 +100,16 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v7.0.1
+      - uses: jdx/mise-action@v5.2.5
+        with:
+          install_args: go
+      - name: Restore Go caches
+        uses: actions/cache@v6.1.0
+        with:
+          path: |
+            ~/AppData/Local/go-build
+            ~/go/pkg/mod
+          key: go-windows-svc-${{ hashFiles('core/go.sum', '.tool-versions') }}
       - name: Read the pinned Flutter version
         id: flutter
         run: echo "version=$(awk '$1 == "flutter" { print $2 }' .tool-versions)" >> "$GITHUB_OUTPUT"
@@ -110,9 +121,36 @@ jobs:
       - name: Test without goldens
         working-directory: app
         run: flutter test --exclude-tags golden
-      - name: Build
+      - name: Build the app
         working-directory: app
         run: flutter build windows --debug --dart-define-from-file=env/dev.json
+      - name: Build the service
+        run: make core-windows
+      - name: Build the installer
+        run: |
+          choco install innosetup --no-progress -y
+          "/c/Program Files (x86)/Inno Setup 6/ISCC.exe" installer/windows/setup.iss
+      - name: Install the service
+        run: |
+          installer/windows/Output/vpnclient-setup.exe //VERYSILENT //SUPPRESSMSGBOXES //NORESTART //LOG=install.log
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            sc query vpnclient | grep -q RUNNING && break
+            sleep 3
+          done
+          sc query vpnclient
+          sc query vpnclient | grep -q RUNNING
       - name: Render the kitchen sink
         working-directory: app
         run: flutter test integration_test/kitchen_sink_test.dart -d windows --dart-define-from-file=env/dev.json
+      - name: Send core events through the service
+        working-directory: app
+        run: flutter test integration_test/tunnel_events_test.dart -d windows --dart-define=FAKE_VPN=false
+      - name: Uninstall the service
+        run: |
+          "/c/Program Files/VPN Client/unins000.exe" //VERYSILENT //SUPPRESSMSGBOXES //NORESTART
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            sc query vpnclient > /dev/null 2>&1 || exit 0
+            sleep 3
+          done
+          echo "the service is still installed"
+          exit 1
