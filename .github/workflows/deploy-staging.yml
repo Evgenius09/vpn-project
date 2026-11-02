@@ -1,0 +1,64 @@
+name: deploy-staging
+
+# Deploys main once a server exists: set the STAGING_HOST variable in S0-09b.
+on:
+  push:
+    branches: [main]
+    paths:
+      - backend/**
+      - infra/**
+      - .github/workflows/deploy-staging.yml
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: deploy-staging
+
+jobs:
+  deploy:
+    if: ${{ vars.STAGING_HOST != '' }}
+    runs-on: ubuntu-24.04
+    env:
+      IMAGE: ghcr.io/evgenius09/vpn-project/backend:${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - name: Build and push the image
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker build -t "$IMAGE" backend
+          docker push "$IMAGE"
+      - name: Set up SSH
+        env:
+          SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
+          HOST: ${{ vars.STAGING_HOST }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan "$HOST" >> ~/.ssh/known_hosts
+      - name: Run the playbook
+        working-directory: infra/ansible
+        env:
+          HOST: ${{ vars.STAGING_HOST }}
+          API_DOMAIN: ${{ vars.STAGING_DOMAIN }}
+          POSTGRES_PASSWORD: ${{ secrets.STAGING_POSTGRES_PASSWORD }}
+          GRAFANA_PASSWORD: ${{ secrets.STAGING_GRAFANA_PASSWORD }}
+          TOKEN_PEPPER: ${{ secrets.STAGING_TOKEN_PEPPER }}
+        run: |
+          pipx install ansible-core
+          cat > extra.json <<VARS
+          {
+            "app_env": "staging",
+            "api_domain": "$API_DOMAIN",
+            "backend_image": "$IMAGE",
+            "postgres_password": "$POSTGRES_PASSWORD",
+            "grafana_password": "$GRAFANA_PASSWORD",
+            "token_pepper": "$TOKEN_PEPPER"
+          }
+          VARS
+          printf '[api]\n%s ansible_user=deploy\n' "$HOST" > inventory.ini
+          ansible-playbook -i inventory.ini -e @extra.json playbooks/staging.yml

@@ -1,0 +1,39 @@
+name: infra
+
+on:
+  pull_request:
+    paths:
+      - infra/**
+      - backend/Dockerfile
+      - .ansible-lint
+      - .github/workflows/infra.yml
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - name: Lint Ansible
+        working-directory: infra/ansible
+        run: |
+          pipx install ansible-lint
+          ansible-lint --offline -c ../../.ansible-lint playbooks roles
+      - name: Check the Compose file
+        working-directory: infra/compose/api
+        run: |
+          cp .env.example .env
+          docker compose config --quiet
+      - name: Check the Caddyfile
+        run: >-
+          docker run --rm -e API_DOMAIN=localhost
+          -v "$PWD/infra/compose/api/Caddyfile:/etc/caddy/Caddyfile:ro"
+          caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile
+      - name: Check the Prometheus config
+        run: >-
+          docker run --rm --entrypoint promtool
+          -v "$PWD/infra/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro"
+          -v "$PWD/infra/monitoring/rules.yml:/etc/prometheus/rules.yml:ro"
+          prom/prometheus:v3.5.0 check config /etc/prometheus/prometheus.yml

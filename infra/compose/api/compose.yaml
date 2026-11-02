@@ -1,0 +1,99 @@
+# The API host: backend, database, TLS proxy, and monitoring (tech.md 9).
+# /metrics stays on the internal network. Only Caddy publishes ports.
+x-backend: &backend
+  image: ${BACKEND_IMAGE:-vpnclient-backend:dev}
+  env_file: .env
+  restart: unless-stopped
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: vpn
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: vpn
+    volumes:
+      - postgres:/var/lib/postgresql
+    healthcheck:
+      test: [CMD, pg_isready, -U, vpn]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  migrate:
+    <<: *backend
+    restart: "no"
+    command: [/app/migrate]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    <<: *backend
+    command: [/app/api]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, "http://127.0.0.1:8080/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  worker:
+    <<: *backend
+    command: [/app/worker]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      API_DOMAIN: ${API_DOMAIN:?set API_DOMAIN}
+    ports:
+      - ${HTTP_PORT:-80}:80
+      - ${HTTPS_PORT:-443}:443
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    depends_on:
+      api:
+        condition: service_healthy
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    restart: unless-stopped
+    volumes:
+      - ../../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../../monitoring/rules.yml:/etc/prometheus/rules.yml:ro
+      - prometheus:/prometheus
+
+  node-exporter:
+    image: prom/node-exporter:v1.9.1
+    restart: unless-stopped
+    pid: host
+    command: [--path.rootfs=/host]
+    volumes:
+      - /:/host:ro,rslave
+
+  grafana:
+    image: grafana/grafana:12.1.0
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:?set GRAFANA_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    ports:
+      - 127.0.0.1:3000:3000
+    volumes:
+      - ../../monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../../monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana:/var/lib/grafana
+
+volumes:
+  postgres:
+  caddy-data:
+  prometheus:
+  grafana:

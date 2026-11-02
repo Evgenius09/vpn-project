@@ -1,0 +1,54 @@
+---
+- name: Install Docker
+  ansible.builtin.apt:
+    name:
+      - docker.io
+      - docker-compose-v2
+    state: present
+    update_cache: true
+
+- name: Create the stack directory
+  ansible.builtin.file:
+    path: "{{ api_host_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Create the stack subdirectories
+  ansible.builtin.file:
+    path: "{{ api_host_dir }}/{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+  loop:
+    - compose
+    - compose/api
+
+- name: Copy the stack
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../../{{ item.src }}"
+    dest: "{{ api_host_dir }}/{{ item.dest }}"
+    owner: root
+    group: root
+    mode: preserve
+  loop:
+    - { src: compose/api/, dest: compose/api/ }
+    - { src: monitoring, dest: "" }
+
+- name: Render the environment file
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ api_host_dir }}/compose/api/.env"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  notify: Restart the stack
+
+- name: Start the stack
+  ansible.builtin.command:
+    cmd: docker compose up -d --remove-orphans --wait
+    chdir: "{{ api_host_dir }}/compose/api"
+  changed_when: true

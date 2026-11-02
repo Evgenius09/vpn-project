@@ -1,0 +1,6 @@
+---
+- name: Restart the stack
+  ansible.builtin.command:
+    cmd: docker compose up -d --force-recreate
+    chdir: "{{ api_host_dir }}/compose/api"
+  changed_when: true

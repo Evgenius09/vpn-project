@@ -1,0 +1,12 @@
+---
+profile: production
+exclude_paths:
+  - .github/
+  - app/
+  - backend/
+  - contracts/
+  - core/
+  - installer/
+skip_list:
+  # tech.md 4.3 names the roles with a dash.
+  - role-name
