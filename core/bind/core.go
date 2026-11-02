@@ -15,7 +15,7 @@ type EventSink interface {
 	OnEvent(coreEventJSON string)
 }
 
-var errNotInSkeleton = errors.New("core: not available in the skeleton")
+var errURLTestPending = errors.New("core: url test comes with S1-12")
 
 // Core is one tunnel. Its methods are safe to call from any thread.
 type Core struct {
@@ -46,9 +46,13 @@ func (c *Core) Start(tunnelRequestJSON string) error {
 	return c.runtime.Start(tunnelRequestJSON)
 }
 
-// Update applies new settings. S1-02 implements it.
-func (c *Core) Update(string) error {
-	return errNotInSkeleton
+// Update applies new settings by restarting the box.
+func (c *Core) Update(tunnelRequestJSON string) error {
+	if c.initErr != nil {
+		return c.initErr
+	}
+	//nolint:wrapcheck // The host reads the core error code from this error.
+	return c.runtime.Update(tunnelRequestJSON)
 }
 
 // Stop ends the tunnel.
@@ -60,22 +64,30 @@ func (c *Core) Stop() error {
 	return c.runtime.Stop()
 }
 
-// SetUserMode changes the user mode. S1-02 implements it.
-func (c *Core) SetUserMode(string) error {
-	return errNotInSkeleton
+// SetUserMode changes the user mode without a restart.
+func (c *Core) SetUserMode(mode string) error {
+	if c.initErr != nil {
+		return c.initErr
+	}
+	//nolint:wrapcheck // The host reads the core error code from this error.
+	return c.runtime.SetUserMode(mode)
 }
 
-// SelectServer selects a server in a group. S1-02 implements it.
-func (c *Core) SelectServer(string, string) error {
-	return errNotInSkeleton
+// SelectServer selects a server in a group without a restart.
+func (c *Core) SelectServer(group, serverID string) error {
+	if c.initErr != nil {
+		return c.initErr
+	}
+	//nolint:wrapcheck // The host reads the core error code from this error.
+	return c.runtime.SelectServer(group, serverID)
 }
 
 // OnNetworkChanged reports a NetType. S2-02 implements it.
 func (c *Core) OnNetworkChanged(string) {}
 
-// URLTest returns a JSON CoreEvent of type url_test. S1-02 implements it.
+// URLTest returns a JSON CoreEvent of type url_test. S1-12 implements it.
 func (c *Core) URLTest(string) (string, error) {
-	return "", errNotInSkeleton
+	return "", errURLTestPending
 }
 
 // State returns a JSON CoreEvent of type state.

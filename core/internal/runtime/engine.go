@@ -7,9 +7,13 @@ import (
 	"sync"
 
 	box "github.com/sagernet/sing-box"
-	C "github.com/sagernet/sing-box/constant"
+	"github.com/sagernet/sing-box/adapter"
+	"github.com/sagernet/sing-box/common/trafficcontrol"
 	"github.com/sagernet/sing-box/include"
+	"github.com/sagernet/sing-box/log"
 	"github.com/sagernet/sing-box/option"
+	"github.com/sagernet/sing-box/protocol/group"
+	"github.com/sagernet/sing/service"
 )
 
 // BoxEngine runs sing-box in process. vpnsvc and the tests use it. Android uses
@@ -18,8 +22,17 @@ import (
 type BoxEngine struct {
 	mu       sync.Mutex
 	instance *box.Box
+	ctx      context.Context //nolint:containedctx // Selectors and counters live in the box context.
 	cancel   context.CancelFunc
 }
+
+var errNotRunning = errors.New("box is not running")
+
+// silentWriter exists because sing-box keeps traffic counters only when a
+// platform writer is set. Logs still go to the configured output.
+type silentWriter struct{}
+
+func (silentWriter) WriteMessage(log.Level, string) {}
 
 // NewBoxEngine returns an idle engine.
 func NewBoxEngine() *BoxEngine {
@@ -35,7 +48,7 @@ func (e *BoxEngine) Start(options option.Options) error {
 	}
 
 	ctx, cancel := context.WithCancel(include.Context(context.Background()))
-	instance, err := box.New(box.Options{Options: options, Context: ctx})
+	instance, err := box.New(box.Options{Options: options, Context: ctx, PlatformLogWriter: silentWriter{}})
 	if err != nil {
 		cancel()
 		return fmt.Errorf("create box: %w", err)
@@ -45,7 +58,7 @@ func (e *BoxEngine) Start(options option.Options) error {
 		_ = instance.Close()
 		return fmt.Errorf("start box: %w", err)
 	}
-	e.instance, e.cancel = instance, cancel
+	e.instance, e.ctx, e.cancel = instance, ctx, cancel
 	return nil
 }
 
@@ -58,22 +71,45 @@ func (e *BoxEngine) Close() error {
 	}
 	err := e.instance.Close()
 	e.cancel()
-	e.instance, e.cancel = nil, nil
+	e.instance, e.ctx, e.cancel = nil, nil, nil
 	if err != nil {
 		return fmt.Errorf("close box: %w", err)
 	}
 	return nil
 }
 
-// directOptions is the skeleton config: one direct outbound and no tunnel.
-// S1-01 replaces it with config.BuildOptions.
-func directOptions() option.Options {
-	return option.Options{
-		Log: &option.LogOptions{Disabled: true},
-		Outbounds: []option.Outbound{{
-			Type:    C.TypeDirect,
-			Tag:     "direct",
-			Options: &option.DirectOutboundOptions{},
-		}},
+// Select implements Engine.
+func (e *BoxEngine) Select(selector, member string) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if e.instance == nil {
+		return errNotRunning
 	}
+	outbound, found := service.FromContext[adapter.OutboundManager](e.ctx).Outbound(selector)
+	if !found {
+		return fmt.Errorf("selector %s not found", selector)
+	}
+	target, isSelector := outbound.(*group.Selector)
+	if !isSelector {
+		return fmt.Errorf("outbound %s is not a selector", selector)
+	}
+	if !target.SelectOutbound(member) {
+		return fmt.Errorf("selector %s has no member %s", selector, member)
+	}
+	return nil
+}
+
+// Traffic implements Engine.
+func (e *BoxEngine) Traffic() (up, down int64, ok bool) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if e.instance == nil {
+		return 0, 0, false
+	}
+	manager := service.PtrFromContext[trafficcontrol.Manager](e.ctx)
+	if manager == nil {
+		return 0, 0, false
+	}
+	up, down = manager.Total()
+	return up, down, true
 }

@@ -258,6 +258,21 @@ func TestC3SelectionFallsToTheFirstByWeight(t *testing.T) {
 	})
 }
 
+func TestSelectedServerAgreesWithTheGroupDefault(t *testing.T) {
+	rapid.Check(t, func(t *rapid.T) {
+		req := genRequest.Draw(t, "request")
+		options := build(t, req)
+		for _, mode := range []contract.TunnelMode{contract.TunnelModeRegular, contract.TunnelModeWhitelist} {
+			selected, ok := config.SelectedServer(req, mode)
+			require.Equal(t, hasOutbound(options, config.GroupTag(mode)), ok)
+			if ok {
+				got := outbound[option.SelectorOutboundOptions](t, options, config.GroupTag(mode)).Default
+				require.Equal(t, got, config.ServerTag(selected))
+			}
+		}
+	})
+}
+
 func serversOf(req contract.TunnelRequest, mode contract.TunnelMode) []contract.ServerNode {
 	var group []contract.ServerNode
 	for _, server := range req.Servers {

@@ -37,7 +37,7 @@ func buildOutbounds(req contract.TunnelRequest, groups map[contract.TunnelMode][
 			servers = append(servers, outbound)
 		}
 		groupTags = append(groupTags, GroupTag(mode))
-		groupSelectors = append(groupSelectors, selector(GroupTag(mode), members, groupDefault(group, selected[mode]), false))
+		groupSelectors = append(groupSelectors, selector(GroupTag(mode), members, ServerTag(groupDefault(group, selected[mode])), false))
 	}
 
 	outbounds := []option.Outbound{selector(TagProxy, groupTags, GroupTag(req.UserMode), true)}
@@ -55,11 +55,25 @@ func groupDefault(group []contract.ServerNode, selected *string) string {
 	if selected != nil {
 		for _, server := range group {
 			if server.Id == *selected {
-				return ServerTag(server.Id)
+				return server.Id
 			}
 		}
 	}
-	return ServerTag(group[0].Id)
+	return group[0].Id
+}
+
+// SelectedServer returns the server a group starts on, or false for an empty
+// group.
+func SelectedServer(req contract.TunnelRequest, mode contract.TunnelMode) (string, bool) {
+	group := serversByGroup(req.Servers)[mode]
+	if len(group) == 0 {
+		return "", false
+	}
+	selected := req.Selected.Regular
+	if mode == contract.TunnelModeWhitelist {
+		selected = req.Selected.Whitelist
+	}
+	return groupDefault(group, selected), true
 }
 
 func buildServer(server contract.ServerNode, fragment contract.TlsFragment) (option.Outbound, error) {

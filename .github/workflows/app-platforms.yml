@@ -106,14 +106,16 @@ jobs:
           disable-animations: true
           working-directory: app
           script: |
-            timeout 420 flutter test integration_test/tunnel_events_test.dart -d emulator-5554 --dart-define=FAKE_VPN=false || { adb logcat -d | tail -n 300; exit 1; }
-            timeout 420 flutter test integration_test/kitchen_sink_test.dart -d emulator-5554 || { adb logcat -d | tail -n 300; exit 1; }
+            timeout -s KILL 420 flutter test integration_test/tunnel_events_test.dart -d emulator-5554 --dart-define=FAKE_VPN=false || { bash ../.github/scripts/emulator_diagnostics.sh; exit 1; }
+            timeout -s KILL 420 flutter test integration_test/kitchen_sink_test.dart -d emulator-5554 || { bash ../.github/scripts/emulator_diagnostics.sh; exit 1; }
       - name: Report peak memory
         if: always()
         run: awk '{ print $3 }' memory.log | sort -n | tail -n 1
 
   windows:
     runs-on: windows-2022
+    # The real TUN runs here, and a lost runner would otherwise hang for hours.
+    timeout-minutes: 40
     defaults:
       run:
         shell: bash
@@ -163,6 +165,7 @@ jobs:
         run: flutter test integration_test/kitchen_sink_test.dart -d windows --dart-define-from-file=env/dev.json
       - name: Send core events through the service
         working-directory: app
+        timeout-minutes: 10
         run: flutter test integration_test/tunnel_events_test.dart -d windows --dart-define=FAKE_VPN=false
       - name: Uninstall the service
         run: |
