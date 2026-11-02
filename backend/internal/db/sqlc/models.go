@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type AccountStatus string
@@ -237,7 +236,7 @@ type Server struct {
 	Protocol          ServerProtocol
 	DisplayName       string
 	CountryCode       string
-	City              pgtype.Text
+	City              *string
 	Address           string
 	Port              int32
 	Params            []byte
@@ -251,7 +250,7 @@ type TelegramUser struct {
 	TelegramID   int64
 	AccountID    uuid.UUID
 	ChatID       int64
-	Username     pgtype.Text
+	Username     *string
 	FirstName    string
 	BotBlockedAt *time.Time
 	LastUpdateID int64

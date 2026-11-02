@@ -74,6 +74,13 @@ core-windows:
 installer:
 	iscc installer/windows/setup.iss
 
-seed dev:
-	@echo "$@: not available yet, see the skeleton slices in tech.md section 15.1"
-	@exit 1
+# Local defaults from backend/.env.example.
+DEV_ENV := set -a; . backend/.env.example; set +a; cd backend
+
+seed:
+	$(DEV_ENV) && go run ./cmd/migrate && go run ./cmd/seed
+
+dev:
+	docker compose -f infra/compose/dev.yaml up -d --wait
+	$(MAKE) --no-print-directory seed
+	$(DEV_ENV) && (go run ./cmd/worker & go run ./cmd/api)

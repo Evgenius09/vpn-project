@@ -1,0 +1,20 @@
+# Local Postgres for make dev.
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: vpn
+      POSTGRES_PASSWORD: vpn
+      POSTGRES_DB: vpn
+    ports:
+      - 127.0.0.1:5432:5432
+    volumes:
+      - postgres:/var/lib/postgresql
+    healthcheck:
+      test: [CMD, pg_isready, -U, vpn]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+
+volumes:
+  postgres:

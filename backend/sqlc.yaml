@@ -18,3 +18,13 @@ sql:
             go_type:
               type: time.Time
               pointer: true
+          - column: telegram_users.username
+            go_type:
+              type: string
+              pointer: true
+          - column: servers.country_code
+            go_type: string
+          - column: servers.city
+            go_type:
+              type: string
+              pointer: true
