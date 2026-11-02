@@ -105,7 +105,10 @@ jobs:
           target: google_apis
           disable-animations: true
           working-directory: app
+          # The consent dialog cannot be tapped here, and appops needs the package.
           script: |
+            adb install -r build/app/outputs/flutter-apk/app-debug.apk
+            adb shell appops set com.vpnclient.app ACTIVATE_VPN allow
             timeout -s KILL 420 flutter test integration_test/tunnel_events_test.dart -d emulator-5554 --dart-define=FAKE_VPN=false || { bash ../.github/scripts/emulator_diagnostics.sh; exit 1; }
             timeout -s KILL 420 flutter test integration_test/kitchen_sink_test.dart -d emulator-5554 || { bash ../.github/scripts/emulator_diagnostics.sh; exit 1; }
       - name: Report peak memory

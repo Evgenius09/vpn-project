@@ -72,26 +72,6 @@ void main() {
     });
     await tester.pump(const Duration(milliseconds: 200));
 
-    if (io.Platform.isAndroid) {
-      // S1-03 adds openTun and turns this into the full cycle below.
-      Object? failure;
-      await tester.runAsync(() async {
-        try {
-          await bridge.start(_request()).timeout(const Duration(seconds: 30));
-        } on VpnBridgeException catch (error) {
-          failure = error;
-        }
-        debugPrint('tunnel test: start returned $failure');
-        await Future<void>.delayed(const Duration(seconds: 1));
-      });
-      expect((failure! as VpnBridgeException).code, CoreErrorCode.startFailed);
-      expect(statuses, [TunnelStatus.connecting, TunnelStatus.error]);
-      debugPrint('tunnel test: cancelling the subscription');
-      await subscription.cancel();
-      debugPrint('tunnel test: first test done');
-      return;
-    }
-
     await tester.runAsync(() async {
       await bridge.start(_request()).timeout(const Duration(seconds: 30));
       await Future<void>.delayed(const Duration(seconds: 1));
