@@ -1,18 +1,18 @@
 name: app-platforms
 
-# Platform builds are slow, so they run only when their inputs change.
+# Platform builds cost about 70 runner minutes, so they run only when their
+# inputs change, and only on the PR: a merge would repeat the same build.
+# Fixtures stay out because the ubuntu job already tests them on both sides.
 on:
   pull_request:
-    paths: &inputs
+    paths:
       - app/**
       - core/**
       - installer/**
-      - contracts/**
+      - contracts/openapi.yaml
+      - contracts/pigeon/**
       - .tool-versions
       - .github/workflows/app-platforms.yml
-  push:
-    branches: [main]
-    paths: *inputs
 
 permissions:
   contents: read
@@ -82,6 +82,20 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
+      - name: Record memory use
+        run: |
+          nproc
+          free -m
+          nohup sh -c "while sleep 5; do free -m | grep '^Mem:'; done" > memory.log 2>&1 &
+      # A cold Gradle build next to the running emulator exhausts the runner's
+      # memory and kills it. Build first, so the emulator sees an incremental one.
+      - name: Build the test APK
+        working-directory: app
+        run: |
+          flutter build apk --debug --target=integration_test/tunnel_events_test.dart --target-platform android-x64
+          (cd android && ./gradlew --stop)
+          pkill -f KotlinCompileDaemon || true
+          free -m
       - uses: reactivecircus/android-emulator-runner@v2.38.0
         with:
           api-level: 34
@@ -92,6 +106,9 @@ jobs:
           script: |
             flutter test integration_test/tunnel_events_test.dart -d emulator-5554 --dart-define=FAKE_VPN=false
             flutter test integration_test/kitchen_sink_test.dart -d emulator-5554
+      - name: Report peak memory
+        if: always()
+        run: awk '{ print $3 }' memory.log | sort -n | tail -n 1
 
   windows:
     runs-on: windows-2022
