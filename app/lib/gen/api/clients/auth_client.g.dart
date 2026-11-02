@@ -21,7 +21,7 @@ class _AuthClient implements AuthClient {
   final ParseErrorLogger? errorLogger;
 
   @override
-  Future<TelegramLoginChallenge> startTelegramLogin({
+  Future<HttpResponse<TelegramLoginChallenge>> startTelegramLogin({
     required TelegramLoginStart body,
   }) async {
     final _extra = <String, dynamic>{};
@@ -29,7 +29,7 @@ class _AuthClient implements AuthClient {
     final _headers = <String, dynamic>{};
     final _data = <String, dynamic>{};
     _data.addAll(body.toJson());
-    final _options = _setStreamType<TelegramLoginChallenge>(
+    final _options = _setStreamType<HttpResponse<TelegramLoginChallenge>>(
       Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
@@ -47,11 +47,12 @@ class _AuthClient implements AuthClient {
       errorLogger?.logError(e, s, _options, response: _result);
       rethrow;
     }
-    return _value;
+    final httpResponse = HttpResponse(_value, _result);
+    return httpResponse;
   }
 
   @override
-  Future<AuthResult> verifyTelegramLogin({
+  Future<HttpResponse<AuthResult>> verifyTelegramLogin({
     required TelegramLoginVerify body,
   }) async {
     final _extra = <String, dynamic>{};
@@ -59,7 +60,7 @@ class _AuthClient implements AuthClient {
     final _headers = <String, dynamic>{};
     final _data = <String, dynamic>{};
     _data.addAll(body.toJson());
-    final _options = _setStreamType<AuthResult>(
+    final _options = _setStreamType<HttpResponse<AuthResult>>(
       Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
@@ -77,16 +78,17 @@ class _AuthClient implements AuthClient {
       errorLogger?.logError(e, s, _options, response: _result);
       rethrow;
     }
-    return _value;
+    final httpResponse = HttpResponse(_value, _result);
+    return httpResponse;
   }
 
   @override
-  Future<void> logout() async {
+  Future<HttpResponse<void>> logout() async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{};
     const Map<String, dynamic>? _data = null;
-    final _options = _setStreamType<void>(
+    final _options = _setStreamType<HttpResponse<void>>(
       Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
@@ -96,7 +98,9 @@ class _AuthClient implements AuthClient {
           )
           .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
     );
-    await _dio.fetch<void>(_options);
+    final _result = await _dio.fetch<void>(_options);
+    final httpResponse = HttpResponse(null, _result);
+    return httpResponse;
   }
 
   RequestOptions _setStreamType<T>(RequestOptions requestOptions) {

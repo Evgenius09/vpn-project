@@ -1,0 +1,38 @@
+# The client policy of ProfileV1 (tech.md 5.3, 19.5).
+defaults:
+  routing:
+    enabled: true
+    preset: ru_direct
+  dns:
+    remote: https://1.1.1.1/dns-query
+    direct: https://77.88.8.8/dns-query
+    strategy: prefer_ipv4
+  net:
+    ipv6: false
+    sniffing: true
+    mtu: 1500
+    tunStack: mixed
+    bypassLan: true
+  ping:
+    type: tcp
+    timeoutMs: 3000
+    onOpen: true
+  connect:
+    autoConnect: false
+    autoConnectStrategy: last_used
+  ui:
+    sortByPing: true
+    locale: system
+    theme: system
+  whitelist:
+    autoOnCellular: true
+locked: []
+flags:
+  autoWhitelist: true
+ping:
+  url: https://www.gstatic.com/generate_204
+  timeoutMs: 3000
+ruleSets: []
+minAppVersion:
+  android: 0.1.0
+  windows: 0.1.0

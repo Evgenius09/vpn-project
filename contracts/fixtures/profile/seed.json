@@ -1,0 +1,168 @@
+{
+  "account": {
+    "deviceLimit": 5,
+    "expiresAt": "2030-01-01T00:00:00Z",
+    "status": "trial",
+    "telegramUsername": "seed_user",
+    "trafficLimitBytes": 107374182400,
+    "trafficUsedBytes": 1048576
+  },
+  "endpoints": {
+    "api": [
+      "http://localhost:8080"
+    ],
+    "bot": "https://t.me/vpnclient_dev_bot"
+  },
+  "generatedAt": "2026-11-01T10:00:00Z",
+  "policy": {
+    "defaults": {
+      "connect": {
+        "autoConnect": false,
+        "autoConnectStrategy": "last_used"
+      },
+      "dns": {
+        "direct": "https://77.88.8.8/dns-query",
+        "remote": "https://1.1.1.1/dns-query",
+        "strategy": "prefer_ipv4"
+      },
+      "net": {
+        "bypassLan": true,
+        "ipv6": false,
+        "mtu": 1500,
+        "sniffing": true,
+        "tunStack": "mixed"
+      },
+      "ping": {
+        "onOpen": true,
+        "timeoutMs": 3000,
+        "type": "tcp"
+      },
+      "routing": {
+        "enabled": true,
+        "preset": "ru_direct"
+      },
+      "ui": {
+        "locale": "system",
+        "sortByPing": true,
+        "theme": "system"
+      },
+      "whitelist": {
+        "autoOnCellular": true
+      }
+    },
+    "flags": {
+      "autoWhitelist": true
+    },
+    "locked": [],
+    "minAppVersion": {
+      "android": "0.1.0",
+      "windows": "0.1.0"
+    },
+    "ping": {
+      "timeoutMs": 3000,
+      "url": "https://www.gstatic.com/generate_204"
+    },
+    "ruleSets": []
+  },
+  "schemaVersion": 1,
+  "servers": [
+    {
+      "address": "de1.seed.invalid",
+      "city": "Frankfurt",
+      "countryCode": "DE",
+      "group": "regular",
+      "id": "10000000-0000-4000-8000-000000000001",
+      "name": "Frankfurt",
+      "port": 443,
+      "protocol": "vless_reality",
+      "sortWeight": 10,
+      "vless": {
+        "fingerprint": "chrome",
+        "flow": "xtls-rprx-vision",
+        "publicKey": "seed-reality-public-key-de",
+        "serverName": "www.example.com",
+        "shortId": "0123456789abcdef",
+        "uuid": "c0000000-0000-4000-8000-000000000001"
+      }
+    },
+    {
+      "address": "nl1.seed.invalid",
+      "city": "Amsterdam",
+      "countryCode": "NL",
+      "group": "regular",
+      "id": "10000000-0000-4000-8000-000000000002",
+      "name": "Amsterdam",
+      "port": 443,
+      "protocol": "vless_reality",
+      "sortWeight": 20,
+      "vless": {
+        "fingerprint": "firefox",
+        "flow": "xtls-rprx-vision",
+        "publicKey": "seed-reality-public-key-nl",
+        "serverName": "www.example.org",
+        "shortId": "fedcba9876543210",
+        "uuid": "c0000000-0000-4000-8000-000000000001"
+      }
+    },
+    {
+      "address": "fi1.seed.invalid",
+      "city": "Helsinki",
+      "countryCode": "FI",
+      "group": "regular",
+      "hysteria2": {
+        "downMbps": 200,
+        "obfsSalamanderPassword": "seed-obfs-password",
+        "password": "seed-hysteria2-auth",
+        "portHopping": {
+          "intervalSec": 30,
+          "ports": "20000-30000"
+        },
+        "serverName": "fi1.seed.invalid",
+        "upMbps": 50
+      },
+      "id": "10000000-0000-4000-8000-000000000003",
+      "name": "Helsinki",
+      "port": 443,
+      "protocol": "hysteria2",
+      "sortWeight": 30
+    },
+    {
+      "address": "ru1.seed.invalid",
+      "city": "Moscow",
+      "countryCode": "RU",
+      "group": "whitelist",
+      "id": "10000000-0000-4000-8000-000000000004",
+      "name": "Moscow",
+      "port": 443,
+      "protocol": "vless_reality",
+      "sortWeight": 10,
+      "vless": {
+        "fingerprint": "chrome",
+        "flow": "xtls-rprx-vision",
+        "publicKey": "seed-reality-public-key-ru1",
+        "serverName": "www.example.ru",
+        "shortId": "1122334455667788",
+        "uuid": "c0000000-0000-4000-8000-000000000001"
+      }
+    },
+    {
+      "address": "ru2.seed.invalid",
+      "city": "Saint Petersburg",
+      "countryCode": "RU",
+      "group": "whitelist",
+      "id": "10000000-0000-4000-8000-000000000005",
+      "name": "Saint Petersburg",
+      "port": 443,
+      "protocol": "vless_reality",
+      "sortWeight": 20,
+      "vless": {
+        "fingerprint": "safari",
+        "flow": "",
+        "publicKey": "seed-reality-public-key-ru2",
+        "serverName": "www.example.su",
+        "shortId": "8877665544332211",
+        "uuid": "c0000000-0000-4000-8000-000000000001"
+      }
+    }
+  ]
+}

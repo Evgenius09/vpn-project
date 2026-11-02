@@ -17,7 +17,9 @@ abstract class ProfileClient {
   factory ProfileClient(Dio dio, {String? baseUrl}) = _ProfileClient;
 
   @GET('/v1/profile')
-  Future<ProfileV1> getProfile({@Header('If-None-Match') String? ifNoneMatch});
+  Future<HttpResponse<ProfileV1>> getProfile({
+    @Header('If-None-Match') String? ifNoneMatch,
+  });
 
   @GET('/v1/rulesets/{id}.srs')
   @DioResponseType(ResponseType.stream)

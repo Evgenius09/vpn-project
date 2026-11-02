@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/profile/presentation/server_list.dart';
+import '../gen/api/export.dart';
 import '../gen/l10n/app_localizations.dart';
 import '../ui/ui.dart';
 import 'routes.dart';
@@ -29,11 +31,11 @@ class HomeScreen extends ConsumerWidget {
     final pages = [
       ModePage(
         title: strings.modeRegular,
-        child: _ModeScreen(strings.modeRegular),
+        child: _ModeScreen(strings.modeRegular, TunnelMode.regular),
       ),
       ModePage(
         title: strings.modeWhitelist,
-        child: _ModeScreen(strings.modeWhitelist),
+        child: _ModeScreen(strings.modeWhitelist, null),
       ),
     ];
     return Scaffold(
@@ -66,12 +68,21 @@ class HomeScreen extends ConsumerWidget {
 }
 
 class _ModeScreen extends StatelessWidget {
-  const _ModeScreen(this.title);
+  const _ModeScreen(this.title, this.group);
 
   final String title;
 
+  /// The server group of this screen. S2-01 sets it for whitelists.
+  final TunnelMode? group;
+
   @override
   Widget build(BuildContext context) {
-    return EmptyState(icon: Icons.shield_outlined, title: title);
+    final group = this.group;
+    return Stack(
+      children: [
+        EmptyState(icon: Icons.shield_outlined, title: title),
+        if (group != null) ServerList(group: group),
+      ],
+    );
   }
 }

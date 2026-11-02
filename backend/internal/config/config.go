@@ -59,6 +59,15 @@ type Config struct {
 	WebURL                string
 }
 
+// BotURL is the link to the bot. Dev runs without a real bot.
+func (c Config) BotURL() string {
+	username := c.TelegramBotUsername
+	if username == "" {
+		username = "vpnclient_dev_bot"
+	}
+	return "https://t.me/" + username
+}
+
 // String keeps secrets out of fmt verbs.
 func (c Config) String() string {
 	return fmt.Sprintf("Config{env=%s panel=%s telegram=%s}", c.AppEnv, c.PanelMode, c.TelegramMode)

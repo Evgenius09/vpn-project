@@ -17,15 +17,15 @@ abstract class AuthClient {
   factory AuthClient(Dio dio, {String? baseUrl}) = _AuthClient;
 
   @POST('/v1/auth/telegram/start')
-  Future<TelegramLoginChallenge> startTelegramLogin({
+  Future<HttpResponse<TelegramLoginChallenge>> startTelegramLogin({
     @Body() required TelegramLoginStart body,
   });
 
   @POST('/v1/auth/telegram/verify')
-  Future<AuthResult> verifyTelegramLogin({
+  Future<HttpResponse<AuthResult>> verifyTelegramLogin({
     @Body() required TelegramLoginVerify body,
   });
 
   @POST('/v1/auth/logout')
-  Future<void> logout();
+  Future<HttpResponse<void>> logout();
 }

@@ -6,7 +6,7 @@ SHELL := bash
 # exist yet so that every slice can run the same commands.
 FLUTTER_APP := $(wildcard app/pubspec.yaml)
 SCRIPTS := $(wildcard .github/scripts/*.sh)
-GENERATED := app/lib/gen app/android/app/src/main/kotlin/com/vpnclient/app/gen \
+GENERATED := app/lib/gen app/assets/gen app/android/app/src/main/kotlin/com/vpnclient/app/gen \
 	backend/internal/gen backend/internal/db/sqlc core/internal/contract
 
 .PHONY: gen gen-go gen-app check check-repo check-go check-app test test-repo test-go test-app \
@@ -22,6 +22,8 @@ gen-go:
 # swagger_parser leaves files of removed schemas behind, so start clean.
 gen-app:
 	cd app && flutter pub get --enforce-lockfile
+	mkdir -p app/assets/gen
+	cp contracts/fixtures/profile/seed.json app/assets/gen/profile.json
 	cd app && flutter gen-l10n
 	rm -rf app/lib/gen/api
 	cd app && dart run swagger_parser
