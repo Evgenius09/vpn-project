@@ -1,18 +1,18 @@
 name: app-platforms
 
-# Platform builds are slow, so they run only when their inputs change.
+# Platform builds cost about 70 runner minutes, so they run only when their
+# inputs change, and only on the PR: a merge would repeat the same build.
+# Fixtures stay out because the ubuntu job already tests them on both sides.
 on:
   pull_request:
-    paths: &inputs
+    paths:
       - app/**
       - core/**
       - installer/**
-      - contracts/**
+      - contracts/openapi.yaml
+      - contracts/pigeon/**
       - .tool-versions
       - .github/workflows/app-platforms.yml
-  push:
-    branches: [main]
-    paths: *inputs
 
 permissions:
   contents: read
