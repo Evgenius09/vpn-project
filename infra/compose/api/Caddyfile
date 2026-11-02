@@ -1,0 +1,31 @@
+{
+	admin off
+}
+
+{$API_DOMAIN} {
+	# The service keeps no client addresses (tech.md 9). Header filtering keeps
+	# device tokens and the webhook secret out of the access log.
+	log {
+		format filter {
+			wrap json
+			fields {
+				request>remote_ip delete
+				request>remote_port delete
+				request>client_ip delete
+				request>headers delete
+				request>uri delete
+				resp_headers delete
+			}
+		}
+	}
+
+	@public {
+		path /v1/* /telegram/webhook /healthz
+	}
+	handle @public {
+		reverse_proxy api:8080
+	}
+	handle {
+		respond 404
+	}
+}

@@ -1,0 +1,7 @@
+---
+# Copy to staging.yml once a VPS exists (S0-09b). Secrets come from GitHub.
+all:
+  hosts:
+    api:
+      ansible_host: 203.0.113.10
+      ansible_user: deploy

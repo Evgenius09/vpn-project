@@ -1,0 +1,6 @@
+---
+- name: Deploy the API host
+  hosts: api
+  become: true
+  roles:
+    - api-host

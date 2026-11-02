@@ -1,0 +1,3 @@
+---
+api_host_dir: /opt/vpnclient
+api_host_user: deploy
