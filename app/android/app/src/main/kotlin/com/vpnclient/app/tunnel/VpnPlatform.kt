@@ -32,7 +32,7 @@ private const val NOT_IN_CLIENT = "not used by this client"
 
 /**
  * The host side of sing-box. Most of the interface serves features this client
- * does not ship, so those members refuse. S1-03 adds openTun.
+ * does not ship, so those members refuse.
  */
 class VpnPlatform(context: Context) : PlatformInterface {
     private val connectivity = context.getSystemService(ConnectivityManager::class.java)
@@ -51,7 +51,10 @@ class VpnPlatform(context: Context) : PlatformInterface {
         }
     }
 
-    override fun openTun(options: TunOptions): Int = throw IOException("the skeleton opens no tun")
+    override fun openTun(options: TunOptions): Int {
+        val vpn = service ?: throw IOException("tunnel service is not running")
+        return vpn.openTun(options)
+    }
 
     override fun startDefaultInterfaceMonitor(listener: InterfaceUpdateListener) {
         val callback = DefaultNetworkCallback(listener)

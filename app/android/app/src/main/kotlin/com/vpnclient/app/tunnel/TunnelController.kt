@@ -20,6 +20,7 @@ class TunnelController private constructor(private val context: Context) : Event
     private val mainHandler = Handler(Looper.getMainLooper())
     private val platform = VpnPlatform(context)
     private val core = Core(platform, this, File(context.filesDir, "core").path)
+    private val lastRequest = LastRequest(context.noBackupFilesDir)
 
     private var pendingRequest: String? = null
     private var pendingStart: CompletableDeferred<Unit>? = null
@@ -29,7 +30,11 @@ class TunnelController private constructor(private val context: Context) : Event
     var listener: ((String) -> Unit)? = null
 
     override fun onEvent(coreEventJSON: String) {
-        mainHandler.post { listener?.invoke(coreEventJSON) }
+        mainHandler.post {
+            // The notification has to follow the tunnel without a UI.
+            tunnelStatusOf(coreEventJSON)?.let(::noticeOf)?.let { platform.service?.show(it) }
+            listener?.invoke(coreEventJSON)
+        }
     }
 
     suspend fun start(tunnelRequestJson: String) {
@@ -40,24 +45,34 @@ class TunnelController private constructor(private val context: Context) : Event
         started.await()
     }
 
-    /** Runs on the service, because the core may need its VPN powers. */
-    internal fun startOn(service: TunnelService) {
-        val request = pendingRequest
+    /**
+     * Runs on the service, because the core needs its VPN powers. Always-on
+     * starts the service with no request from the app, so the last one applies.
+     */
+    internal fun startOn(
+        service: TunnelService,
+        alwaysOn: Boolean,
+    ) {
+        val request = pendingRequest ?: if (alwaysOn) lastRequest.read() else null
         val started = pendingStart
         pendingRequest = null
         pendingStart = null
-        if (request == null || started == null) {
-            service.finish()
+        if (request == null) {
+            // A repeated start must not end a tunnel that already runs.
+            if (platform.service == null) {
+                service.finish()
+            }
             return
         }
         platform.service = service
         try {
             core.start(request)
-            started.complete(Unit)
+            lastRequest.write(request)
+            started?.complete(Unit)
         } catch (error: Exception) {
             platform.service = null
             service.finish()
-            started.completeExceptionally(error)
+            started?.completeExceptionally(error)
         }
     }
 
@@ -67,7 +82,17 @@ class TunnelController private constructor(private val context: Context) : Event
         platform.service = null
     }
 
-    suspend fun update(tunnelRequestJson: String) = withContext(Dispatchers.IO) { core.update(tunnelRequestJson) }
+    /** Another VPN took over: stop first, so the UI sees the reason last. */
+    suspend fun onRevoked() {
+        stop()
+        onEvent(revokedEvent(System.currentTimeMillis()))
+    }
+
+    suspend fun update(tunnelRequestJson: String) =
+        withContext(Dispatchers.IO) {
+            core.update(tunnelRequestJson)
+            lastRequest.write(tunnelRequestJson)
+        }
 
     suspend fun setUserMode(mode: String) = withContext(Dispatchers.IO) { core.setUserMode(mode) }
 

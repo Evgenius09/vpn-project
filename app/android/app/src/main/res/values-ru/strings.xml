@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="tunnel_channel_name">VPN-туннель</string>
-    <string name="tunnel_notification_title">VPN включён</string>
+    <string name="tunnel_status_connecting">Подключение…</string>
+    <string name="tunnel_status_connected">Подключено</string>
+    <string name="tunnel_status_disconnecting">Отключение…</string>
+    <string name="tunnel_disconnect">Отключить</string>
 </resources>
