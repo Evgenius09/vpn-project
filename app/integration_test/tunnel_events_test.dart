@@ -1,18 +1,43 @@
 // Starts the real core through the platform bridge and checks that its events
 // reach Dart (tech.md 15.1, S0-06). Run with FAKE_VPN=false on a device.
+import 'dart:io' as io;
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:vpnclient/core/providers.dart';
 import 'package:vpnclient/core/vpn/vpn_bridge.dart';
 import 'package:vpnclient/gen/api/export.dart';
 
-const _request = '''
+String _server() => '''
+{
+  "id": "11111111-1111-4111-8111-111111111111",
+  "group": "regular",
+  "name": "Fixture",
+  "protocol": "vless_reality",
+  "address": "de1.example.invalid",
+  "port": 443,
+  "sortWeight": 10,
+  "vless": {
+    "uuid": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    "flow": "xtls-rprx-vision",
+    "serverName": "www.example.com",
+    "publicKey": "YNSIc4L0W_A9M1wbXF_Gf5Otbun1wovS3NCVIwIPY2A",
+    "shortId": "0123456789abcdef",
+    "fingerprint": "chrome"
+  }
+}
+''';
+
+/// The excluded routes cover every IPv4 address, so the tunnel captures
+/// nothing: a real TUN would otherwise cut the CI runner off from GitHub.
+String _request() =>
+    '''
 {
   "schemaVersion": 1,
-  "platform": "android",
+  "platform": "${io.Platform.isWindows ? 'windows' : 'android'}",
   "userMode": "regular",
   "selected": {},
-  "servers": [],
+  "servers": [${_server()}],
   "autoSwitch": { "enabled": false },
   "settings": {
     "routing": { "enabled": true, "preset": "all_proxy", "rules": [], "ruleSets": [] },
@@ -23,7 +48,7 @@ const _request = '''
       "tlsFragment": { "enabled": false, "record": false },
       "mtu": 1500,
       "tunStack": "mixed",
-      "excludeRoutes": [],
+      "excludeRoutes": ["0.0.0.0/1", "128.0.0.0/1"],
       "bypassLan": true
     },
     "perApp": { "mode": "off", "apps": [] }
@@ -46,13 +71,32 @@ void main() {
     });
     await tester.pump(const Duration(milliseconds: 200));
 
+    if (io.Platform.isAndroid) {
+      // S1-03 adds openTun and turns this into the full cycle below.
+      Object? failure;
+      await tester.runAsync(() async {
+        try {
+          await bridge.start(_request()).timeout(const Duration(seconds: 30));
+        } on VpnBridgeException catch (error) {
+          failure = error;
+        }
+        await Future<void>.delayed(const Duration(seconds: 1));
+      });
+      expect((failure! as VpnBridgeException).code, CoreErrorCode.startFailed);
+      expect(statuses, [TunnelStatus.connecting, TunnelStatus.error]);
+      await subscription.cancel();
+      return;
+    }
+
     await tester.runAsync(() async {
-      await bridge.start(_request).timeout(const Duration(seconds: 30));
+      await bridge.start(_request()).timeout(const Duration(seconds: 30));
       await Future<void>.delayed(const Duration(seconds: 1));
     });
     expect(statuses, contains(TunnelStatus.connected));
 
-    final state = await tester.runAsync(bridge.getState);
+    final state = await tester.runAsync(
+      () => bridge.getState().timeout(const Duration(seconds: 30)),
+    );
     expect(state!.state!.status, TunnelStatus.connected);
 
     await tester.runAsync(() async {
