@@ -5,12 +5,14 @@ go 1.26.10
 require (
 	github.com/Microsoft/go-winio v0.6.4
 	github.com/getkin/kin-openapi v0.152.0
+	github.com/gofrs/uuid/v5 v5.5.1
 	github.com/oapi-codegen/runtime v1.8.0
 	github.com/sagernet/gomobile v0.1.13
 	github.com/sagernet/sing v0.9.7-0.20261023115459-5dc452e537bf
 	github.com/sagernet/sing-box v1.14.4
 	github.com/stretchr/testify v1.12.1
 	golang.org/x/sys v0.49.0
+	pgregory.net/rapid v1.3.0
 )
 
 require (
@@ -54,7 +56,6 @@ require (
 	github.com/gobwas/httphead v0.1.0 // indirect
 	github.com/gobwas/pool v0.2.1 // indirect
 	github.com/godbus/dbus/v5 v5.2.2 // indirect
-	github.com/gofrs/uuid/v5 v5.5.1 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/certificate-transparency-go v1.3.2 // indirect
