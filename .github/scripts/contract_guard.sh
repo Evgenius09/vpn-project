@@ -44,13 +44,6 @@ fi
 
 printf 'contract-guard: touched %s\n' "${TOUCHED[@]}"
 
-# Stage 0 builds the contract paths from nothing, so a version per skeleton PR
-# would only add noise. Remove this branch once stage 0 closes.
-if [[ "$LABELS" == *",bootstrap,"* ]]; then
-  echo "contract-guard: bootstrap label, version bump not required"
-  exit 0
-fi
-
 if [[ "$LABELS" != *",contract-change,"* ]]; then
   echo "contract-guard: missing the contract-change label" >&2
   exit 1
