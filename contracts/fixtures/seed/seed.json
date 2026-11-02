@@ -41,7 +41,7 @@
       "params": {
         "flow": "xtls-rprx-vision",
         "serverName": "www.example.com",
-        "publicKey": "seed-reality-public-key-de",
+        "publicKey": "qknEZVxadDvGhAxl3gj5FZlPwwOqoCkT8ScJUjkVPqQ",
         "shortId": "0123456789abcdef",
         "fingerprint": "chrome"
       },
@@ -60,7 +60,7 @@
       "params": {
         "flow": "xtls-rprx-vision",
         "serverName": "www.example.org",
-        "publicKey": "seed-reality-public-key-nl",
+        "publicKey": "IYKOOGaolVj0BmiXXPYno3FByRto7aqcdp-Lb6q7wWs",
         "shortId": "fedcba9876543210",
         "fingerprint": "firefox"
       },
@@ -98,7 +98,7 @@
       "params": {
         "flow": "xtls-rprx-vision",
         "serverName": "www.example.ru",
-        "publicKey": "seed-reality-public-key-ru1",
+        "publicKey": "tNgEb2z9k9jfGEnH3QLjhl176QkKQAAd6GbxR0oc3jw",
         "shortId": "1122334455667788",
         "fingerprint": "chrome"
       },
@@ -117,7 +117,7 @@
       "params": {
         "flow": "",
         "serverName": "www.example.su",
-        "publicKey": "seed-reality-public-key-ru2",
+        "publicKey": "hU8eQEKKyEByhUSnByRFyf4kylgKBZvOrVNdSRGE0V0",
         "shortId": "8877665544332211",
         "fingerprint": "safari"
       },

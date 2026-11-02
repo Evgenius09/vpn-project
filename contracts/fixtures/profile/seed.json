@@ -79,7 +79,7 @@
       "vless": {
         "fingerprint": "chrome",
         "flow": "xtls-rprx-vision",
-        "publicKey": "seed-reality-public-key-de",
+        "publicKey": "qknEZVxadDvGhAxl3gj5FZlPwwOqoCkT8ScJUjkVPqQ",
         "serverName": "www.example.com",
         "shortId": "0123456789abcdef",
         "uuid": "c0000000-0000-4000-8000-000000000001"
@@ -98,7 +98,7 @@
       "vless": {
         "fingerprint": "firefox",
         "flow": "xtls-rprx-vision",
-        "publicKey": "seed-reality-public-key-nl",
+        "publicKey": "IYKOOGaolVj0BmiXXPYno3FByRto7aqcdp-Lb6q7wWs",
         "serverName": "www.example.org",
         "shortId": "fedcba9876543210",
         "uuid": "c0000000-0000-4000-8000-000000000001"
@@ -139,7 +139,7 @@
       "vless": {
         "fingerprint": "chrome",
         "flow": "xtls-rprx-vision",
-        "publicKey": "seed-reality-public-key-ru1",
+        "publicKey": "tNgEb2z9k9jfGEnH3QLjhl176QkKQAAd6GbxR0oc3jw",
         "serverName": "www.example.ru",
         "shortId": "1122334455667788",
         "uuid": "c0000000-0000-4000-8000-000000000001"
@@ -158,7 +158,7 @@
       "vless": {
         "fingerprint": "safari",
         "flow": "",
-        "publicKey": "seed-reality-public-key-ru2",
+        "publicKey": "hU8eQEKKyEByhUSnByRFyf4kylgKBZvOrVNdSRGE0V0",
         "serverName": "www.example.su",
         "shortId": "8877665544332211",
         "uuid": "c0000000-0000-4000-8000-000000000001"
