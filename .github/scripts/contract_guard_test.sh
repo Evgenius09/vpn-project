@@ -136,7 +136,7 @@ expect fail "a label that only contains the required name" "not-contract-change"
 
 new_repo
 touch_path Makefile
-expect pass "bootstrap label skips the bump during stage 0" "bootstrap"
+expect fail "the retired bootstrap label skips nothing" "bootstrap"
 
 new_repo
 touch_path docs/note.md
