@@ -2,6 +2,7 @@
 // reach Dart (tech.md 15.1, S0-06). Run with FAKE_VPN=false on a device.
 import 'dart:io' as io;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:vpnclient/core/providers.dart';
@@ -80,11 +81,14 @@ void main() {
         } on VpnBridgeException catch (error) {
           failure = error;
         }
+        debugPrint('tunnel test: start returned $failure');
         await Future<void>.delayed(const Duration(seconds: 1));
       });
       expect((failure! as VpnBridgeException).code, CoreErrorCode.startFailed);
       expect(statuses, [TunnelStatus.connecting, TunnelStatus.error]);
+      debugPrint('tunnel test: cancelling the subscription');
       await subscription.cancel();
+      debugPrint('tunnel test: first test done');
       return;
     }
 
@@ -116,12 +120,14 @@ void main() {
   testWidgets('an invalid request fails with config_invalid', (tester) async {
     final VpnBridge bridge = createPlatformBridge()!;
     Object? failure;
+    debugPrint('tunnel test: second test started');
     await tester.runAsync(() async {
       try {
         await bridge.start('{}').timeout(const Duration(seconds: 30));
       } on VpnBridgeException catch (error) {
         failure = error;
       }
+      debugPrint('tunnel test: second start returned $failure');
     });
     expect((failure! as VpnBridgeException).code, CoreErrorCode.configInvalid);
   });
