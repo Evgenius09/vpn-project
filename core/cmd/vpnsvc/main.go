@@ -19,9 +19,9 @@ import (
 var version = "0.1.0"
 
 // serve accepts pipe connections until ctx ends.
-func serve(ctx context.Context, listener net.Listener, logger *slog.Logger) error {
+func serve(ctx context.Context, listener net.Listener, engine runtime.Engine, logger *slog.Logger) error {
 	hub := ipc.NewHub()
-	tunnel := runtime.New(runtime.Options{Engine: runtime.NewBoxEngine(), Sink: hub.Publish})
+	tunnel := runtime.New(runtime.Options{Engine: engine, Sink: hub.Publish})
 	server := ipc.NewServer(tunnel, hub, version, logger)
 
 	stop := context.AfterFunc(ctx, func() { _ = listener.Close() })

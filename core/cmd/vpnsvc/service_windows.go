@@ -9,9 +9,12 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"path/filepath"
 
 	"github.com/Microsoft/go-winio"
 	"golang.org/x/sys/windows/svc"
+
+	"github.com/Evgenius09/vpn-project/core/internal/runtime"
 )
 
 const (
@@ -45,11 +48,27 @@ func runConsole() error {
 }
 
 func run(ctx context.Context) error {
+	if err := enterDataDir(); err != nil {
+		return err
+	}
 	listener, err := winio.ListenPipe(pipeName, &winio.PipeConfig{SecurityDescriptor: pipeSecurity})
 	if err != nil {
 		return fmt.Errorf("listen on pipe: %w", err)
 	}
-	return serve(ctx, listener, newLogger())
+	return serve(ctx, listener, runtime.NewBoxEngine(), newLogger())
+}
+
+// enterDataDir moves away from system32, where a service starts. sing-box keeps
+// its cache there, and rule set paths are relative to it (tech.md 5.4).
+func enterDataDir() error {
+	dir := filepath.Join(os.Getenv("ProgramData"), serviceName)
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return fmt.Errorf("create data directory: %w", err)
+	}
+	if err := os.Chdir(dir); err != nil {
+		return fmt.Errorf("enter data directory: %w", err)
+	}
+	return nil
 }
 
 func newLogger() *slog.Logger {

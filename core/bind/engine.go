@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/sagernet/sing-box/daemon"
 	"github.com/sagernet/sing-box/experimental/libbox"
 	"github.com/sagernet/sing-box/include"
 	"github.com/sagernet/sing-box/option"
@@ -53,6 +54,26 @@ func (e *commandEngine) Close() error {
 		return fmt.Errorf("close service: %w", err)
 	}
 	return nil
+}
+
+// Select implements runtime.Engine. It calls the service in process: a command
+// client would need a socket and a handler for nothing more than this.
+func (e *commandEngine) Select(selector, member string) error {
+	request := &daemon.SelectOutboundRequest{GroupTag: selector, OutboundTag: member}
+	if _, err := e.server.SelectOutbound(context.Background(), request); err != nil {
+		return fmt.Errorf("select outbound: %w", err)
+	}
+	return nil
+}
+
+// Traffic implements runtime.Engine.
+func (e *commandEngine) Traffic() (up, down int64, ok bool) {
+	instance := e.server.Instance()
+	if instance == nil || instance.TrafficManager() == nil {
+		return 0, 0, false
+	}
+	up, down = instance.TrafficManager().Total()
+	return up, down, true
 }
 
 var errHostFeature = errors.New("core: host feature is not used")

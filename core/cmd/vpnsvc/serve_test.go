@@ -10,8 +10,21 @@ import (
 	"testing"
 	"time"
 
+	"github.com/sagernet/sing-box/option"
 	"github.com/stretchr/testify/require"
 )
+
+// stubEngine replaces the box, whose TUN needs administrator rights. The
+// windows job of app-platforms runs the real one through the installed service.
+type stubEngine struct{}
+
+func (stubEngine) Start(option.Options) error { return nil }
+
+func (stubEngine) Close() error { return nil }
+
+func (stubEngine) Select(string, string) error { return nil }
+
+func (stubEngine) Traffic() (up, down int64, ok bool) { return 0, 0, true }
 
 const hello = `{"jsonrpc":"2.0","id":1,"method":"hello","params":{"protocolVersion":1,"appVersion":"0.1.0"}}`
 
@@ -25,7 +38,7 @@ func call(t *testing.T, conn net.Conn, reader *bufio.Reader, line string) string
 	return response
 }
 
-func TestServeRunsARealTunnelOverASocket(t *testing.T) {
+func TestServeRunsTheTunnelOverASocket(t *testing.T) {
 	raw, err := os.ReadFile("../../../contracts/fixtures/tunnel_request/windows_custom.json")
 	require.NoError(t, err)
 
@@ -34,7 +47,7 @@ func TestServeRunsARealTunnelOverASocket(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
-	go func() { done <- serve(ctx, listener, slog.New(slog.DiscardHandler)) }()
+	go func() { done <- serve(ctx, listener, stubEngine{}, slog.New(slog.DiscardHandler)) }()
 
 	conn, err := net.Dial("tcp", listener.Addr().String())
 	require.NoError(t, err)
