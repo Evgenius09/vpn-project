@@ -114,5 +114,36 @@
   "logoutButton": "Выйти из аккаунта",
   "logoutConfirmTitle": "Выйти из аккаунта?",
   "logoutConfirmMessage": "VPN отключится, а устройство выйдет из аккаунта. Чтобы вернуться, войдите с новым кодом из бота.",
-  "logoutConfirm": "Выйти"
+  "logoutConfirm": "Выйти",
+  "connectionDisconnected": "Отключено",
+  "connectionConnecting": "Подключение…",
+  "connectionConnected": "Подключено {time}",
+  "@connectionConnected": {
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "00:12:31"
+      }
+    }
+  },
+  "connectionDisconnecting": "Отключение…",
+  "connectionFailed": "Ошибка подключения",
+  "connectionActiveElsewhere": "Сейчас активен: {mode}",
+  "@connectionActiveElsewhere": {
+    "placeholders": {
+      "mode": {
+        "type": "String",
+        "example": "Белые списки"
+      }
+    }
+  },
+  "connectionErrorConfigInvalid": "Настройки подключения неверны. Обновите приложение или напишите в поддержку.",
+  "connectionErrorStartFailed": "Не удалось запустить VPN. Попробуйте ещё раз или выберите другой сервер.",
+  "connectionErrorNoServers": "Для этого режима пока нет серверов.",
+  "connectionErrorPermissionDenied": "Разрешите VPN-подключение, чтобы включить VPN.",
+  "connectionErrorTunFailed": "Не удалось создать VPN-интерфейс. Перезагрузите устройство и попробуйте ещё раз.",
+  "connectionErrorRevoked": "Подключение перехватило другое VPN-приложение.",
+  "connectionErrorServiceUnavailable": "Служба VPN не отвечает. Переустановите приложение.",
+  "connectionErrorVersionMismatch": "Версии службы VPN и приложения не совпадают. Переустановите приложение.",
+  "connectionErrorInternal": "Внутренняя ошибка VPN. Попробуйте ещё раз."
 }

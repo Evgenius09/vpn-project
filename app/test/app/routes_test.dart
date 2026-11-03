@@ -132,18 +132,21 @@ void main() {
       tester,
     ) async {
       await pumpApp(tester, token: 'token');
+      // The connection panel reads the tunnel state once at launch.
+      final before = bridge.calls;
       await tester.drag(find.byType(PageView), const Offset(-500, 0));
       await tester.pumpAndSettle();
 
       final dots = tester.widget<PageDots>(find.byType(PageDots));
       expect(dots.index, 1);
-      expect(bridge.calls, isEmpty);
+      expect(bridge.calls, before);
     });
 
     testWidgets('a dot changes the screen and leaves the tunnel alone', (
       tester,
     ) async {
       await pumpApp(tester, token: 'token');
+      final before = bridge.calls;
       await tester.tap(
         find
             .descendant(
@@ -155,7 +158,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.widget<PageDots>(find.byType(PageDots)).index, 1);
-      expect(bridge.calls, isEmpty);
+      expect(bridge.calls, before);
     });
 
     testWidgets('the settings button opens settings', (tester) async {

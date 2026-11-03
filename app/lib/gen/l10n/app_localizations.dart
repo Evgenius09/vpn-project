@@ -451,6 +451,96 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Выйти'**
   String get logoutConfirm;
+
+  /// No description provided for @connectionDisconnected.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отключено'**
+  String get connectionDisconnected;
+
+  /// No description provided for @connectionConnecting.
+  ///
+  /// In ru, this message translates to:
+  /// **'Подключение…'**
+  String get connectionConnecting;
+
+  /// No description provided for @connectionConnected.
+  ///
+  /// In ru, this message translates to:
+  /// **'Подключено {time}'**
+  String connectionConnected(String time);
+
+  /// No description provided for @connectionDisconnecting.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отключение…'**
+  String get connectionDisconnecting;
+
+  /// No description provided for @connectionFailed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ошибка подключения'**
+  String get connectionFailed;
+
+  /// No description provided for @connectionActiveElsewhere.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сейчас активен: {mode}'**
+  String connectionActiveElsewhere(String mode);
+
+  /// No description provided for @connectionErrorConfigInvalid.
+  ///
+  /// In ru, this message translates to:
+  /// **'Настройки подключения неверны. Обновите приложение или напишите в поддержку.'**
+  String get connectionErrorConfigInvalid;
+
+  /// No description provided for @connectionErrorStartFailed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось запустить VPN. Попробуйте ещё раз или выберите другой сервер.'**
+  String get connectionErrorStartFailed;
+
+  /// No description provided for @connectionErrorNoServers.
+  ///
+  /// In ru, this message translates to:
+  /// **'Для этого режима пока нет серверов.'**
+  String get connectionErrorNoServers;
+
+  /// No description provided for @connectionErrorPermissionDenied.
+  ///
+  /// In ru, this message translates to:
+  /// **'Разрешите VPN-подключение, чтобы включить VPN.'**
+  String get connectionErrorPermissionDenied;
+
+  /// No description provided for @connectionErrorTunFailed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось создать VPN-интерфейс. Перезагрузите устройство и попробуйте ещё раз.'**
+  String get connectionErrorTunFailed;
+
+  /// No description provided for @connectionErrorRevoked.
+  ///
+  /// In ru, this message translates to:
+  /// **'Подключение перехватило другое VPN-приложение.'**
+  String get connectionErrorRevoked;
+
+  /// No description provided for @connectionErrorServiceUnavailable.
+  ///
+  /// In ru, this message translates to:
+  /// **'Служба VPN не отвечает. Переустановите приложение.'**
+  String get connectionErrorServiceUnavailable;
+
+  /// No description provided for @connectionErrorVersionMismatch.
+  ///
+  /// In ru, this message translates to:
+  /// **'Версии службы VPN и приложения не совпадают. Переустановите приложение.'**
+  String get connectionErrorVersionMismatch;
+
+  /// No description provided for @connectionErrorInternal.
+  ///
+  /// In ru, this message translates to:
+  /// **'Внутренняя ошибка VPN. Попробуйте ещё раз.'**
+  String get connectionErrorInternal;
 }
 
 class _AppLocalizationsDelegate
