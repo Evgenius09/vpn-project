@@ -15,9 +15,11 @@ import (
 
 	"github.com/Evgenius09/vpn-project/backend/internal/db/sqlc"
 	"github.com/Evgenius09/vpn-project/backend/internal/domain/account"
+	"github.com/Evgenius09/vpn-project/backend/internal/domain/profile"
 	"github.com/Evgenius09/vpn-project/backend/internal/jobs"
 	"github.com/Evgenius09/vpn-project/backend/internal/panel"
 	panelfake "github.com/Evgenius09/vpn-project/backend/internal/panel/fake"
+	"github.com/Evgenius09/vpn-project/backend/internal/seed"
 	"github.com/Evgenius09/vpn-project/backend/internal/testutil"
 )
 
@@ -197,4 +199,35 @@ func TestProvisionKeepsAStatusTheAccountAlreadyLeft(t *testing.T) {
 
 	require.Len(t, e.panelRows(t), 1)
 	require.Equal(t, "blocked", e.account(t).status, "only a provisioning account starts a trial")
+}
+
+func TestProfileAfterProvisionServesTheUserCredentials(t *testing.T) {
+	e := newEnv(t)
+	ctx := context.Background()
+	data, err := seed.Load("../../../" + seed.DefaultPath)
+	require.NoError(t, err)
+	require.NoError(t, seed.Apply(ctx, e.pool, data, []byte("pepper-for-tests-0123456789abcdef")))
+	profiles := profile.NewService(profile.NewPostgresStore(sqlc.New(e.pool)), profile.Options{})
+
+	before, err := profiles.Build(ctx, e.accountID)
+	require.NoError(t, err)
+	require.True(t, before.Provisioning)
+	require.Empty(t, before.Profile.Servers)
+
+	require.NoError(t, e.work(t))
+
+	after, err := profiles.Build(ctx, e.accountID)
+	require.NoError(t, err)
+	require.False(t, after.Provisioning)
+	user, err := e.panel.GetUserByUsername(ctx, "tg_4242")
+	require.NoError(t, err)
+	require.NotEmpty(t, after.Profile.Servers)
+	for _, server := range after.Profile.Servers {
+		switch {
+		case server.Vless != nil:
+			require.Equal(t, user.VlessUUID, server.Vless.Uuid)
+		case server.Hysteria2 != nil:
+			require.Equal(t, user.Hysteria2Auth, server.Hysteria2.Password)
+		}
+	}
 }
