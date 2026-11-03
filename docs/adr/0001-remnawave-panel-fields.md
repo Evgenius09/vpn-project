@@ -35,8 +35,20 @@ Hosts: `GET /api/hosts` joined with `GET /api/config-profiles/inbounds` on
 | protocol `hysteria2` | inbound `hysteria`, `settings.version = 2` |
 | `serverName` | host `sni`, else host `address` |
 | `obfsSalamanderPassword` | `streamSettings.finalmask.udp[type = salamander].settings.password` |
-| `portHopping` | `servers.yaml` (the panel does not store it) |
+| `portHopping` | host tag `HOP:<ports>:<intervalSec>`, `_` for `-` (the panel stores no hopping) |
 | enabled | `!isDisabled && !isHidden` |
+
+The catalog fields come from the host too (tech.md 41.1), so a server is added
+in the panel alone:
+
+| Field | Source |
+|---|---|
+| published at all | exactly one host tag `COUNTRY:<XX>` |
+| `countryCode` | `COUNTRY:<XX>` |
+| `group` | host tag `WHITELIST`, else `regular` |
+| `displayName` | host `remark` |
+| `city` | host `serverDescription`, blank → none |
+| `sortWeight` | host `viewPosition` |
 
 The panel returns only the Reality private key, so the backend derives the
 public key and drops the private one at once. It is never stored or logged.
