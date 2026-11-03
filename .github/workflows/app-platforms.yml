@@ -163,6 +163,10 @@ jobs:
           done
           sc query vpnclient
           sc query vpnclient | grep -q RUNNING
+      - name: Check the service registration
+        run: |
+          sc qc vpnclient | grep -q AUTO_START
+          sc qfailure vpnclient | grep -q RESTART
       - name: Render the kitchen sink
         working-directory: app
         run: flutter test integration_test/kitchen_sink_test.dart -d windows --dart-define-from-file=env/dev.json
@@ -170,12 +174,29 @@ jobs:
         working-directory: app
         timeout-minutes: 10
         run: flutter test integration_test/tunnel_events_test.dart -d windows --dart-define=FAKE_VPN=false
+      - name: Update over the running service
+        run: |
+          # Exit code 3010 asks for a reboot, which an update must not need.
+          installer/windows/Output/vpnclient-setup.exe //VERYSILENT //SUPPRESSMSGBOXES //NORESTART //LOG=update.log
+          for _ in 1 2 3 4 5 6 7 8 9 10; do
+            sc query vpnclient | grep -q RUNNING && exit 0
+            sleep 3
+          done
+          echo "the service did not come back after the update"
+          exit 1
+      - name: Send core events through the updated service
+        working-directory: app
+        timeout-minutes: 10
+        run: flutter test integration_test/tunnel_events_test.dart -d windows --dart-define=FAKE_VPN=false
       - name: Uninstall the service
         run: |
           "/c/Program Files/VPN Client/unins000.exe" //VERYSILENT //SUPPRESSMSGBOXES //NORESTART
           for _ in 1 2 3 4 5 6 7 8 9 10; do
-            sc query vpnclient > /dev/null 2>&1 || exit 0
+            if ! sc query vpnclient > /dev/null 2>&1 && [[ ! -e "/c/ProgramData/vpnclient" ]]; then
+              powershell -NoProfile -Command "if (Get-PnpDevice -Class Net -ErrorAction SilentlyContinue | Where-Object { \$_.FriendlyName -like 'sing-tun*' }) { exit 1 }"
+              exit
+            fi
             sleep 3
           done
-          echo "the service is still installed"
+          echo "the service or its data is still there"
           exit 1
