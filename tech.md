@@ -1,6 +1,6 @@
 # tech.md — ядро проекта VPN-клиента
 
-Версия ядра: **v14** (2026-11-03)
+Версия ядра: **v15** (2026-11-03)
 Владелец: тимлид. Файл меняется только append-only, только через PR с меткой `contract-change`. Каждое изменение контракта бампает версию и добавляет строку в changelog.
 
 ## Changelog
@@ -19,6 +19,7 @@
 - v12 — 2026-11-03 — §29: параметры хоста панели, формат и проверка `servers.yaml`, правила `catalog_sync`, каталоги окружений. §1–§28 не менялись.
 - v13 — 2026-11-03 — §30: место на диске и таймауты диагностики в CI эмулятора. §1–§29 не менялись.
 - v14 — 2026-11-03 — §31: `URLTest` в ядре и `urlTest` по IPC, пинг и сортировка по пингу в приложении. §1–§30 не менялись.
+- v15 — 2026-11-03 — §32: автопереключение в runtime и `core/bind`, причины смены режима, `Update` с состоянием автопереключения. §1–§31 не менялись.
 
 ---
 
@@ -1659,3 +1660,32 @@ S1-07 добавляет минимальный экран `/settings` с кно
 - Тумблер `ui.sortByPing` — `SettingsToggleTile` в шапке `ServerPicker` из `app/lib/features/servers` на обоих экранах. Значение: выбор пользователя, иначе `policy.defaults.ui.sortByPing`, иначе `true`. `ui.sortByPing` в `policy.locked` → тумблер заблокирован, значение из `defaults`.
 - Выбор пользователя хранится как `SettingsPatch` в `user_settings.json` в приватном каталоге приложения. S3-01 забирает этот файл под все пользовательские настройки.
 - `ServerPicker` берёт порядок серверов и значения пинга из `app/lib/features/ping`.
+
+---
+
+## 32. Поправки ядра v15
+
+### 32.1 Автопереключение в ядре
+
+- S2-02 реализует `OnNetworkChanged` в `core/bind`. Сигнатура §5.9 не меняется. Ошибку runtime `bind` отбрасывает, потому что у метода нет результата.
+- Значение вне `NetType` → `config_invalid` в runtime, состояние не меняется.
+- Вне `connected` `OnNetworkChanged` ничего не делает. `Start` сбрасывает сеть в `other` (§19.10), хост сообщает её заново.
+- `SetUserMode` передаёт `UserModeSet` всегда, в том числе с текущим `userMode`. Так тап на экране режима пользователя при `effectiveMode = whitelist` на cellular ставит `override` (§2.1, третья строка таблицы).
+- `Update` сохраняет `net` и `override`. Он передаёт `AutoSwitchSet`, `ServersUpdated` и `UserModeSet` только для изменившихся значений, иначе каждая смена настроек снимала бы `override`. Новый box стартует с селектором `proxy` на группе `effective`. События `mode` идут после `state` со статусом `connected`.
+- Сбой переключения селектора → `internal`, состояние остаётся прежним, повтор того же события повторяет переключение.
+
+### 32.2 Причины смены режима
+
+| Событие | Смена `effective` | Причина |
+|---|---|---|
+| `NetChanged(cellular)` | → `whitelist` | `network_cellular` |
+| `NetChanged(wifi \| ethernet \| other)` | → `userMode` | `network_wifi` |
+| `UserModeSet` | любая | `user` |
+| `AutoSwitchSet`, снявший `override` | → `whitelist` | `override_cleared` |
+| `AutoSwitchSet(true)` | → `whitelist` | `network_cellular` |
+| `AutoSwitchSet(false)` | → `userMode` | `user` |
+| `ServersUpdated(true)` | → `whitelist` | `network_cellular` |
+| `ServersUpdated(false)` | → `userMode` | `no_whitelist_servers` |
+
+- `no_whitelist_servers` без смены группы: `from = to = effective`. Отправляется, когда автопереключение выбрало бы `whitelist` (`autoSwitch`, нет `override`, `userMode = regular`), но серверов нет, и сеть только что стала `cellular`. Включение `autoSwitch` на cellular без whitelist-серверов предупреждения не даёт, потому что §19.10 называет только две причины.
+- Потеря whitelist-серверов на cellular при `effective = whitelist` всегда меняет группу и приходит одним событием с причиной `no_whitelist_servers`.
