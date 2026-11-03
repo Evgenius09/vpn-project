@@ -24,6 +24,18 @@ func serve(ctx context.Context, listener net.Listener, engine runtime.Engine, ho
 	tunnel := newBackend(runtime.New(runtime.Options{Engine: engine, Sink: hub.Publish}), host, logger)
 	server := ipc.NewServer(tunnel, hub, version, logger)
 
+	tunnel.network = newNetWatch(netDebounce, timeAfterFunc, tunnel.reportNetwork)
+	defer tunnel.network.Close()
+	if host.WatchNetwork != nil {
+		stopWatch, err := host.WatchNetwork(tunnel.network.Observe)
+		if err != nil {
+			// The tunnel works without the auto switch, so the service keeps going.
+			logger.WarnContext(ctx, "watch network", "error", err)
+		} else {
+			defer stopWatch()
+		}
+	}
+
 	stop := context.AfterFunc(ctx, func() { _ = listener.Close() })
 	defer stop()
 

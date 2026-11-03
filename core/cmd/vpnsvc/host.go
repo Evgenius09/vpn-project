@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/Evgenius09/vpn-project/core/internal/autoswitch"
 	"github.com/Evgenius09/vpn-project/core/internal/contract"
 	"github.com/Evgenius09/vpn-project/core/internal/ipc"
 	"github.com/Evgenius09/vpn-project/core/internal/runtime"
@@ -25,6 +26,10 @@ type hostOptions struct {
 	Protect func(path string) error
 	// ListProcesses returns the raw process list.
 	ListProcesses func() ([]ipc.ProcessInfo, error)
+	// WatchNetwork detects the active network once, calls observe with it, and
+	// again on every change until stop. Nil leaves the auto switch without a
+	// network.
+	WatchNetwork func(observe func(autoswitch.NetType)) (stop func(), err error)
 }
 
 // backend adds what only the service does to the shared runtime.
@@ -33,6 +38,8 @@ type backend struct {
 	host     hostOptions
 	ruleSets *ruleSetStore
 	logger   *slog.Logger
+	// network is nil until serve sets it.
+	network *netWatch
 }
 
 func newBackend(tunnel *runtime.Runtime, host hostOptions, logger *slog.Logger) *backend {
@@ -51,7 +58,19 @@ func (b *backend) Start(tunnelRequestJSON string) error {
 		return err //nolint:wrapcheck // The server reads the core error code from it.
 	}
 	b.remember(tunnelRequestJSON)
+	if b.network != nil {
+		b.network.Resend()
+	}
 	return nil
+}
+
+// reportNetwork passes a settled network to the core, which ignores it outside
+// connected.
+func (b *backend) reportNetwork(net autoswitch.NetType) {
+	b.logger.Info("report network", "type", string(net))
+	if err := b.OnNetworkChanged(string(net)); err != nil {
+		b.logger.Warn("report network", "type", string(net), "error", err)
+	}
 }
 
 // Update implements ipc.Backend.
