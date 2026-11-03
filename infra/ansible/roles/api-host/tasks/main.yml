@@ -38,6 +38,31 @@
     - { src: monitoring, dest: "" }
     - { src: catalog, dest: "" }
 
+# The secret never leaves the host: GitHub does not need it (tech.md 38.4).
+- name: Prepare the webhook secret
+  when: telegram_mode == 'webhook'
+  block:
+    - name: Check the webhook port
+      ansible.builtin.assert:
+        that: (api_https_port | int) in [443, 80, 88, 8443]
+        fail_msg: Telegram sends webhooks only to ports 443, 80, 88 and 8443.
+
+    - name: Generate the webhook secret once
+      ansible.builtin.shell:
+        cmd: umask 077 && openssl rand -hex 32 > {{ api_host_dir }}/telegram-webhook-secret
+        creates: "{{ api_host_dir }}/telegram-webhook-secret"
+
+    - name: Read the webhook secret
+      ansible.builtin.slurp:
+        src: "{{ api_host_dir }}/telegram-webhook-secret"
+      register: webhook_secret_file
+      no_log: true
+
+    - name: Use the webhook secret
+      ansible.builtin.set_fact:
+        telegram_webhook_secret: "{{ webhook_secret_file.content | b64decode | trim }}"
+      no_log: true
+
 - name: Render the environment file
   ansible.builtin.template:
     src: env.j2
@@ -71,3 +96,25 @@
         cmd: docker logout ghcr.io
       when: registry_token is defined
       changed_when: false
+
+# Compose leaves a service of a disabled profile running, and its getUpdates
+# would fight the webhook.
+- name: Remove the polling bot outside polling mode
+  ansible.builtin.command:
+    cmd: docker compose --profile polling rm --stop --force bot
+    chdir: "{{ api_host_dir }}/compose/api"
+  register: polling_bot
+  changed_when: "'Removed' in polling_bot.stderr"
+  when: telegram_mode != 'polling'
+
+- name: Point the bot webhook at the API
+  ansible.builtin.uri:
+    url: "https://api.telegram.org/bot{{ telegram_bot_token }}/setWebhook"
+    method: POST
+    body_format: json
+    body:
+      url: "{{ api_public_url }}/telegram/webhook"
+      secret_token: "{{ telegram_webhook_secret }}"
+      allowed_updates: [message, callback_query, my_chat_member]
+  when: telegram_mode == 'webhook'
+  no_log: true
