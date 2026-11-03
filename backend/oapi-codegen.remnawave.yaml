@@ -1,0 +1,13 @@
+# Remnawave 3.4.8 client (tech.md 39.1): only the operations PanelClient uses.
+package: remnawave
+output: internal/gen/remnawave/client.gen.go
+generate:
+  models: true
+  client: true
+output-options:
+  include-operation-ids:
+    - UsersController_getUserByUsername
+    - UsersController_createUser
+    - UsersController_updateUser
+    - HostsController_getHosts
+    - ConfigProfileController_getAllInbounds

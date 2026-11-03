@@ -16,6 +16,7 @@ gen: gen-go gen-app
 
 gen-go:
 	cd backend && oapi-codegen -config oapi-codegen.yaml ../contracts/openapi.yaml
+	cd backend && oapi-codegen -config oapi-codegen.remnawave.yaml ../contracts/remnawave/openapi-3.4.8.json
 	cd backend && sqlc generate
 	cd core && oapi-codegen -config oapi-codegen.yaml ../contracts/openapi.yaml
 
