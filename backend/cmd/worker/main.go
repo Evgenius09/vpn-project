@@ -62,8 +62,7 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("panel client: %w", err)
 	}
 	service := catalog.NewService(catalog.NewPostgresStore(runtime.Pool), panelClient, catalog.Options{
-		CatalogFile: runtime.Config.CatalogFile,
-		Logger:      runtime.Logger,
+		Logger: runtime.Logger,
 	})
 	river.AddWorker(workers, &catalog.SyncWorker{Service: service})
 	river.AddWorker(workers, &account.ProvisionWorker{

@@ -158,12 +158,16 @@ func (c *Client) ListHosts(ctx context.Context) ([]panel.PanelHost, error) {
 			continue
 		}
 		out = append(out, panel.PanelHost{
-			UUID:     host.Uuid,
-			Protocol: protocol,
-			Address:  host.Address,
-			Port:     host.Port,
-			Params:   params,
-			Enabled:  !host.IsDisabled && !deref(host.IsHidden),
+			UUID:         host.Uuid,
+			Protocol:     protocol,
+			Address:      host.Address,
+			Port:         host.Port,
+			Params:       params,
+			Enabled:      !host.IsDisabled && !deref(host.IsHidden),
+			Remark:       host.Remark,
+			Description:  deref(host.ServerDescription),
+			Tags:         deref(host.Tags),
+			ViewPosition: host.ViewPosition,
 		})
 	}
 	return out, nil

@@ -70,6 +70,7 @@
       - --node-address={{ ansible_host }}
       - --node-fqdn={{ node_fqdn }}
       - --country={{ node_country }}
+      - --city={{ node_city }}
       - --reality-target={{ remnawave_reality_target }}
   register: panel_setup
   changed_when: "'changed:' in panel_setup.stdout"
