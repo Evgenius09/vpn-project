@@ -30,20 +30,37 @@ jobs:
             ~/.cache/go-build
             ~/go/pkg/mod
           key: go-android-${{ hashFiles('core/go.sum', '.tool-versions') }}
+      # Phones only: the emulator core doubled the APK (tech.md 42.2).
       - name: Build the core
+        env:
+          ANDROID_TARGET: android/arm64
         run: |
           export ANDROID_NDK_HOME="$ANDROID_NDK_LATEST_HOME"
           make core-android
+      # One key for every build, so testers update in place (tech.md 42.1).
+      - name: Restore the signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.STAGING_KEYSTORE_B64 }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "::error::STAGING_KEYSTORE_B64 is not set: testers could not update over this build"
+            exit 1
+          fi
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          echo "RELEASE_KEYSTORE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
       - name: Build the APK
         working-directory: app
         env:
           API_DOMAIN: ${{ secrets.STAGING_DOMAIN }}
           HTTPS_PORT: ${{ vars.STAGING_HTTPS_PORT || '443' }}
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.STAGING_KEYSTORE_PASSWORD }}
         run: |
           cat > "$RUNNER_TEMP/staging.json" <<JSON
           {"FLAVOR": "staging", "API_BASE_URLS": "https://$API_DOMAIN:$HTTPS_PORT", "FAKE_VPN": false, "FAKE_API": false}
           JSON
-          flutter build apk --release --target-platform android-arm64 --dart-define-from-file="$RUNNER_TEMP/staging.json"
+          # Android installs an update only with a higher version code.
+          flutter build apk --release --target-platform android-arm64 --build-number="${{ github.run_number }}" \
+            --dart-define-from-file="$RUNNER_TEMP/staging.json"
       - uses: actions/upload-artifact@v7.0.2
         with:
           name: staging-apk
