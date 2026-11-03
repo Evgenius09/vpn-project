@@ -1,0 +1,75 @@
+---
+- name: Install Docker
+  ansible.builtin.apt:
+    name:
+      - docker.io
+      - docker-compose-v2
+    state: present
+    update_cache: true
+
+- name: Create the panel directory
+  ansible.builtin.file:
+    path: "{{ remnawave_panel_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Copy the panel files
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../../compose/remnawave/{{ item.src }}"
+    dest: "{{ remnawave_panel_dir }}/{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - { src: panel.compose.yaml, dest: docker-compose.yml }
+    - { src: panel.env.example, dest: .env.example }
+
+# shortcut: secrets and values below land only on a fresh host; edit .env by hand to change them later.
+- name: Generate the panel environment once
+  ansible.builtin.shell:
+    cmd: |
+      set -euo pipefail
+      umask 077
+      db=$(openssl rand -hex 24)
+      sed -e "s|^APP_SECRET=.*|APP_SECRET=$(openssl rand -hex 64)|" \
+          -e "s|^METRICS_PASS=.*|METRICS_PASS=$(openssl rand -hex 24)|" \
+          -e "s|^WEBHOOK_SECRET_HEADER=.*|WEBHOOK_SECRET_HEADER=$(openssl rand -hex 32)|" \
+          -e "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$db|" \
+          -e "s|^DATABASE_URL=.*|DATABASE_URL=\"postgresql://postgres:$db@remnawave-db:5432/postgres\"|" \
+          -e "s|^PANEL_DOMAIN=.*|PANEL_DOMAIN=127.0.0.1:3000|" \
+          -e "s|^SUB_PUBLIC_DOMAIN=.*|SUB_PUBLIC_DOMAIN=127.0.0.1:3000/api/sub|" \
+          .env.example > .env
+    executable: /bin/bash
+    chdir: "{{ remnawave_panel_dir }}"
+    creates: "{{ remnawave_panel_dir }}/.env"
+
+- name: Start the panel
+  ansible.builtin.command:
+    cmd: docker compose up -d --wait
+    chdir: "{{ remnawave_panel_dir }}"
+  register: panel_up
+  changed_when: "'Started' in panel_up.stderr or 'Recreated' in panel_up.stderr"
+
+- name: Copy the setup script
+  ansible.builtin.copy:
+    src: setup.py
+    dest: "{{ remnawave_panel_dir }}/setup.py"
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Set up the panel objects through its API
+  ansible.builtin.command:
+    argv:
+      - python3
+      - -I
+      - "{{ remnawave_panel_dir }}/setup.py"
+      - --node-name={{ node_name }}
+      - --node-address={{ ansible_host }}
+      - --node-fqdn={{ node_fqdn }}
+      - --country={{ node_country }}
+      - --reality-target={{ remnawave_reality_target }}
+  register: panel_setup
+  changed_when: "'changed:' in panel_setup.stdout"

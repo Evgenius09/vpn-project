@@ -1,0 +1,16 @@
+# Hysteria2 port hopping (tech.md 38.2). Kept out of ufw before.rules, because
+# a ufw reload would duplicate the rule or flush Docker's nat table.
+[Unit]
+Description=Redirect Hysteria2 hopping ports 20000-50000/udp to 443
+After=network-pre.target ufw.service docker.service
+Wants=network-pre.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+Environment="RULE=PREROUTING -p udp -m addrtype --dst-type LOCAL --dport 20000:50000 -j REDIRECT --to-ports 443"
+ExecStart=/bin/sh -c "iptables -t nat -C $RULE 2>/dev/null || iptables -t nat -A $RULE"
+ExecStop=/bin/sh -c "iptables -t nat -D $RULE 2>/dev/null || true"
+
+[Install]
+WantedBy=multi-user.target

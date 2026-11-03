@@ -27,3 +27,14 @@ services:
       options:
         max-size: 100m
         max-file: 5
+
+  # Loopback only until monitoring learns to scrape the node (tech.md 38.5).
+  node-exporter:
+    image: prom/node-exporter:v1.9.1
+    container_name: node-exporter
+    network_mode: host
+    pid: host
+    restart: always
+    command: [--path.rootfs=/host, --web.listen-address=127.0.0.1:9100]
+    volumes:
+      - /:/host:ro,rslave
