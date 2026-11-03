@@ -15,6 +15,8 @@ import 'package:vpnclient/core/vpn/vpn_bridge.dart';
 import 'package:vpnclient/features/connection/application/connection_controller.dart';
 import 'package:vpnclient/features/profile/application/profile_controller.dart';
 import 'package:vpnclient/features/profile/data/profile_repository.dart';
+import 'package:vpnclient/features/servers/application/selection_controller.dart';
+import 'package:vpnclient/features/servers/data/selection_store.dart';
 import 'package:vpnclient/gen/api/export.dart';
 import 'package:vpnclient/ui/ui.dart';
 
@@ -37,6 +39,10 @@ class RecordingVpnBridge extends FakeVpnBridge {
   final requests = <String>[];
   VpnBridgeException? prepareError;
   VpnBridgeException? setUserModeError;
+  VpnBridgeException? selectServerError;
+
+  /// Arguments of every selectServer call.
+  final selections = <(TunnelMode, String)>[];
 
   /// The answer to getState, as from a tunnel that ran before the app.
   CoreEvent? stateAtLaunch;
@@ -54,6 +60,16 @@ class RecordingVpnBridge extends FakeVpnBridge {
       throw error;
     }
     await super.setUserMode(mode);
+  }
+
+  @override
+  Future<void> selectServer(TunnelMode group, String serverId) async {
+    await super.selectServer(group, serverId);
+    selections.add((group, serverId));
+    final error = selectServerError;
+    if (error != null) {
+      throw error;
+    }
   }
 
   @override
@@ -86,6 +102,7 @@ class ConnectionHarness {
 
   final FakeApiClient api;
   final bridge = RecordingVpnBridge();
+  final selection = MemorySelectionStore();
   DateTime now = DateTime.utc(2026, 11, 3, 12);
 
   /// Bridge calls after the start-up getState.
@@ -101,6 +118,7 @@ class ConnectionHarness {
           initialTokenProvider.overrideWithValue('t'),
           vpnBridgeProvider.overrideWithValue(bridge),
           profileCacheProvider.overrideWithValue(MemoryProfileCache()),
+          selectionStoreProvider.overrideWithValue(selection),
           deviceIdentityProvider.overrideWith((ref) async => androidIdentity),
           connectionClockProvider.overrideWithValue(() => now),
         ],

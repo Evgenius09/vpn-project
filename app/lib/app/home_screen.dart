@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/connection/presentation/connection_panel.dart';
-import '../features/profile/presentation/server_list.dart';
+import '../features/servers/presentation/server_picker.dart';
 import '../gen/api/export.dart';
 import '../gen/l10n/app_localizations.dart';
 import '../ui/ui.dart';
@@ -32,11 +32,7 @@ class HomeScreen extends ConsumerWidget {
     final pages = [
       ModePage(
         title: strings.modeRegular,
-        child: _ModeScreen(
-          strings.modeRegular,
-          TunnelMode.regular,
-          showServers: true,
-        ),
+        child: _ModeScreen(strings.modeRegular, TunnelMode.regular),
       ),
       ModePage(
         title: strings.modeWhitelist,
@@ -73,13 +69,10 @@ class HomeScreen extends ConsumerWidget {
 }
 
 class _ModeScreen extends StatelessWidget {
-  const _ModeScreen(this.title, this.mode, {this.showServers = false});
+  const _ModeScreen(this.title, this.mode);
 
   final String title;
   final TunnelMode mode;
-
-  /// S2-01 shows the whitelist servers too.
-  final bool showServers;
 
   @override
   Widget build(BuildContext context) {
@@ -101,7 +94,7 @@ class _ModeScreen extends StatelessWidget {
             ),
           ),
         ),
-        if (showServers) ServerList(group: mode),
+        ServerPicker(group: mode),
       ],
     );
   }

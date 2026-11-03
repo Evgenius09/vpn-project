@@ -4,12 +4,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../gen/api/export.dart';
 import '../../../gen/l10n/app_localizations.dart';
 import '../../../ui/ui.dart';
-import '../application/profile_controller.dart';
-import '../domain/profile_state.dart';
+import '../../profile/application/profile_controller.dart';
+import '../../profile/domain/profile_state.dart';
+import '../application/selection_controller.dart';
+import '../application/server_choice.dart';
+import '../domain/server_selection.dart';
 
-/// The read-only server list of one mode screen (tech.md 15.2).
-class ServerList extends ConsumerWidget {
-  const ServerList({required this.group, super.key});
+/// The servers of one mode screen with the chosen one highlighted. A tap
+/// chooses a server for this group (tech.md 16 S1-09, 28).
+class ServerPicker extends ConsumerWidget {
+  const ServerPicker({required this.group, super.key});
 
   final TunnelMode group;
 
@@ -32,7 +36,8 @@ class ServerList extends ConsumerWidget {
           onRetry: ref.read(profileControllerProvider.notifier).load,
         ),
         ProfileReady(:final profile, :final fromCache) => _Servers(
-          servers: profile.serversIn(group),
+          group: group,
+          servers: serversOf(profile.servers, group),
           fromCache: fromCache,
         ),
       },
@@ -40,15 +45,23 @@ class ServerList extends ConsumerWidget {
   }
 }
 
-class _Servers extends StatelessWidget {
-  const _Servers({required this.servers, required this.fromCache});
+class _Servers extends ConsumerWidget {
+  const _Servers({
+    required this.group,
+    required this.servers,
+    required this.fromCache,
+  });
 
+  final TunnelMode group;
   final List<ServerNode> servers;
   final bool fromCache;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final strings = AppLocalizations.of(context);
+    final chosen = ref.watch(chosenServerProvider(group));
+    final tappable = ref.watch(serverTapsEnabledProvider);
+    final choice = ref.read(serverChoiceProvider);
     return Column(
       children: [
         if (fromCache)
@@ -69,8 +82,10 @@ class _Servers extends StatelessWidget {
                 title: server.name,
                 subtitle: server.city,
                 countryCode: server.countryCode,
+                // S1-12 measures the ping.
                 ping: const PingValue.unknown(),
-                selected: false,
+                selected: server.id == chosen,
+                onTap: tappable ? () => choice.choose(group, server.id) : null,
               ),
             ),
       ],
