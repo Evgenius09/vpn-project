@@ -1,6 +1,6 @@
 # tech.md — ядро проекта VPN-клиента
 
-Версия ядра: **v9** (2026-11-03)
+Версия ядра: **v10** (2026-11-03)
 Владелец: тимлид. Файл меняется только append-only, только через PR с меткой `contract-change`. Каждое изменение контракта бампает версию и добавляет строку в changelog.
 
 ## Changelog
@@ -14,6 +14,7 @@
 - v7 — 2026-11-03 — §24: `syncRuleSets`, `listProcesses`, `last_request.json`, установщик. §1–§23 не менялись.
 - v8 — 2026-11-03 — §25: `model` в `TelegramLoginStart` и `telegram_send_code`, лимит по IP, правила входа. §1–§24 не менялись.
 - v9 — 2026-11-03 — §26: вход в `ApiClient` приложения, `DeviceIdentity`, `forgetLastRequest`, роуты входа и настроек, удаление `DEV_TOKEN`. §1–§25 не менялись.
+- v10 — 2026-11-03 — §27: панель подключения на экранах режимов, значения `TunnelRequest` в приложении до S3-01. §1–§26 не менялись.
 
 ---
 
@@ -1558,3 +1559,20 @@ S1-07 добавляет минимальный экран `/settings` с кно
 
 - `/login` строит `LoginScreen`, `/settings` строит `SettingsScreen` из `app/lib/features/auth`. `/settings/:section` остаётся заглушкой до S3-01.
 - `AppConfig.devToken`, его запись в `main.dart` и `DEV_TOKEN` в `env/dev.json` удаляются: вход заменяет их, а токен из env возвращал сессию после выхода.
+
+---
+
+## 27. Поправки ядра v10
+
+### 27.1 Экраны режимов
+
+- Каждый экран режима в `app/lib/app/home_screen.dart` показывает `ConnectionPanel(mode: TunnelMode)` из `app/lib/features/connection` над `ServerSheet`, потому что таблица `PowerButton` из §2.1 требует кнопку на обоих экранах.
+- Список серверов на экране «Белые списки» остаётся за S2-01.
+
+### 27.2 Значения `TunnelRequest` до S3-01
+
+- `settings`: `policy.defaults` поверх встроенных значений. Встроенные значения совпадают с `backend/config/policy.yaml`, плюс `tlsFragment` выключен, `excludeRoutes`, `rules` и `ruleSets` пустые, `perApp.mode = off`, `mtu = 1500`. S3-01 добавляет пользовательские значения и `locked`.
+- `selected` пустой до S1-09: ядро берёт первый сервер группы по `sortWeight` (C3).
+- `autoSwitch.enabled = policy.flags.autoWhitelist && whitelist.autoOnCellular`.
+- `platform` из `DeviceIdentity` (§26.2), `log.level = warn`.
+- В профиле нет серверов группы режима → приложение не зовёт `start` и показывает `no_servers_in_group`, потому что ядро отвергает запрос без серверов как `config_invalid`.
