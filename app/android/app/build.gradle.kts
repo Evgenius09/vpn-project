@@ -28,11 +28,24 @@ android {
         versionName = flutter.versionName
     }
 
+    // Testers install each build over the last one, which Android allows only
+    // with the same key (tech.md 42.1). Without the key, local release builds
+    // fall back to the debug key.
+    val releaseKeystore = System.getenv("RELEASE_KEYSTORE")
+    signingConfigs {
+        if (releaseKeystore != null) {
+            create("release") {
+                storeFile = file(releaseKeystore)
+                storePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD")
+                keyAlias = "vpnclient"
+                keyPassword = System.getenv("RELEASE_KEYSTORE_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
         }
     }
 }

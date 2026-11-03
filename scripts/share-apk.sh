@@ -53,4 +53,4 @@ rmdir "$tmp"
 echo
 echo "APK: $apk"
 echo "SHA-256: $(sha256sum "$apk" | cut -d' ' -f1)"
-echo "Send it to testers in a private chat, together with docs/testers.md."
+echo "Post it to the private testers channel (docs/testers.md)."
