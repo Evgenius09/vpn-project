@@ -1530,3 +1530,4 @@ S1-07 добавляет минимальный экран `/settings` с кно
 - Неизвестный `loginId` и чужой `installId`: 410 `code_expired`, попытка не тратится.
 - 409 `device_limit_reached` не тратит код: пользователь освобождает слот и повторяет ввод.
 - Код: 6 цифр из криптостойкого генератора.
+- `TelegramLoginVerify.model` и `appVersion`: до 64 символов, `appVersion` не пустой. Иначе 400 `validation_failed`.
