@@ -1,0 +1,14 @@
+# Server metadata the panel does not hold (tech.md 6, 29). catalog_sync
+# publishes a panel host only when it has an entry here. Fields:
+#
+# - remnawaveHostUuid: 00000000-0000-0000-0000-000000000000
+#   group: regular            # regular | whitelist
+#   displayName: Frankfurt
+#   countryCode: DE           # ISO 3166-1 alpha-2
+#   city: Frankfurt           # optional
+#   sortWeight: 10
+#   enabled: true             # optional, true when omitted
+#
+# An invalid file fails the sync and leaves the servers table as it was.
+# No servers exist before S1-13, so the list is empty.
+[]

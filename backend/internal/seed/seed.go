@@ -4,8 +4,6 @@ package seed
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -16,14 +14,19 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/Evgenius09/vpn-project/backend/internal/db/sqlc"
+	"github.com/Evgenius09/vpn-project/backend/internal/domain/catalog"
 	"github.com/Evgenius09/vpn-project/backend/internal/httpapi"
 	"github.com/Evgenius09/vpn-project/backend/internal/panel"
 	panelfake "github.com/Evgenius09/vpn-project/backend/internal/panel/fake"
 	"github.com/Evgenius09/vpn-project/backend/internal/telegram"
 )
 
-// DefaultPath is the fixture, relative to the backend module.
-const DefaultPath = "../contracts/fixtures/seed/seed.json"
+// Fixture paths, relative to the backend module.
+const (
+	DefaultPath = "../contracts/fixtures/seed/seed.json"
+	// DefaultCatalogPath is the servers.yaml of the seed servers for make dev.
+	DefaultCatalogPath = "../contracts/fixtures/seed/catalog.yaml"
+)
 
 // Account is the seed account.
 type Account struct {
@@ -158,20 +161,25 @@ func apply(ctx context.Context, queries *sqlc.Queries, data Data, pepper []byte)
 	}
 
 	for _, server := range data.Servers {
-		city := server.City
+		// The row hashes the way catalog_sync would, so the first sync after a
+		// seed changes nothing.
+		published, err := catalog.Publish(server.PanelHost(), server.CatalogEntry())
+		if err != nil {
+			return fmt.Errorf("server %s: %w", server.DisplayName, err)
+		}
 		if err := queries.SeedServer(ctx, sqlc.SeedServerParams{
 			ID:                server.ID,
 			RemnawaveHostUuid: server.RemnawaveHostUUID,
-			Grp:               sqlc.ServerGroup(server.Group),
-			Protocol:          sqlc.ServerProtocol(server.Protocol),
-			DisplayName:       server.DisplayName,
-			CountryCode:       server.CountryCode,
-			City:              &city,
-			Address:           server.Address,
+			Grp:               sqlc.ServerGroup(published.Group),
+			Protocol:          sqlc.ServerProtocol(published.Protocol),
+			DisplayName:       published.DisplayName,
+			CountryCode:       published.CountryCode,
+			City:              published.City,
+			Address:           published.Address,
 			Port:              server.Port,
-			Params:            server.Params,
+			Params:            published.Params,
 			SortWeight:        server.SortWeight,
-			ContentHash:       contentHash(server),
+			ContentHash:       published.ContentHash(),
 		}); err != nil {
 			return fmt.Errorf("server %s: %w", server.DisplayName, err)
 		}
@@ -179,9 +187,47 @@ func apply(ctx context.Context, queries *sqlc.Queries, data Data, pepper []byte)
 	return nil
 }
 
-func contentHash(server Server) string {
-	sum := sha256.Sum256(fmt.Appendf(nil, "%s|%s|%d|%s", server.DisplayName, server.Address, server.Port, server.Params))
-	return hex.EncodeToString(sum[:])
+// PanelHost is the server as the panel publishes it.
+func (s Server) PanelHost() panel.PanelHost {
+	return panel.PanelHost{
+		UUID:     s.RemnawaveHostUUID,
+		Protocol: s.Protocol,
+		Address:  s.Address,
+		Port:     int(s.Port),
+		Params:   s.Params,
+		Enabled:  true,
+	}
+}
+
+// CatalogEntry is the servers.yaml record of the server.
+func (s Server) CatalogEntry() catalog.Entry {
+	city := s.City
+	return catalog.Entry{
+		RemnawaveHostUUID: s.RemnawaveHostUUID,
+		Group:             s.Group,
+		DisplayName:       s.DisplayName,
+		CountryCode:       s.CountryCode,
+		City:              &city,
+		SortWeight:        int(s.SortWeight),
+	}
+}
+
+// PanelHosts are the hosts of every seed server.
+func (d Data) PanelHosts() []panel.PanelHost {
+	hosts := make([]panel.PanelHost, 0, len(d.Servers))
+	for _, server := range d.Servers {
+		hosts = append(hosts, server.PanelHost())
+	}
+	return hosts
+}
+
+// CatalogEntries are the servers.yaml records of every seed server.
+func (d Data) CatalogEntries() []catalog.Entry {
+	entries := make([]catalog.Entry, 0, len(d.Servers))
+	for _, server := range d.Servers {
+		entries = append(entries, server.CatalogEntry())
+	}
+	return entries
 }
 
 // PanelUsername follows tg_<telegram_id> (tech.md 5.10).
@@ -201,18 +247,7 @@ func FillPanel(client *panelfake.Client, data Data) {
 		VlessUUID:     data.PanelUser.VlessUUID,
 		Hysteria2Auth: data.PanelUser.Hysteria2Auth,
 	})
-	hosts := make([]panel.PanelHost, 0, len(data.Servers))
-	for _, server := range data.Servers {
-		hosts = append(hosts, panel.PanelHost{
-			UUID:     server.RemnawaveHostUUID,
-			Protocol: server.Protocol,
-			Address:  server.Address,
-			Port:     int(server.Port),
-			Params:   server.Params,
-			Enabled:  true,
-		})
-	}
-	client.SetHosts(hosts)
+	client.SetHosts(data.PanelHosts())
 }
 
 // StartUpdate is the /start message of the seed user, for the fake Telegram.
