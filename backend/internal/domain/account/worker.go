@@ -21,7 +21,7 @@ type ProvisionWorker struct {
 func (w *ProvisionWorker) Work(ctx context.Context, job *river.Job[jobs.PanelProvisionUserArgs]) error {
 	err := w.Service.Provision(ctx, job.Args.AccountID)
 	if errors.Is(err, ErrAccountNotFound) || errors.Is(err, ErrPanelRejected) {
-		return river.JobCancel(err)
+		return river.JobCancel(err) //nolint:wrapcheck // River reads the cancel marker from this exact error.
 	}
 	if err != nil {
 		return fmt.Errorf("provision: %w", err)
