@@ -59,7 +59,7 @@ class VpnPlatform(context: Context) : PlatformInterface {
     override fun startDefaultInterfaceMonitor(listener: InterfaceUpdateListener) {
         val callback = DefaultNetworkCallback(listener)
         synchronized(callbacks) { callbacks[listener] = callback }
-        connectivity.registerDefaultNetworkCallback(callback, handler)
+        connectivity.watchPhysicalNetwork(callback, handler)
     }
 
     override fun closeDefaultInterfaceMonitor(listener: InterfaceUpdateListener) {
@@ -122,6 +122,7 @@ class VpnPlatform(context: Context) : PlatformInterface {
         private val listener: InterfaceUpdateListener,
     ) : ConnectivityManager.NetworkCallback() {
         private var capabilities: NetworkCapabilities? = null
+        private var current: Network? = null
 
         override fun onCapabilitiesChanged(
             network: Network,
@@ -137,10 +138,14 @@ class VpnPlatform(context: Context) : PlatformInterface {
             val name = linkProperties.interfaceName ?: return
             val index = JavaNetworkInterface.getByName(name)?.index ?: return
             val expensive = capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED) != true
+            current = network
             listener.updateDefaultInterface(name, index, expensive, false)
         }
 
         override fun onLost(network: Network) {
+            // The previous network is lost after the next one arrives, and must not hide it.
+            if (network != current) return
+            current = null
             listener.updateDefaultInterface("", -1, false, false)
         }
     }

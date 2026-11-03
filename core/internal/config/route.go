@@ -188,6 +188,9 @@ func buildTun(req contract.TunnelRequest) (option.Inbound, error) {
 	}
 	if req.Platform == contract.PlatformAndroid {
 		tun.IncludePackage, tun.ExcludePackage = androidPackages(req.Settings.PerApp)
+		// The system TCP stack answers from a socket of this app, which sits
+		// outside its own VPN, so the reply misses tun0 (tech.md 40.1).
+		tun.Stack = string(contract.TunStackGvisor)
 	}
 	return option.Inbound{Type: C.TypeTun, Tag: tagTun, Options: tun}, nil
 }

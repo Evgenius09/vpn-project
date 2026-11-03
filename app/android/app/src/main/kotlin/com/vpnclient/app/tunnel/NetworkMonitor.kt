@@ -10,8 +10,7 @@ import android.os.HandlerThread
 /**
  * Reports the NetType of the default network while the tunnel runs. The
  * tunnel service owns it, so reports keep coming with the UI in the background
- * or killed. The app is outside its own VPN, so its default network is the
- * physical one.
+ * or killed. It follows the physical network, see [watchPhysicalNetwork].
  *
  * Everything runs on one thread, which [NetChanges] requires, and the core
  * call blocks only that thread.
@@ -33,8 +32,7 @@ class NetworkMonitor(
             changes.start(current())
             val next = DefaultNetworkCallback()
             callback = next
-            // The variant without a Handler exists from API 24, the minimum SDK.
-            connectivity.registerDefaultNetworkCallback(next)
+            connectivity.watchPhysicalNetwork(next, handler)
         }
     }
 
