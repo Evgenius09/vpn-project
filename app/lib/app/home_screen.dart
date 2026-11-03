@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/connection/application/connection_controller.dart';
 import '../features/connection/presentation/connection_panel.dart';
 import '../features/servers/presentation/server_picker.dart';
+import '../features/whitelist/presentation/auto_switch_toggle.dart';
 import '../features/whitelist/presentation/mode_screen_keys.dart';
 import '../gen/api/export.dart';
 import '../gen/l10n/app_localizations.dart';
@@ -30,6 +32,15 @@ class HomeScreen extends ConsumerWidget {
     final strings = AppLocalizations.of(context);
     final index = ref.watch(homePageProvider);
     final show = ref.read(homePageProvider.notifier).show;
+    // The auto switch moved the tunnel, so the pager follows it (tech.md 34.2).
+    ref.listen(connectionControllerProvider.select((state) => state.notice), (
+      _,
+      notice,
+    ) {
+      if (notice != null) {
+        show(notice.to.index);
+      }
+    });
     final pages = [
       ModePage(
         title: strings.modeRegular,
@@ -98,6 +109,7 @@ class _ModeScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 ConnectionPanel(mode: mode),
+                if (mode == TunnelMode.whitelist) const AutoSwitchToggle(),
               ],
             ),
           ),

@@ -553,6 +553,48 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Внутренняя ошибка VPN. Попробуйте ещё раз.'**
   String get connectionErrorInternal;
+
+  /// No description provided for @modeNoticeCellular.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мобильная сеть: включён режим «{mode}»'**
+  String modeNoticeCellular(String mode);
+
+  /// No description provided for @modeNoticeWifi.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сеть сменилась: включён режим «{mode}»'**
+  String modeNoticeWifi(String mode);
+
+  /// No description provided for @modeNoticeOverrideCleared.
+  ///
+  /// In ru, this message translates to:
+  /// **'Автопереход снова следит за сетью: включён режим «{mode}»'**
+  String modeNoticeOverrideCleared(String mode);
+
+  /// No description provided for @modeNoticeNoWhitelist.
+  ///
+  /// In ru, this message translates to:
+  /// **'Серверов белых списков нет: работает режим «{mode}»'**
+  String modeNoticeNoWhitelist(String mode);
+
+  /// No description provided for @autoSwitchTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Белые списки в мобильной сети'**
+  String get autoSwitchTitle;
+
+  /// No description provided for @autoSwitchSubtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Включать белые списки, когда Wi-Fi сменяется мобильной сетью'**
+  String get autoSwitchSubtitle;
+
+  /// No description provided for @settingsConnection.
+  ///
+  /// In ru, this message translates to:
+  /// **'Подключение'**
+  String get settingsConnection;
 }
 
 class _AppLocalizationsDelegate

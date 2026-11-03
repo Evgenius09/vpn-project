@@ -278,4 +278,34 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get connectionErrorInternal =>
       'Внутренняя ошибка VPN. Попробуйте ещё раз.';
+
+  @override
+  String modeNoticeCellular(String mode) {
+    return 'Мобильная сеть: включён режим «$mode»';
+  }
+
+  @override
+  String modeNoticeWifi(String mode) {
+    return 'Сеть сменилась: включён режим «$mode»';
+  }
+
+  @override
+  String modeNoticeOverrideCleared(String mode) {
+    return 'Автопереход снова следит за сетью: включён режим «$mode»';
+  }
+
+  @override
+  String modeNoticeNoWhitelist(String mode) {
+    return 'Серверов белых списков нет: работает режим «$mode»';
+  }
+
+  @override
+  String get autoSwitchTitle => 'Белые списки в мобильной сети';
+
+  @override
+  String get autoSwitchSubtitle =>
+      'Включать белые списки, когда Wi-Fi сменяется мобильной сетью';
+
+  @override
+  String get settingsConnection => 'Подключение';
 }

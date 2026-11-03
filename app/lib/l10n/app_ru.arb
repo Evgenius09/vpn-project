@@ -147,5 +147,44 @@
   "connectionErrorRevoked": "Подключение перехватило другое VPN-приложение.",
   "connectionErrorServiceUnavailable": "Служба VPN не отвечает. Переустановите приложение.",
   "connectionErrorVersionMismatch": "Версии службы VPN и приложения не совпадают. Переустановите приложение.",
-  "connectionErrorInternal": "Внутренняя ошибка VPN. Попробуйте ещё раз."
+  "connectionErrorInternal": "Внутренняя ошибка VPN. Попробуйте ещё раз.",
+  "modeNoticeCellular": "Мобильная сеть: включён режим «{mode}»",
+  "@modeNoticeCellular": {
+    "placeholders": {
+      "mode": {
+        "type": "String",
+        "example": "Белые списки"
+      }
+    }
+  },
+  "modeNoticeWifi": "Сеть сменилась: включён режим «{mode}»",
+  "@modeNoticeWifi": {
+    "placeholders": {
+      "mode": {
+        "type": "String",
+        "example": "Белые списки"
+      }
+    }
+  },
+  "modeNoticeOverrideCleared": "Автопереход снова следит за сетью: включён режим «{mode}»",
+  "@modeNoticeOverrideCleared": {
+    "placeholders": {
+      "mode": {
+        "type": "String",
+        "example": "Белые списки"
+      }
+    }
+  },
+  "modeNoticeNoWhitelist": "Серверов белых списков нет: работает режим «{mode}»",
+  "@modeNoticeNoWhitelist": {
+    "placeholders": {
+      "mode": {
+        "type": "String",
+        "example": "Белые списки"
+      }
+    }
+  },
+  "autoSwitchTitle": "Белые списки в мобильной сети",
+  "autoSwitchSubtitle": "Включать белые списки, когда Wi-Fi сменяется мобильной сетью",
+  "settingsConnection": "Подключение"
 }

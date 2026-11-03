@@ -34,6 +34,7 @@ class ConnectionState {
     this.tunnel = TunnelSnapshot.disconnected,
     this.traffic,
     this.issue,
+    this.notice,
     this.busy = false,
   });
 
@@ -46,6 +47,9 @@ class ConnectionState {
   /// permission_denied, so one code covers the host, the service, and the core.
   final CoreErrorCode? issue;
 
+  /// The last mode change the auto switch made, for its banner (tech.md 34.2).
+  final ModePayload? notice;
+
   /// A call to the bridge is in flight, so taps wait for it.
   final bool busy;
 
@@ -54,6 +58,7 @@ class ConnectionState {
         tunnel: tunnel ?? this.tunnel,
         traffic: traffic,
         issue: issue,
+        notice: notice,
         busy: busy ?? this.busy,
       );
 
@@ -61,6 +66,7 @@ class ConnectionState {
     tunnel: tunnel,
     traffic: traffic,
     issue: issue,
+    notice: notice,
     busy: busy,
   );
 
@@ -68,6 +74,15 @@ class ConnectionState {
     tunnel: tunnel,
     traffic: traffic,
     issue: issue,
+    notice: notice,
+    busy: busy,
+  );
+
+  ConnectionState withNotice(ModePayload? notice) => ConnectionState(
+    tunnel: tunnel,
+    traffic: traffic,
+    issue: issue,
+    notice: notice,
     busy: busy,
   );
 }

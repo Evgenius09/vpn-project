@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../../../core/providers.dart';
 import '../../../gen/api/export.dart';
@@ -20,10 +19,6 @@ import '../domain/sort_servers.dart';
 const tcpPingParallel = 8;
 
 final tcpPingProvider = Provider<TcpPing>((ref) => SocketTcpPing());
-
-final userSettingsStoreProvider = Provider<UserSettingsStore>(
-  (ref) => FileUserSettingsStore(getApplicationSupportDirectory),
-);
 
 /// The last ping of every server and whether a run is going on.
 class PingState {
