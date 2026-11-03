@@ -1,0 +1,40 @@
+# Remnawave node 3.4.4 next to the panel on the staging node host (tech.md 37.2).
+# Host networking lets Xray bind 443/tcp, 443/udp, and the Hysteria2 port range.
+# SECRET_KEY comes from the panel when the node is added; it lives in .env.
+services:
+  remnawave-node:
+    image: remnawave/node:3.4.4
+    container_name: remnawave-node
+    hostname: remnawave-node
+    network_mode: host
+    restart: always
+    cap_add:
+      - NET_ADMIN
+    ulimits:
+      nofile:
+        soft: 1048576
+        hard: 1048576
+    env_file: .env
+    # shortcut: Xray pinned to v26.6.27 because sing-box 1.14.x fails Reality
+    # against Xray >= 26.9.8 (SagerNet/sing-box#4520); drop the mount once fixed.
+    # The binary comes from the official release after a SHA2-256 check.
+    volumes:
+      - ./xray-v26.6.27/xray:/usr/local/bin/xray:ro
+      # Hysteria2 TLS certificate from certbot on the host; live/ links into archive/.
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: 100m
+        max-file: 5
+
+  # Loopback only until monitoring learns to scrape the node (tech.md 38.5).
+  node-exporter:
+    image: prom/node-exporter:v1.9.1
+    container_name: node-exporter
+    network_mode: host
+    pid: host
+    restart: always
+    command: [--path.rootfs=/host, --web.listen-address=127.0.0.1:9100]
+    volumes:
+      - /:/host:ro,rslave

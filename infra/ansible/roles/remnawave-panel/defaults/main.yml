@@ -1,0 +1,6 @@
+---
+remnawave_panel_dir: /opt/remnawave
+# The user's SNI choice for Reality on staging.
+remnawave_reality_target: www.klarna.com
+# Set per host in the local inventory, never in the repository (tech.md 38.5):
+# node_name, node_country, node_fqdn; ansible_host is the VLESS host address.

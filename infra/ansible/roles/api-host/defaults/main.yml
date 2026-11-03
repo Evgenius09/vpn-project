@@ -6,3 +6,6 @@ api_https_port: 443
 telegram_mode: fake
 telegram_bot_token: ""
 telegram_bot_username: ""
+# Generated on the host in webhook mode (tech.md 38.4).
+telegram_webhook_secret: ""
+api_public_url: "https://{{ api_domain }}{{ '' if (api_https_port | int) == 443 else ':' ~ api_https_port }}"
