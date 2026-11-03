@@ -1,0 +1,125 @@
+---
+- name: Install the packages
+  ansible.builtin.apt:
+    name:
+      - docker.io
+      - docker-compose-v2
+      - certbot
+      - unzip
+      - ufw
+    state: present
+    update_cache: true
+
+- name: Check the node key from the panel
+  ansible.builtin.stat:
+    path: "{{ remnawave_node_dir }}/.env"
+  register: node_env
+
+- name: Require the panel role first
+  ansible.builtin.assert:
+    that: node_env.stat.exists
+    fail_msg: The remnawave-panel role writes the node's .env; run it first.
+
+# The panel reaches the node API through the bridge gateway only.
+- name: Read the panel network
+  ansible.builtin.command:
+    cmd: docker network inspect remnawave-network -f {% raw %}'{{(index .IPAM.Config 0).Subnet}}'{% endraw %}
+  register: panel_subnet
+  changed_when: false
+
+- name: Open the node ports
+  ansible.builtin.command:
+    cmd: ufw allow {{ item }}
+  loop:
+    - 22/tcp
+    - 80/tcp
+    - 443/tcp
+    - 443/udp
+    - 20000:50000/udp
+    - from {{ panel_subnet.stdout }} to any port 2222 proto tcp
+  register: ufw_rule
+  changed_when: "'Skipping' not in ufw_rule.stdout"
+
+- name: Enable the firewall
+  ansible.builtin.command:
+    cmd: ufw --force enable
+  register: ufw_enable
+  changed_when: false
+
+# Port 80 serves the standalone challenge; the hook reloads the certificate into Xray.
+- name: Get the Hysteria2 certificate
+  ansible.builtin.command:
+    argv:
+      - certbot
+      - certonly
+      - --standalone
+      - --non-interactive
+      - --agree-tos
+      - --register-unsafely-without-email
+      - --key-type=ecdsa
+      - --deploy-hook=docker restart remnawave-node
+      - -d
+      - "{{ node_fqdn }}"
+    creates: /etc/letsencrypt/live/{{ node_fqdn }}/fullchain.pem
+
+- name: Create the Xray directory
+  ansible.builtin.file:
+    path: "{{ remnawave_node_dir }}/xray-{{ xray_version }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Download the pinned Xray release
+  ansible.builtin.get_url:
+    url: https://github.com/XTLS/Xray-core/releases/download/{{ xray_version }}/Xray-linux-64.zip
+    dest: "{{ remnawave_node_dir }}/xray-{{ xray_version }}/Xray-linux-64.zip"
+    checksum: sha256:{{ xray_zip_sha256 }}
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Unpack the Xray binary
+  ansible.builtin.unarchive:
+    src: "{{ remnawave_node_dir }}/xray-{{ xray_version }}/Xray-linux-64.zip"
+    dest: "{{ remnawave_node_dir }}/xray-{{ xray_version }}"
+    remote_src: true
+    include: [xray]
+    creates: "{{ remnawave_node_dir }}/xray-{{ xray_version }}/xray"
+
+- name: Copy the node compose file
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../../compose/remnawave/node.compose.yaml"
+    dest: "{{ remnawave_node_dir }}/docker-compose.yml"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Install the port hopping unit
+  ansible.builtin.copy:
+    src: hysteria-port-hopping.service
+    dest: /etc/systemd/system/hysteria-port-hopping.service
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Start port hopping
+  ansible.builtin.systemd_service:
+    name: hysteria-port-hopping
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Start the node
+  ansible.builtin.command:
+    cmd: docker compose up -d --wait
+    chdir: "{{ remnawave_node_dir }}"
+  register: node_up
+  changed_when: "'Started' in node_up.stderr or 'Recreated' in node_up.stderr"
+
+# The node has no healthcheck: Xray listens only after the panel pushes its config.
+- name: Wait for Xray
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: 443
+    timeout: 120

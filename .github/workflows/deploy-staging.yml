@@ -65,7 +65,7 @@ jobs:
             "grafana_password": "$GRAFANA_PASSWORD",
             "token_pepper": "$TOKEN_PEPPER",
             "api_https_port": $HTTPS_PORT,
-            "telegram_mode": "$([ -n "$BOT_TOKEN" ] && echo polling || echo fake)",
+            "telegram_mode": "$([ -n "$BOT_TOKEN" ] && echo webhook || echo fake)",
             "telegram_bot_token": "$BOT_TOKEN",
             "telegram_bot_username": "$BOT_USERNAME",
             "registry_user": "$GITHUB_ACTOR",
