@@ -61,6 +61,9 @@ List<String> _byWeight(List<ServerNode> servers) {
 ServerPing _pingOf(Map<String, ServerPing> pings, ServerNode server) =>
     pings[server.id] ?? const ServerPing.unknown();
 
+bool _notMeasured(ServerPing ping) =>
+    ping is UnknownPing || ping is MeasuringPing;
+
 void main() {
   test('sorted by delay, then not measured, then unreachable', () {
     final servers = [for (var i = 0; i < 5; i++) _server(i, 0)];
@@ -170,9 +173,7 @@ void main() {
       for (var j = i + 1; j < sorted.length; j++) {
         final a = _pingOf(pings, sorted[i]);
         final b = _pingOf(pings, sorted[j]);
-        final notMeasured = (ServerPing p) =>
-            p is UnknownPing || p is MeasuringPing;
-        if (a == b || (notMeasured(a) && notMeasured(b))) {
+        if (a == b || (_notMeasured(a) && _notMeasured(b))) {
           expect(
             weightOrder.indexOf(sorted[i].id) <
                 weightOrder.indexOf(sorted[j].id),
