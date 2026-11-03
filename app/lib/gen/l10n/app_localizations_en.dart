@@ -84,6 +84,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get serversEmpty => 'No servers yet';
 
   @override
+  String get pingRefresh => 'Check ping';
+
+  @override
+  String get pingSortByPing => 'Sort by ping';
+
+  @override
   String get profileLoadFailed => 'Could not load the profile';
 
   @override

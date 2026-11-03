@@ -22,6 +22,8 @@
   "speedMegabytes": "{value} MB/s",
   "serversTitle": "Servers",
   "serversEmpty": "No servers yet",
+  "pingRefresh": "Check ping",
+  "pingSortByPing": "Sort by ping",
   "profileLoadFailed": "Could not load the profile",
   "profileFromCache": "Server unreachable, showing saved data",
   "loginUsernameTitle": "Sign in with Telegram",

@@ -50,6 +50,8 @@
   },
   "serversTitle": "Серверы",
   "serversEmpty": "Серверов пока нет",
+  "pingRefresh": "Проверить пинг",
+  "pingSortByPing": "Сортировать по пингу",
   "profileLoadFailed": "Не удалось загрузить профиль",
   "profileFromCache": "Нет связи с сервером, показаны сохранённые данные",
   "loginUsernameTitle": "Вход через Telegram",
