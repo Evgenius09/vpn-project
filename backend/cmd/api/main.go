@@ -16,6 +16,7 @@ import (
 	"github.com/Evgenius09/vpn-project/backend/internal/app"
 	"github.com/Evgenius09/vpn-project/backend/internal/config"
 	"github.com/Evgenius09/vpn-project/backend/internal/db/sqlc"
+	"github.com/Evgenius09/vpn-project/backend/internal/domain/auth"
 	"github.com/Evgenius09/vpn-project/backend/internal/domain/profile"
 	"github.com/Evgenius09/vpn-project/backend/internal/domain/telegram"
 	"github.com/Evgenius09/vpn-project/backend/internal/gen/api"
@@ -60,19 +61,28 @@ func run(ctx context.Context) error {
 	}
 	service := profile.NewService(profile.NewPostgresStore(queries), profile.Options{Policy: policy, Endpoints: endpoints})
 
-	webhook, err := telegramWebhook(runtime)
+	queue, err := jobs.NewClient(runtime.Pool, jobs.Options{Logger: runtime.Logger})
+	if err != nil {
+		return fmt.Errorf("create queue: %w", err)
+	}
+	login := auth.NewService(runtime.Pool, queue, auth.Options{
+		Pepper: []byte(runtime.Config.TokenPepper),
+		BotURL: runtime.Config.BotURL(),
+	})
+	webhook, err := telegramWebhook(runtime, queue)
 	if err != nil {
 		return fmt.Errorf("telegram webhook: %w", err)
 	}
 
 	metrics := httpapi.NewMetrics()
 	router := httpapi.NewRouter(httpapi.Deps{
-		Handlers: handlers{profile: profile.NewHandler(service)},
-		Devices:  httpapi.NewPostgresDevices(queries, runtime.Logger),
-		Pepper:   []byte(runtime.Config.TokenPepper),
-		Logger:   runtime.Logger,
-		Metrics:  metrics,
-		Webhook:  webhook,
+		Handlers:       handlers{profile: profile.NewHandler(service), auth: auth.NewHandler(login)},
+		Devices:        httpapi.NewPostgresDevices(queries, runtime.Logger),
+		Pepper:         []byte(runtime.Config.TokenPepper),
+		Logger:         runtime.Logger,
+		Metrics:        metrics,
+		Webhook:        webhook,
+		AuthRatePerMin: runtime.Config.AuthRatePerMin,
 	})
 
 	group, ctx := errgroup.WithContext(ctx)
@@ -87,7 +97,7 @@ func run(ctx context.Context) error {
 }
 
 // telegramWebhook returns nil outside webhook mode, which leaves the route out.
-func telegramWebhook(runtime app.Runtime) (http.Handler, error) {
+func telegramWebhook(runtime app.Runtime, queue telegram.Queue) (http.Handler, error) {
 	cfg := runtime.Config
 	if cfg.TelegramMode != config.TelegramWebhook {
 		return nil, nil
@@ -95,10 +105,6 @@ func telegramWebhook(runtime app.Runtime) (http.Handler, error) {
 	client, err := botapi.New(cfg.TelegramBotToken, runtime.Logger)
 	if err != nil {
 		return nil, fmt.Errorf("create client: %w", err)
-	}
-	queue, err := jobs.NewClient(runtime.Pool, jobs.Options{Logger: runtime.Logger})
-	if err != nil {
-		return nil, fmt.Errorf("create queue: %w", err)
 	}
 	service := telegram.NewService(runtime.Pool, client, queue, runtime.Logger)
 	return telegram.NewWebhookHandler(service, cfg.TelegramWebhookSecret, runtime.Logger), nil
@@ -109,10 +115,23 @@ func telegramWebhook(runtime app.Runtime) (http.Handler, error) {
 type handlers struct {
 	httpapi.Unimplemented
 	profile *profile.Handler
+	auth    *auth.Handler
 }
 
 func (h handlers) GetProfile(ctx context.Context, request api.GetProfileRequestObject) (api.GetProfileResponseObject, error) {
 	return h.profile.GetProfile(ctx, request) //nolint:wrapcheck // The handler already returns a problem or a wrapped error.
+}
+
+func (h handlers) StartTelegramLogin(ctx context.Context, request api.StartTelegramLoginRequestObject) (api.StartTelegramLoginResponseObject, error) {
+	return h.auth.StartTelegramLogin(ctx, request) //nolint:wrapcheck // The handler already returns a problem or a wrapped error.
+}
+
+func (h handlers) VerifyTelegramLogin(ctx context.Context, request api.VerifyTelegramLoginRequestObject) (api.VerifyTelegramLoginResponseObject, error) {
+	return h.auth.VerifyTelegramLogin(ctx, request) //nolint:wrapcheck // The handler already returns a problem or a wrapped error.
+}
+
+func (h handlers) Logout(ctx context.Context, request api.LogoutRequestObject) (api.LogoutResponseObject, error) {
+	return h.auth.Logout(ctx, request) //nolint:wrapcheck // The handler already returns a problem or a wrapped error.
 }
 
 func metricsMux(metrics *httpapi.Metrics) http.Handler {

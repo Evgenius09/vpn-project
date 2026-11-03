@@ -24,6 +24,9 @@ type Deps struct {
 	Metrics  *Metrics
 	// Webhook serves /telegram/webhook when set.
 	Webhook http.Handler
+	// AuthRatePerMin limits the public operations per client address. Zero
+	// turns the limit off.
+	AuthRatePerMin int
 }
 
 // NewRouter returns the public handler.
@@ -50,7 +53,7 @@ func NewRouter(deps Deps) http.Handler {
 
 	strict := api.NewStrictHandlerWithOptions(
 		deps.Handlers,
-		[]api.StrictMiddlewareFunc{authMiddleware(deps.Devices, deps.Pepper)},
+		[]api.StrictMiddlewareFunc{authMiddleware(deps.Devices, deps.Pepper), rateLimitMiddleware(deps.AuthRatePerMin)},
 		api.StrictHTTPServerOptions{
 			RequestErrorHandlerFunc: func(w http.ResponseWriter, _ *http.Request, err error) {
 				WriteProblem(w, validationProblem(err.Error()))
