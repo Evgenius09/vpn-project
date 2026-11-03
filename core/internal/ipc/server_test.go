@@ -25,11 +25,59 @@ import (
 const eventTimeout = 5 * time.Second
 
 type fakeBackend struct {
-	mu       sync.Mutex
-	state    string
-	started  []string
-	stopped  int
-	startErr error
+	mu        sync.Mutex
+	state     string
+	started   []string
+	updated   []string
+	modes     []string
+	selected  [][2]string
+	tested    [][]string
+	synced    []contract.RuleSetRef
+	stopped   int
+	startErr  error
+	failure   error
+	urlTest   string
+	ready     []string
+	processes []ProcessInfo
+}
+
+func (b *fakeBackend) Update(request string) error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.updated = append(b.updated, request)
+	return b.failure
+}
+
+func (b *fakeBackend) SetUserMode(mode string) error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.modes = append(b.modes, mode)
+	return b.failure
+}
+
+func (b *fakeBackend) SelectServer(group, serverID string) error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.selected = append(b.selected, [2]string{group, serverID})
+	return b.failure
+}
+
+func (b *fakeBackend) URLTest(serverIDs []string) (string, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.tested = append(b.tested, serverIDs)
+	return b.urlTest, b.failure
+}
+
+func (b *fakeBackend) SyncRuleSets(_ context.Context, ruleSets []contract.RuleSetRef) []string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.synced = append(b.synced, ruleSets...)
+	return b.ready
+}
+
+func (b *fakeBackend) ListProcesses() ([]ProcessInfo, error) {
+	return b.processes, b.failure
 }
 
 func (b *fakeBackend) Start(request string) error {
@@ -108,7 +156,12 @@ func TestRecordedSessions(t *testing.T) {
 	for _, path := range sessions(t) {
 		t.Run(filepath.Base(path), func(t *testing.T) {
 			hub := NewHub()
-			backend := &fakeBackend{state: fixture(t, "state_disconnected.json")}
+			backend := &fakeBackend{
+				state:     fixture(t, "state_disconnected.json"),
+				urlTest:   fixture(t, "url_test.json"),
+				ready:     []string{"ru-direct"},
+				processes: []ProcessInfo{{Name: "steam.exe", Path: `C:\Games\steam.exe`}},
+			}
 			c := connect(t, newServer(backend, hub))
 
 			var compact struct {
@@ -269,4 +322,117 @@ func TestContextEndClosesTheConnection(t *testing.T) {
 		t.Fatal("Serve did not stop")
 	}
 	require.NoError(t, near.Close())
+}
+
+func call(t *testing.T, backend Backend, method, params string) string {
+	t.Helper()
+	c := connect(t, newServer(backend, NewHub()))
+	c.hello()
+	c.send(`{"jsonrpc":"2.0","id":1,"method":"` + method + `","params":` + params + `}`)
+	return c.receive()
+}
+
+func TestUpdateReachesTheBackendAsSent(t *testing.T) {
+	backend := &fakeBackend{}
+	response := call(t, backend, MethodUpdate, `{"tunnelRequest":{"schemaVersion":1}}`)
+	require.JSONEq(t, `{"jsonrpc":"2.0","id":1,"result":{}}`, response)
+	require.Equal(t, []string{`{"schemaVersion":1}`}, backend.updated)
+}
+
+func TestSetUserModeReachesTheBackend(t *testing.T) {
+	backend := &fakeBackend{}
+	call(t, backend, MethodSetUserMode, `{"mode":"whitelist"}`)
+	require.Equal(t, []string{"whitelist"}, backend.modes)
+}
+
+func TestSelectServerReachesTheBackend(t *testing.T) {
+	backend := &fakeBackend{}
+	call(t, backend, MethodSelectServer, `{"group":"regular","serverId":"s1"}`)
+	require.Equal(t, [][2]string{{"regular", "s1"}}, backend.selected)
+}
+
+func TestURLTestReturnsTheEventAsResult(t *testing.T) {
+	event := fixture(t, "url_test.json")
+	backend := &fakeBackend{urlTest: event}
+	response := call(t, backend, MethodURLTest, `{"serverIds":["s1","s2"]}`)
+
+	var message Message
+	require.NoError(t, json.Unmarshal([]byte(response), &message))
+	require.JSONEq(t, event, string(message.Result))
+	require.Equal(t, [][]string{{"s1", "s2"}}, backend.tested)
+}
+
+func TestSyncRuleSetsReportsWhatIsReady(t *testing.T) {
+	backend := &fakeBackend{ready: []string{"ads"}}
+	response := call(t, backend, MethodSyncRuleSets,
+		`{"ruleSets":[{"id":"ads","url":"https://a/ads.srs","sha256":"aa"},{"id":"ru","url":"https://a/ru.srs","sha256":"bb"}]}`)
+
+	require.JSONEq(t, `{"jsonrpc":"2.0","id":1,"result":{"ready":["ads"]}}`, response)
+	require.Len(t, backend.synced, 2)
+}
+
+func TestNoReadyRuleSetIsAnEmptyList(t *testing.T) {
+	response := call(t, &fakeBackend{}, MethodSyncRuleSets, `{"ruleSets":[]}`)
+	require.JSONEq(t, `{"jsonrpc":"2.0","id":1,"result":{"ready":[]}}`, response,
+		"the app reads ready as a list, never null")
+}
+
+func TestListProcessesReturnsAnArray(t *testing.T) {
+	backend := &fakeBackend{processes: []ProcessInfo{{Name: "a.exe", Path: `C:\a.exe`}}}
+	response := call(t, backend, MethodListProcesses, `{}`)
+	require.JSONEq(t, `{"jsonrpc":"2.0","id":1,"result":[{"name":"a.exe","path":"C:\\a.exe"}]}`, response)
+}
+
+func TestNoProcessesIsAnEmptyList(t *testing.T) {
+	response := call(t, &fakeBackend{}, MethodListProcesses, `{}`)
+	require.JSONEq(t, `{"jsonrpc":"2.0","id":1,"result":[]}`, response)
+}
+
+func TestEveryNewMethodKeepsTheCoreErrorCode(t *testing.T) {
+	failure := &runtime.Error{Code: contract.CoreErrorCodeNoServersInGroup, Message: "empty"}
+	calls := map[string]string{
+		MethodUpdate:        `{"tunnelRequest":{}}`,
+		MethodSetUserMode:   `{"mode":"regular"}`,
+		MethodSelectServer:  `{"group":"regular","serverId":"s"}`,
+		MethodURLTest:       `{"serverIds":[]}`,
+		MethodListProcesses: `{}`,
+	}
+	for method, params := range calls {
+		t.Run(method, func(t *testing.T) {
+			response := call(t, &fakeBackend{failure: failure}, method, params)
+			var message Message
+			require.NoError(t, json.Unmarshal([]byte(response), &message))
+			require.Equal(t, CodeCoreError, message.Error.Code)
+			require.Equal(t, contract.CoreErrorCodeNoServersInGroup, message.Error.Data.Code)
+		})
+	}
+}
+
+func TestMalformedParamsNeverQuoteTheirContent(t *testing.T) {
+	const secret = "visible-secret-value"
+	for _, method := range []string{MethodUpdate, MethodSetUserMode, MethodSelectServer, MethodURLTest, MethodSyncRuleSets} {
+		t.Run(method, func(t *testing.T) {
+			response := call(t, &fakeBackend{}, method, `"`+secret+`"`)
+			var message Message
+			require.NoError(t, json.Unmarshal([]byte(response), &message))
+			require.Equal(t, contract.CoreErrorCodeConfigInvalid, message.Error.Data.Code)
+			require.NotContains(t, response, secret)
+		})
+	}
+}
+
+func TestEveryProtocolMethodIsImplemented(t *testing.T) {
+	for _, method := range Methods {
+		if method == MethodHello {
+			continue
+		}
+		t.Run(method, func(t *testing.T) {
+			response := call(t, &fakeBackend{state: `{}`, urlTest: `{}`}, method, `{}`)
+			var message Message
+			require.NoError(t, json.Unmarshal([]byte(response), &message))
+			if message.Error != nil {
+				require.NotEqual(t, CodeMethodNotFound, message.Error.Code)
+			}
+		})
+	}
 }

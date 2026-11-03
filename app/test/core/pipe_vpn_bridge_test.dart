@@ -122,6 +122,28 @@ void main() {
       expect(events.single.state!.status, TunnelStatus.connected);
     });
 
+    test('the whole method surface', () async {
+      const server = '11111111-1111-4111-8111-111111111111';
+      final bridge = _bridge(_ReplayTransport.session('full_surface'));
+
+      await bridge.update('{"schemaVersion":1}');
+      await bridge.setUserMode(TunnelMode.whitelist);
+      await bridge.selectServer(TunnelMode.regular, server);
+      final urlTest = await bridge.urlTest([server]);
+      final apps = await bridge.listSelectableApps();
+      final ready = await bridge.syncRuleSets([
+        const RuleSetRef(
+          id: 'ru-direct',
+          url: 'https://rules.example.invalid/ru-direct.srs',
+          sha256: 'aa',
+        ),
+      ]);
+
+      expect(urlTest.urlTest!.results.first.delayMs, 42);
+      expect(apps.single.id, 'steam.exe');
+      expect(ready, ['ru-direct']);
+    });
+
     test('a version mismatch fails with ipc_version_mismatch', () async {
       final bridge = _bridge(
         _ReplayTransport.session('version_mismatch'),

@@ -7,11 +7,14 @@ import (
 	"log/slog"
 	"net"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/sagernet/sing-box/option"
 	"github.com/stretchr/testify/require"
+
+	"github.com/Evgenius09/vpn-project/core/internal/ipc"
 )
 
 // stubEngine replaces the box, whose TUN needs administrator rights. The
@@ -47,7 +50,7 @@ func TestServeRunsTheTunnelOverASocket(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
-	go func() { done <- serve(ctx, listener, stubEngine{}, slog.New(slog.DiscardHandler)) }()
+	go func() { done <- serve(ctx, listener, stubEngine{}, testHost(t), slog.New(slog.DiscardHandler)) }()
 
 	conn, err := net.Dial("tcp", listener.Addr().String())
 	require.NoError(t, err)
@@ -80,4 +83,40 @@ func compact(t *testing.T, raw []byte) string {
 		}
 	}
 	return string(out)
+}
+
+func testHost(t *testing.T) hostOptions {
+	t.Helper()
+	return hostOptions{
+		DataDir:       t.TempDir(),
+		Protect:       func(string) error { return nil },
+		ListProcesses: func() ([]ipc.ProcessInfo, error) { return nil, nil },
+	}
+}
+
+func TestServeKeepsTheAcceptedRequest(t *testing.T) {
+	raw, err := os.ReadFile("../../../contracts/fixtures/tunnel_request/windows_custom.json")
+	require.NoError(t, err)
+	host := testHost(t)
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() { done <- serve(ctx, listener, stubEngine{}, host, slog.New(slog.DiscardHandler)) }()
+
+	conn, err := net.Dial("tcp", listener.Addr().String())
+	require.NoError(t, err)
+	reader := bufio.NewReader(conn)
+	call(t, conn, reader, hello)
+	start := fmt.Sprintf(`{"jsonrpc":"2.0","id":2,"method":"start","params":{"tunnelRequest":%s}}`, compact(t, raw))
+	require.Contains(t, call(t, conn, reader, start), `"result":{}`)
+
+	stored, err := os.ReadFile(filepath.Join(host.DataDir, lastRequestFile))
+	require.NoError(t, err)
+	require.JSONEq(t, string(raw), string(stored))
+
+	cancel()
+	require.NoError(t, conn.Close())
+	require.NoError(t, <-done)
 }

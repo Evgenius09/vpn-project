@@ -19,8 +19,16 @@ const pendingEvents = 256
 // Backend is the tunnel behind the server.
 type Backend interface {
 	Start(tunnelRequestJSON string) error
+	Update(tunnelRequestJSON string) error
 	Stop() error
+	SetUserMode(mode string) error
+	SelectServer(group, serverID string) error
+	// URLTest returns a CoreEvent of type url_test as JSON.
+	URLTest(serverIDs []string) (string, error)
 	State() string
+	// SyncRuleSets returns the identifiers of the rule sets that are ready.
+	SyncRuleSets(ctx context.Context, ruleSets []contract.RuleSetRef) []string
+	ListProcesses() ([]ProcessInfo, error)
 }
 
 // Hub fans core events out to every subscribed connection, so two UI copies
@@ -113,7 +121,7 @@ func (s *Server) Serve(ctx context.Context, stream io.ReadWriteCloser) error {
 		if err := json.Unmarshal(scanner.Bytes(), &request); err != nil {
 			return fmt.Errorf("decode message: %w", err)
 		}
-		if err := s.handle(conn, request); err != nil {
+		if err := s.handle(ctx, conn, request); err != nil {
 			return err
 		}
 	}
@@ -126,7 +134,7 @@ func (s *Server) Serve(ctx context.Context, stream io.ReadWriteCloser) error {
 	return nil
 }
 
-func (s *Server) handle(conn *connection, request Message) error {
+func (s *Server) handle(ctx context.Context, conn *connection, request Message) error {
 	if request.ID == nil {
 		return nil
 	}
@@ -140,11 +148,23 @@ func (s *Server) handle(conn *connection, request Message) error {
 	case MethodPrepare:
 		return conn.write(success(request.ID, PrepareResult{Result: "granted"}))
 	case MethodStart:
-		return s.start(conn, request)
+		return s.withRequest(conn, request, s.backend.Start)
+	case MethodUpdate:
+		return s.withRequest(conn, request, s.backend.Update)
 	case MethodStop:
 		return conn.write(s.outcome(request.ID, s.backend.Stop()))
+	case MethodSetUserMode:
+		return s.setUserMode(conn, request)
+	case MethodSelectServer:
+		return s.selectServer(conn, request)
+	case MethodURLTest:
+		return s.urlTest(conn, request)
 	case MethodGetState:
 		return conn.write(Message{ID: request.ID, Result: json.RawMessage(s.backend.State())})
+	case MethodSyncRuleSets:
+		return s.syncRuleSets(ctx, conn, request)
+	case MethodListProcesses:
+		return s.listProcesses(conn, request)
 	case MethodSubscribe:
 		s.subscribe(conn)
 		return conn.write(success(request.ID, struct{}{}))
@@ -168,14 +188,67 @@ func (s *Server) hello(conn *connection, request Message) error {
 	}))
 }
 
-func (s *Server) start(conn *connection, request Message) error {
+// withRequest keeps the request as raw JSON, so the runtime validates exactly
+// what the client sent.
+func (s *Server) withRequest(conn *connection, request Message, call func(string) error) error {
 	var params struct {
 		TunnelRequest json.RawMessage `json:"tunnelRequest"`
 	}
 	if err := json.Unmarshal(request.Params, &params); err != nil {
-		return conn.write(failure(request.ID, contract.CoreErrorCodeConfigInvalid, "malformed params"))
+		return conn.write(malformed(request.ID))
 	}
-	return conn.write(s.outcome(request.ID, s.backend.Start(string(params.TunnelRequest))))
+	return conn.write(s.outcome(request.ID, call(string(params.TunnelRequest))))
+}
+
+func (s *Server) setUserMode(conn *connection, request Message) error {
+	var params SetUserModeParams
+	if err := json.Unmarshal(request.Params, &params); err != nil {
+		return conn.write(malformed(request.ID))
+	}
+	return conn.write(s.outcome(request.ID, s.backend.SetUserMode(string(params.Mode))))
+}
+
+func (s *Server) selectServer(conn *connection, request Message) error {
+	var params SelectServerParams
+	if err := json.Unmarshal(request.Params, &params); err != nil {
+		return conn.write(malformed(request.ID))
+	}
+	return conn.write(s.outcome(request.ID, s.backend.SelectServer(string(params.Group), params.ServerID)))
+}
+
+func (s *Server) urlTest(conn *connection, request Message) error {
+	var params URLTestParams
+	if err := json.Unmarshal(request.Params, &params); err != nil {
+		return conn.write(malformed(request.ID))
+	}
+	event, err := s.backend.URLTest(params.ServerIDs)
+	if err != nil {
+		return conn.write(s.outcome(request.ID, err))
+	}
+	return conn.write(Message{ID: request.ID, Result: json.RawMessage(event)})
+}
+
+func (s *Server) syncRuleSets(ctx context.Context, conn *connection, request Message) error {
+	var params SyncRuleSetsParams
+	if err := json.Unmarshal(request.Params, &params); err != nil {
+		return conn.write(malformed(request.ID))
+	}
+	ready := s.backend.SyncRuleSets(ctx, params.RuleSets)
+	if ready == nil {
+		ready = []string{}
+	}
+	return conn.write(success(request.ID, SyncRuleSetsResult{Ready: ready}))
+}
+
+func (s *Server) listProcesses(conn *connection, request Message) error {
+	processes, err := s.backend.ListProcesses()
+	if err != nil {
+		return conn.write(s.outcome(request.ID, err))
+	}
+	if processes == nil {
+		processes = []ProcessInfo{}
+	}
+	return conn.write(success(request.ID, processes))
 }
 
 func (s *Server) subscribe(conn *connection) {
@@ -209,6 +282,11 @@ func (s *Server) outcome(id *int64, err error) Message {
 	}
 	s.logger.Error("backend call failed", "error", err)
 	return failure(id, contract.CoreErrorCodeInternal, "internal error")
+}
+
+// malformed never quotes the params: they can hold server secrets.
+func malformed(id *int64) Message {
+	return failure(id, contract.CoreErrorCodeConfigInvalid, "malformed params")
 }
 
 func success(id *int64, result any) Message {

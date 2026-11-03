@@ -48,27 +48,29 @@ func runConsole() error {
 }
 
 func run(ctx context.Context) error {
-	if err := enterDataDir(); err != nil {
+	dir, err := enterDataDir()
+	if err != nil {
 		return err
 	}
 	listener, err := winio.ListenPipe(pipeName, &winio.PipeConfig{SecurityDescriptor: pipeSecurity})
 	if err != nil {
 		return fmt.Errorf("listen on pipe: %w", err)
 	}
-	return serve(ctx, listener, runtime.NewBoxEngine(), newLogger())
+	host := hostOptions{DataDir: dir, Protect: protectFile, ListProcesses: listProcesses}
+	return serve(ctx, listener, runtime.NewBoxEngine(), host, newLogger())
 }
 
 // enterDataDir moves away from system32, where a service starts. sing-box keeps
 // its cache there, and rule set paths are relative to it (tech.md 5.4).
-func enterDataDir() error {
+func enterDataDir() (string, error) {
 	dir := filepath.Join(os.Getenv("ProgramData"), serviceName)
 	if err := os.MkdirAll(dir, 0o700); err != nil {
-		return fmt.Errorf("create data directory: %w", err)
+		return "", fmt.Errorf("create data directory: %w", err)
 	}
 	if err := os.Chdir(dir); err != nil {
-		return fmt.Errorf("enter data directory: %w", err)
+		return "", fmt.Errorf("enter data directory: %w", err)
 	}
-	return nil
+	return dir, nil
 }
 
 func newLogger() *slog.Logger {
