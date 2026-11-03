@@ -36,6 +36,7 @@
   loop:
     - { src: compose/api/, dest: compose/api/ }
     - { src: monitoring, dest: "" }
+    - { src: catalog, dest: "" }
 
 - name: Render the environment file
   ansible.builtin.template:
