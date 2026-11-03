@@ -3,4 +3,5 @@ remnawave_node_dir: /opt/remnanode
 # Official release pinned by tech.md 38.1; the hash is SHA2-256 from the release's .dgst.
 xray_version: v26.6.27
 xray_zip_sha256: b3e5902d06d6282fe53cfa2fc426058b9aeaa429b2c812e20887cd47f26d08bf
-# Set per host in the local inventory: node_fqdn, the certificate name (tech.md 38.2).
+# Set per host in the local inventory: node_fqdn, the certificate name (tech.md 38.2),
+# and panel_tunnel_pubkey, the API host's tunnel key (tech.md 39.5).

@@ -22,7 +22,7 @@ var (
 
 // PanelUser is a user as the panel sees it.
 type PanelUser struct {
-	UUID          uuid.UUID
+	ID            int64 // Remnawave 3.4.8 has no user uuid (tech.md 39.2)
 	ShortUUID     string
 	Username      string
 	ExpiresAt     time.Time
@@ -59,6 +59,6 @@ type UpdateUserInput struct {
 type PanelClient interface {
 	GetUserByUsername(ctx context.Context, username string) (PanelUser, error)
 	CreateUser(ctx context.Context, in CreateUserInput) (PanelUser, error)
-	UpdateUser(ctx context.Context, id uuid.UUID, in UpdateUserInput) (PanelUser, error)
+	UpdateUser(ctx context.Context, id int64, in UpdateUserInput) (PanelUser, error)
 	ListHosts(ctx context.Context) ([]PanelHost, error)
 }

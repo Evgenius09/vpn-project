@@ -11,3 +11,9 @@ scrape_configs:
   - job_name: node
     static_configs:
       - targets: [node-exporter:9100]
+  # The node server through panel-tunnel (tech.md 39.5).
+  - job_name: vpn-node
+    static_configs:
+      - targets: [panel-tunnel:9100]
+        labels:
+          instance: se-sto-1

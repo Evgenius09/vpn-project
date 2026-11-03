@@ -20,7 +20,7 @@
     "token": "dev-seed-device-token"
   },
   "panelUser": {
-    "remnawaveUuid": "b0000000-0000-4000-8000-000000000001",
+    "remnawaveId": 1,
     "shortUuid": "seedshort",
     "vlessUuid": "c0000000-0000-4000-8000-000000000001",
     "hysteria2Auth": "seed-hysteria2-auth",

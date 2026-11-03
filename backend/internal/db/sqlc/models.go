@@ -220,13 +220,13 @@ type LoginCode struct {
 
 type PanelUser struct {
 	AccountID         uuid.UUID
-	RemnawaveUuid     uuid.UUID
 	ShortUuid         string
 	VlessUuid         string
 	Hysteria2Auth     string
 	TrafficLimitBytes int64
 	TrafficUsedBytes  int64
 	SyncedAt          time.Time
+	RemnawaveID       int64
 }
 
 type Server struct {

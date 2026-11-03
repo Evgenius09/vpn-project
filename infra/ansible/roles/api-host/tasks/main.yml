@@ -63,6 +63,42 @@
         telegram_webhook_secret: "{{ webhook_secret_file.content | b64decode | trim }}"
       no_log: true
 
+- name: Prepare the panel tunnel
+  when: panel_mode == 'remnawave'
+  block:
+    - name: Check the panel settings
+      ansible.builtin.assert:
+        that:
+          - node_host | length > 0
+          - panel_ssh_key_file | length > 0
+          - node_known_hosts_file | length > 0
+          - remnawave_api_token | length > 0
+          - remnawave_squad_uuid | length > 0
+        fail_msg: remnawave mode needs the node host, tunnel key, known_hosts, API token and squad.
+        quiet: true
+      no_log: true
+
+    - name: Create the tunnel directory
+      ansible.builtin.file:
+        path: "{{ api_host_dir }}/panel-tunnel"
+        state: directory
+        owner: root
+        group: root
+        mode: "0700"
+
+    - name: Install the tunnel key and the pinned host key
+      ansible.builtin.copy:
+        src: "{{ item.src }}"
+        dest: "{{ api_host_dir }}/panel-tunnel/{{ item.dest }}"
+        owner: root
+        group: root
+        mode: "0600"
+      loop:
+        - { src: "{{ panel_ssh_key_file }}", dest: key }
+        - { src: "{{ node_known_hosts_file }}", dest: known_hosts }
+      no_log: true
+      notify: Restart the stack
+
 - name: Render the environment file
   ansible.builtin.template:
     src: env.j2
@@ -87,7 +123,7 @@
 
     - name: Pull the images and start the services
       ansible.builtin.command:
-        cmd: docker compose up -d --remove-orphans --wait
+        cmd: docker compose up -d --build --remove-orphans --wait
         chdir: "{{ api_host_dir }}/compose/api"
       changed_when: true
   always:

@@ -5,9 +5,12 @@ import (
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/pressly/goose/v3"
 	"github.com/stretchr/testify/require"
 
 	"github.com/Evgenius09/vpn-project/backend/internal/db"
+	"github.com/Evgenius09/vpn-project/backend/internal/db/migrations"
 	"github.com/Evgenius09/vpn-project/backend/internal/testutil"
 )
 
@@ -70,4 +73,28 @@ func TestSchemaEnforcesTheContract(t *testing.T) {
 	_, err = pool.Exec(ctx, `
 		insert into telegram_users (telegram_id, account_id, chat_id, username) values (2, $1, 2, 'seed_user')`, other)
 	require.ErrorContains(t, err, "telegram_users_username_key", "nicknames are unique ignoring case")
+}
+
+// 00002 drops the panel user uuid; it must refuse to drop real rows.
+func TestPanelUserIDMigrationRefusesRows(t *testing.T) {
+	ctx := context.Background()
+	pool := testutil.NewEmptyDatabase(t)
+	database := stdlib.OpenDBFromPool(pool)
+	t.Cleanup(func() { _ = database.Close() })
+	migrator, err := goose.NewProvider(goose.DialectPostgres, database, migrations.FS)
+	require.NoError(t, err)
+	_, err = migrator.UpTo(ctx, 1)
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, `
+		with a as (insert into accounts default values returning id)
+		insert into panel_users (account_id, remnawave_uuid, short_uuid, vless_uuid, hysteria2_auth)
+		select id, gen_random_uuid(), 's', 'v', 'h' from a`)
+	require.NoError(t, err)
+
+	err = db.Up(ctx, pool)
+
+	require.ErrorContains(t, err, "panel_users is not empty")
+	var count int
+	require.NoError(t, pool.QueryRow(ctx, `select count(*) from panel_users`).Scan(&count))
+	require.Equal(t, 1, count)
 }

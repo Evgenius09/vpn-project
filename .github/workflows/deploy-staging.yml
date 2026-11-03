@@ -54,8 +54,18 @@ jobs:
           POSTGRES_PASSWORD: ${{ secrets.STAGING_POSTGRES_PASSWORD }}
           GRAFANA_PASSWORD: ${{ secrets.STAGING_GRAFANA_PASSWORD }}
           TOKEN_PEPPER: ${{ secrets.STAGING_TOKEN_PEPPER }}
+          NODE_HOST: ${{ secrets.STAGING_NODE_HOST }}
+          PANEL_SSH_KEY: ${{ secrets.STAGING_PANEL_SSH_KEY }}
+          NODE_KNOWN_HOSTS: ${{ secrets.STAGING_NODE_KNOWN_HOSTS }}
+          REMNAWAVE_TOKEN: ${{ secrets.STAGING_REMNAWAVE_TOKEN }}
+          REMNAWAVE_SQUAD_UUID: ${{ secrets.STAGING_REMNAWAVE_SQUAD_UUID }}
         run: |
           pipx install ansible-core
+          # Multi-line secrets go to files, not into the JSON below (tech.md 39.5).
+          install -m 700 -d "$RUNNER_TEMP/panel"
+          printf '%s\n' "$PANEL_SSH_KEY" > "$RUNNER_TEMP/panel/key"
+          printf '%s\n' "$NODE_KNOWN_HOSTS" > "$RUNNER_TEMP/panel/known_hosts"
+          chmod 600 "$RUNNER_TEMP/panel/key" "$RUNNER_TEMP/panel/known_hosts"
           cat > extra.json <<VARS
           {
             "app_env": "staging",
@@ -69,7 +79,13 @@ jobs:
             "telegram_bot_token": "$BOT_TOKEN",
             "telegram_bot_username": "$BOT_USERNAME",
             "registry_user": "$GITHUB_ACTOR",
-            "registry_token": "$REGISTRY_TOKEN"
+            "registry_token": "$REGISTRY_TOKEN",
+            "panel_mode": "$([ -n "$REMNAWAVE_TOKEN" ] && echo remnawave || echo fake)",
+            "node_host": "$NODE_HOST",
+            "panel_ssh_key_file": "$RUNNER_TEMP/panel/key",
+            "node_known_hosts_file": "$RUNNER_TEMP/panel/known_hosts",
+            "remnawave_api_token": "$REMNAWAVE_TOKEN",
+            "remnawave_squad_uuid": "$REMNAWAVE_SQUAD_UUID"
           }
           VARS
           printf '[api]\n%s ansible_user=deploy\n' "$HOST" > inventory.ini

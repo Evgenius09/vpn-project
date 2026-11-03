@@ -126,7 +126,7 @@ func TestFakePanelServesTheSameData(t *testing.T) {
 	user, err := client.GetUserByUsername(ctx, data.PanelUsername())
 	require.NoError(t, err)
 	require.Equal(t, data.PanelUser.VlessUUID, user.VlessUUID)
-	require.Equal(t, data.PanelUser.RemnawaveUUID, user.UUID)
+	require.Equal(t, data.PanelUser.RemnawaveID, user.ID)
 
 	hosts, err := client.ListHosts(ctx)
 	require.NoError(t, err)
