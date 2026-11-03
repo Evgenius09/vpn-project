@@ -33,12 +33,18 @@ class ProfileController extends Notifier<ProfileState> {
     _retry?.cancel();
     try {
       final loaded = await ref.read(profileRepositoryProvider).load();
+      if (!ref.mounted) {
+        return;
+      }
       state = ProfileReady(loaded.profile, fromCache: loaded.fromCache);
       final retryAfter = loaded.retryAfterSec;
       if (retryAfter != null) {
         _retry = Timer(Duration(seconds: retryAfter), load);
       }
     } on ApiProblem catch (problem) {
+      if (!ref.mounted) {
+        return;
+      }
       if (problem.isUnauthorized) {
         // Dropping the session moves the router to /login (tech.md 5.2).
         await ref.read(sessionProvider.notifier).signOut();
@@ -46,7 +52,9 @@ class ProfileController extends Notifier<ProfileState> {
       }
       state = const ProfileFailed();
     } on ApiUnavailable {
-      state = const ProfileFailed();
+      if (ref.mounted) {
+        state = const ProfileFailed();
+      }
     }
   }
 }
