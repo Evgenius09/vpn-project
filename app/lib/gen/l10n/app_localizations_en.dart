@@ -216,4 +216,61 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get logoutConfirm => 'Log out now';
+
+  @override
+  String get connectionDisconnected => 'Disconnected';
+
+  @override
+  String get connectionConnecting => 'Connecting…';
+
+  @override
+  String connectionConnected(String time) {
+    return 'Connected $time';
+  }
+
+  @override
+  String get connectionDisconnecting => 'Disconnecting…';
+
+  @override
+  String get connectionFailed => 'Connection error';
+
+  @override
+  String connectionActiveElsewhere(String mode) {
+    return 'Now active: $mode';
+  }
+
+  @override
+  String get connectionErrorConfigInvalid =>
+      'The connection settings are invalid. Update the app or contact support.';
+
+  @override
+  String get connectionErrorStartFailed =>
+      'Could not start the VPN. Try again or pick another server.';
+
+  @override
+  String get connectionErrorNoServers => 'No servers for this mode yet.';
+
+  @override
+  String get connectionErrorPermissionDenied =>
+      'Allow the VPN connection to turn the VPN on.';
+
+  @override
+  String get connectionErrorTunFailed =>
+      'Could not create the VPN interface. Restart the device and try again.';
+
+  @override
+  String get connectionErrorRevoked =>
+      'Another VPN app took over the connection.';
+
+  @override
+  String get connectionErrorServiceUnavailable =>
+      'The VPN service is not responding. Reinstall the app.';
+
+  @override
+  String get connectionErrorVersionMismatch =>
+      'The VPN service and the app versions differ. Reinstall the app.';
+
+  @override
+  String get connectionErrorInternal =>
+      'Something went wrong inside the VPN. Try again.';
 }

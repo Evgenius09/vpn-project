@@ -58,5 +58,20 @@
   "logoutButton": "Log out",
   "logoutConfirmTitle": "Log out?",
   "logoutConfirmMessage": "The VPN turns off and this device leaves your account. To come back, sign in with a new code from the bot.",
-  "logoutConfirm": "Log out now"
+  "logoutConfirm": "Log out now",
+  "connectionDisconnected": "Disconnected",
+  "connectionConnecting": "Connecting…",
+  "connectionConnected": "Connected {time}",
+  "connectionDisconnecting": "Disconnecting…",
+  "connectionFailed": "Connection error",
+  "connectionActiveElsewhere": "Now active: {mode}",
+  "connectionErrorConfigInvalid": "The connection settings are invalid. Update the app or contact support.",
+  "connectionErrorStartFailed": "Could not start the VPN. Try again or pick another server.",
+  "connectionErrorNoServers": "No servers for this mode yet.",
+  "connectionErrorPermissionDenied": "Allow the VPN connection to turn the VPN on.",
+  "connectionErrorTunFailed": "Could not create the VPN interface. Restart the device and try again.",
+  "connectionErrorRevoked": "Another VPN app took over the connection.",
+  "connectionErrorServiceUnavailable": "The VPN service is not responding. Reinstall the app.",
+  "connectionErrorVersionMismatch": "The VPN service and the app versions differ. Reinstall the app.",
+  "connectionErrorInternal": "Something went wrong inside the VPN. Try again."
 }

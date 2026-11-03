@@ -215,4 +215,61 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get logoutConfirm => 'Выйти';
+
+  @override
+  String get connectionDisconnected => 'Отключено';
+
+  @override
+  String get connectionConnecting => 'Подключение…';
+
+  @override
+  String connectionConnected(String time) {
+    return 'Подключено $time';
+  }
+
+  @override
+  String get connectionDisconnecting => 'Отключение…';
+
+  @override
+  String get connectionFailed => 'Ошибка подключения';
+
+  @override
+  String connectionActiveElsewhere(String mode) {
+    return 'Сейчас активен: $mode';
+  }
+
+  @override
+  String get connectionErrorConfigInvalid =>
+      'Настройки подключения неверны. Обновите приложение или напишите в поддержку.';
+
+  @override
+  String get connectionErrorStartFailed =>
+      'Не удалось запустить VPN. Попробуйте ещё раз или выберите другой сервер.';
+
+  @override
+  String get connectionErrorNoServers => 'Для этого режима пока нет серверов.';
+
+  @override
+  String get connectionErrorPermissionDenied =>
+      'Разрешите VPN-подключение, чтобы включить VPN.';
+
+  @override
+  String get connectionErrorTunFailed =>
+      'Не удалось создать VPN-интерфейс. Перезагрузите устройство и попробуйте ещё раз.';
+
+  @override
+  String get connectionErrorRevoked =>
+      'Подключение перехватило другое VPN-приложение.';
+
+  @override
+  String get connectionErrorServiceUnavailable =>
+      'Служба VPN не отвечает. Переустановите приложение.';
+
+  @override
+  String get connectionErrorVersionMismatch =>
+      'Версии службы VPN и приложения не совпадают. Переустановите приложение.';
+
+  @override
+  String get connectionErrorInternal =>
+      'Внутренняя ошибка VPN. Попробуйте ещё раз.';
 }

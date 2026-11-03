@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/connection/presentation/connection_panel.dart';
 import '../features/profile/presentation/server_list.dart';
 import '../gen/api/export.dart';
 import '../gen/l10n/app_localizations.dart';
@@ -31,11 +32,15 @@ class HomeScreen extends ConsumerWidget {
     final pages = [
       ModePage(
         title: strings.modeRegular,
-        child: _ModeScreen(strings.modeRegular, TunnelMode.regular),
+        child: _ModeScreen(
+          strings.modeRegular,
+          TunnelMode.regular,
+          showServers: true,
+        ),
       ),
       ModePage(
         title: strings.modeWhitelist,
-        child: _ModeScreen(strings.modeWhitelist, null),
+        child: _ModeScreen(strings.modeWhitelist, TunnelMode.whitelist),
       ),
     ];
     return Scaffold(
@@ -68,20 +73,35 @@ class HomeScreen extends ConsumerWidget {
 }
 
 class _ModeScreen extends StatelessWidget {
-  const _ModeScreen(this.title, this.group);
+  const _ModeScreen(this.title, this.mode, {this.showServers = false});
 
   final String title;
+  final TunnelMode mode;
 
-  /// The server group of this screen. S2-01 sets it for whitelists.
-  final TunnelMode? group;
+  /// S2-01 shows the whitelist servers too.
+  final bool showServers;
 
   @override
   Widget build(BuildContext context) {
-    final group = this.group;
     return Stack(
       children: [
-        EmptyState(icon: Icons.shield_outlined, title: title),
-        if (group != null) ServerList(group: group),
+        Align(
+          alignment: Alignment.topCenter,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              children: [
+                Text(
+                  title,
+                  style: AppText.title.copyWith(color: context.colors.text),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                ConnectionPanel(mode: mode),
+              ],
+            ),
+          ),
+        ),
+        if (showServers) ServerList(group: mode),
       ],
     );
   }
