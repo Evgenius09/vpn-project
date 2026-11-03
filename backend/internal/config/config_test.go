@@ -53,6 +53,19 @@ func TestRejectedConfigs(t *testing.T) {
 		{"zero auth rate", map[string]string{"AUTH_RATE_PER_MIN": "0"}, "AUTH_RATE_PER_MIN"},
 		{"remnawave without url", map[string]string{"PANEL_MODE": "remnawave", "REMNAWAVE_API_TOKEN": "t"}, "REMNAWAVE_BASE_URL"},
 		{"remnawave without token", map[string]string{"PANEL_MODE": "remnawave", "REMNAWAVE_BASE_URL": "https://p"}, "REMNAWAVE_API_TOKEN"},
+		{
+			"remnawave without squad",
+			map[string]string{"PANEL_MODE": "remnawave", "REMNAWAVE_BASE_URL": "https://p", "REMNAWAVE_API_TOKEN": "t"},
+			"REMNAWAVE_SQUAD_UUID",
+		},
+		{
+			"remnawave squad not a uuid",
+			map[string]string{
+				"PANEL_MODE": "remnawave", "REMNAWAVE_BASE_URL": "https://p", "REMNAWAVE_API_TOKEN": "t",
+				"REMNAWAVE_SQUAD_UUID": "staging",
+			},
+			"REMNAWAVE_SQUAD_UUID",
+		},
 		{"polling without token", map[string]string{"TELEGRAM_MODE": "polling", "TELEGRAM_BOT_USERNAME": "b"}, "TELEGRAM_BOT_TOKEN"},
 		{"polling without username", map[string]string{"TELEGRAM_MODE": "polling", "TELEGRAM_BOT_TOKEN": "t"}, "TELEGRAM_BOT_USERNAME"},
 		{
@@ -67,7 +80,7 @@ func TestRejectedConfigs(t *testing.T) {
 			"prod fake telegram",
 			map[string]string{
 				"APP_ENV": "prod", "TOKEN_PEPPER": strongPepper, "PANEL_MODE": "remnawave",
-				"REMNAWAVE_BASE_URL": "https://p", "REMNAWAVE_API_TOKEN": "t",
+				"REMNAWAVE_BASE_URL": "https://p", "REMNAWAVE_API_TOKEN": "t", "REMNAWAVE_SQUAD_UUID": squad,
 			},
 			"TELEGRAM_MODE",
 		},
@@ -84,11 +97,13 @@ func TestRejectedConfigs(t *testing.T) {
 	}
 }
 
+const squad = "baf9736b-afde-4875-aad1-a2a0ba300d51"
+
 func TestProdConfig(t *testing.T) {
 	env := validEnv()
 	for key, value := range map[string]string{
 		"APP_ENV": "prod", "TOKEN_PEPPER": "0123456789abcdef0123456789abcdef",
-		"PANEL_MODE": "remnawave", "REMNAWAVE_BASE_URL": "https://p", "REMNAWAVE_API_TOKEN": "t",
+		"PANEL_MODE": "remnawave", "REMNAWAVE_BASE_URL": "https://p", "REMNAWAVE_API_TOKEN": "t", "REMNAWAVE_SQUAD_UUID": squad,
 		"TELEGRAM_MODE": "webhook", "TELEGRAM_BOT_TOKEN": "t", "TELEGRAM_BOT_USERNAME": "b", "TELEGRAM_WEBHOOK_SECRET": "s",
 	} {
 		env[key] = value
