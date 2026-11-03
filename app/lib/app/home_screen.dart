@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../features/connection/presentation/connection_panel.dart';
 import '../features/servers/presentation/server_picker.dart';
+import '../features/whitelist/presentation/mode_screen_keys.dart';
 import '../gen/api/export.dart';
 import '../gen/l10n/app_localizations.dart';
 import '../ui/ui.dart';
@@ -42,25 +43,32 @@ class HomeScreen extends ConsumerWidget {
     return Scaffold(
       body: SafeArea(
         child: AppShell(
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.settings),
-                    tooltip: strings.settingsTooltip,
-                    onPressed: () => context.push(RoutePaths.settings),
-                  ),
-                  const Spacer(),
-                  PageDots(count: pages.length, index: index, onTap: show),
-                  const Spacer(),
-                  const SizedBox.square(dimension: AppSpacing.xxxl),
-                ],
-              ),
-              Expanded(
-                child: ModePager(pages: pages, index: index, onChanged: show),
-              ),
-            ],
+          // The arrows also work from the settings button and the dots, which
+          // sit outside the pager (tech.md 33).
+          child: ModeScreenKeys(
+            index: index,
+            count: pages.length,
+            onChanged: show,
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.settings),
+                      tooltip: strings.settingsTooltip,
+                      onPressed: () => context.push(RoutePaths.settings),
+                    ),
+                    const Spacer(),
+                    PageDots(count: pages.length, index: index, onTap: show),
+                    const Spacer(),
+                    const SizedBox.square(dimension: AppSpacing.xxxl),
+                  ],
+                ),
+                Expanded(
+                  child: ModePager(pages: pages, index: index, onChanged: show),
+                ),
+              ],
+            ),
           ),
         ),
       ),
