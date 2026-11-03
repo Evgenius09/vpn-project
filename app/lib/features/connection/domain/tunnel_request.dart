@@ -1,4 +1,5 @@
 import '../../../gen/api/export.dart';
+import '../../servers/domain/server_selection.dart';
 
 /// Values for keys the policy leaves out (tech.md 27.2). They match
 /// backend/config/policy.yaml, so a profile without defaults behaves like the
@@ -72,11 +73,13 @@ bool hasServersIn(ProfileV1 profile, TunnelMode mode) =>
     profile.servers.any((server) => server.group == mode);
 
 /// The request a tap on the PowerButton sends (tech.md 5.4, 27.2). It carries
-/// the servers of both groups, so setUserMode switches without a restart.
+/// the servers of both groups, so setUserMode switches without a restart, and
+/// the [choice] of each group resolved against the profile (tech.md 28.2).
 TunnelRequest buildTunnelRequest({
   required Platform platform,
   required TunnelMode userMode,
   required ProfileV1 profile,
+  SelectedServers choice = const SelectedServers(),
 }) {
   final policy = profile.policy;
   final autoOnCellular =
@@ -85,9 +88,7 @@ TunnelRequest buildTunnelRequest({
     schemaVersion: 1,
     platform: platform,
     userMode: userMode,
-    // S1-09 fills the selection; until then the core takes the first server
-    // of each group by sortWeight (C3).
-    selected: const SelectedServers(),
+    selected: selectedIn(profile.servers, choice),
     servers: profile.servers,
     autoSwitch: AutoSwitchRequest(
       enabled: policy.flags.autoWhitelist && autoOnCellular,

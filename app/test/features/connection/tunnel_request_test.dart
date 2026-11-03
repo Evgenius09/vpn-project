@@ -109,16 +109,63 @@ void main() {
     expect(wire['log'], {'level': 'warn'});
   });
 
-  test('leaves the selection to the core until S1-09 (tech.md 27.2)', () {
+  test('without a choice selects the first server of each group (28.2)', () {
     final request = buildTunnelRequest(
       platform: Platform.windows,
       userMode: TunnelMode.whitelist,
       profile: _seed(),
     );
 
-    expect(_wire(request)['selected'], <String, Object?>{});
+    expect(_wire(request)['selected'], {
+      'regular': '10000000-0000-4000-8000-000000000001',
+      'whitelist': '10000000-0000-4000-8000-000000000004',
+    });
     expect(_wire(request)['userMode'], 'whitelist');
     expect(_wire(request)['platform'], 'windows');
+  });
+
+  test('carries the choice of each group the profile still holds', () {
+    final request = buildTunnelRequest(
+      platform: Platform.android,
+      userMode: TunnelMode.regular,
+      profile: _seed(),
+      choice: const SelectedServers(
+        regular: '10000000-0000-4000-8000-000000000003',
+        whitelist: 'left-the-profile',
+      ),
+    );
+
+    expect(_wire(request)['selected'], {
+      'regular': '10000000-0000-4000-8000-000000000003',
+      'whitelist': '10000000-0000-4000-8000-000000000004',
+    });
+  });
+
+  test('a group without servers has no selected key', () {
+    final profile = _seed();
+    final regularOnly = ProfileV1.fromJson(
+      jsonDecode(
+        jsonEncode(
+          profile.toJson()
+            ..['servers'] = [
+              for (final server in profile.servers)
+                if (server.group == TunnelMode.regular) server.toJson(),
+            ],
+        ),
+      ) as Map<String, Object?>,
+    );
+    final request = buildTunnelRequest(
+      platform: Platform.android,
+      userMode: TunnelMode.regular,
+      profile: regularOnly,
+      choice: const SelectedServers(
+        whitelist: '10000000-0000-4000-8000-000000000004',
+      ),
+    );
+
+    expect(_wire(request)['selected'], {
+      'regular': '10000000-0000-4000-8000-000000000001',
+    });
   });
 
   test('takes policy defaults and fills the rest with built-in values', () {

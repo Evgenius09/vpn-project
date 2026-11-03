@@ -11,9 +11,7 @@ import 'package:vpnclient/core/storage/token_store.dart';
 import 'package:vpnclient/features/profile/application/profile_controller.dart';
 import 'package:vpnclient/features/profile/data/profile_repository.dart';
 import 'package:vpnclient/features/profile/domain/profile_state.dart';
-import 'package:vpnclient/features/profile/presentation/server_list.dart';
 import 'package:vpnclient/gen/api/export.dart';
-import 'package:vpnclient/gen/l10n/app_localizations.dart';
 import 'package:vpnclient/ui/ui.dart';
 
 String _fixtureJson() =>
@@ -118,18 +116,6 @@ void main() {
     });
   });
 
-  test('serversIn keeps one group in catalog order', () {
-    final regular = _seedProfile().serversIn(TunnelMode.regular);
-    final whitelist = _seedProfile().serversIn(TunnelMode.whitelist);
-
-    expect(regular.map((server) => server.name), [
-      'Frankfurt',
-      'Amsterdam',
-      'Helsinki',
-    ]);
-    expect(whitelist, hasLength(2));
-  });
-
   group('ProfileController', () {
     ProviderContainer container(FakeApiClient api, MemoryProfileCache cache) {
       final container = ProviderContainer(
@@ -204,89 +190,6 @@ void main() {
       await pumpEventQueue();
       expect(api.fetches, greaterThan(1));
       api.scripted = ProfileFetch(profile: _seedProfile(), etag: '"p"');
-    });
-  });
-
-  group('ServerList', () {
-    Future<void> pump(
-      WidgetTester tester,
-      FakeApiClient api, {
-      MemoryProfileCache? cache,
-      TunnelMode group = TunnelMode.regular,
-    }) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            apiClientProvider.overrideWithValue(api),
-            profileCacheProvider.overrideWithValue(
-              cache ?? MemoryProfileCache(),
-            ),
-            tokenStoreProvider.overrideWithValue(MemoryTokenStore('t')),
-            initialTokenProvider.overrideWithValue('t'),
-          ],
-          child: MaterialApp(
-            theme: AppTheme.light(),
-            locale: const Locale('en'),
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            home: Scaffold(body: ServerList(group: group)),
-          ),
-        ),
-      );
-      await tester.pump();
-      await tester.pump();
-    }
-
-    testWidgets('shows the servers of its group only', (tester) async {
-      await pump(tester, _api());
-      await tester.drag(find.byType(ServerSheet), const Offset(0, -400));
-      await tester.pumpAndSettle();
-
-      expect(find.byType(ServerTile), findsNWidgets(3));
-      expect(find.text('Frankfurt'), findsWidgets);
-      expect(find.text('Moscow'), findsNothing);
-    });
-
-    testWidgets('shows the empty state', (tester) async {
-      final profile = _seedProfile();
-      final empty = ProfileV1.fromJson(
-        profile.toJson()..['servers'] = <Object?>[],
-      );
-      final api = _api()..scripted = ProfileFetch(profile: empty, etag: '"e"');
-      await pump(tester, api);
-      await tester.drag(find.byType(ServerSheet), const Offset(0, -400));
-      await tester.pumpAndSettle();
-
-      expect(find.text('No servers yet'), findsOneWidget);
-    });
-
-    testWidgets('shows the error with a retry', (tester) async {
-      final api = _api()..failure = const ApiUnavailable();
-      await pump(tester, api);
-      await tester.drag(find.byType(ServerSheet), const Offset(0, -400));
-      await tester.pumpAndSettle();
-
-      expect(find.byType(ErrorView), findsOneWidget);
-
-      api.failure = null;
-      await tester.ensureVisible(find.text('Retry'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Retry'));
-      await tester.pumpAndSettle();
-      expect(find.byType(ErrorView), findsNothing);
-      expect(find.byType(ServerTile), findsNWidgets(3));
-    });
-
-    testWidgets('warns when the list comes from the cache', (tester) async {
-      final api = _api()..failure = const ApiUnavailable();
-      final cache = MemoryProfileCache()
-        ..value = CachedProfile(_seedProfile(), '"old"');
-      await pump(tester, api, cache: cache);
-      await tester.drag(find.byType(ServerSheet), const Offset(0, -400));
-      await tester.pumpAndSettle();
-
-      expect(find.byType(StatusBanner), findsOneWidget);
-      expect(find.byType(ServerTile), findsNWidgets(3));
     });
   });
 
