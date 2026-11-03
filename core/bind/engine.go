@@ -11,6 +11,8 @@ import (
 	"github.com/sagernet/sing-box/include"
 	"github.com/sagernet/sing-box/option"
 	"github.com/sagernet/sing/common/json"
+
+	"github.com/Evgenius09/vpn-project/core/internal/runtime"
 )
 
 // commandEngine drives libbox on Android. Only libbox can adapt the Kotlin
@@ -74,6 +76,17 @@ func (e *commandEngine) Traffic() (up, down int64, ok bool) {
 	}
 	up, down = instance.TrafficManager().Total()
 	return up, down, true
+}
+
+// URLTest implements runtime.Engine. The command server only starts a test in
+// the background, so the outbound is dialed here to get the delay back.
+func (e *commandEngine) URLTest(ctx context.Context, outbound, link string) (uint16, error) {
+	instance := e.server.Instance()
+	if instance == nil || instance.Box() == nil {
+		return 0, errors.New("service is not running")
+	}
+	//nolint:wrapcheck // The runtime maps any failure to a fixed word.
+	return runtime.URLTestOutbound(ctx, instance.Box().Outbound(), outbound, link)
 }
 
 var errHostFeature = errors.New("core: host feature is not used")

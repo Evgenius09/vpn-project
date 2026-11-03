@@ -10,9 +10,13 @@ import 'package:vpnclient/core/providers.dart';
 import 'package:vpnclient/core/storage/token_store.dart';
 import 'package:vpnclient/core/vpn/fake_vpn_bridge.dart';
 import 'package:vpnclient/features/auth/application/login_controller.dart';
+import 'package:vpnclient/features/ping/application/ping_controller.dart';
+import 'package:vpnclient/features/ping/data/user_settings_store.dart';
 import 'package:vpnclient/features/profile/application/profile_controller.dart';
 import 'package:vpnclient/features/profile/data/profile_repository.dart';
 import 'package:vpnclient/gen/api/export.dart';
+
+import '../ping/ping_harness.dart';
 
 const testIdentity = DeviceIdentity(
   platform: Platform.windows,
@@ -46,6 +50,10 @@ class AuthHarness {
           vpnBridgeProvider.overrideWithValue(bridge),
           profileCacheProvider.overrideWithValue(cache),
           deviceIdentityProvider.overrideWith((ref) async => testIdentity),
+          tcpPingProvider.overrideWithValue(InstantTcpPing()),
+          userSettingsStoreProvider.overrideWithValue(
+            MemoryUserSettingsStore(),
+          ),
           urlOpenerProvider.overrideWithValue((url) async {
             opened.add(url);
             return openSucceeds;

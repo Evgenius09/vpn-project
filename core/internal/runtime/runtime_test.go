@@ -57,6 +57,10 @@ func (f *fakeEngine) Traffic() (up, down int64, ok bool) {
 	return f.up, f.down, !f.noTraffic
 }
 
+func (f *fakeEngine) URLTest(context.Context, string, string) (uint16, error) {
+	return 0, errors.New("no url test in this fake")
+}
+
 func (f *fakeEngine) setTraffic(up, down int64) {
 	f.mu.Lock()
 	defer f.mu.Unlock()

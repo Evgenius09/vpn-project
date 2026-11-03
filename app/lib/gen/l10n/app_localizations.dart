@@ -230,6 +230,18 @@ abstract class AppLocalizations {
   /// **'Серверов пока нет'**
   String get serversEmpty;
 
+  /// No description provided for @pingRefresh.
+  ///
+  /// In ru, this message translates to:
+  /// **'Проверить пинг'**
+  String get pingRefresh;
+
+  /// No description provided for @pingSortByPing.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сортировать по пингу'**
+  String get pingSortByPing;
+
   /// No description provided for @profileLoadFailed.
   ///
   /// In ru, this message translates to:

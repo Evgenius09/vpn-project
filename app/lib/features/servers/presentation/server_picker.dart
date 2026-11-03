@@ -4,14 +4,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../gen/api/export.dart';
 import '../../../gen/l10n/app_localizations.dart';
 import '../../../ui/ui.dart';
+import '../../ping/application/ping_controller.dart';
+import '../../ping/presentation/ping_controls.dart';
 import '../../profile/application/profile_controller.dart';
 import '../../profile/domain/profile_state.dart';
 import '../application/selection_controller.dart';
 import '../application/server_choice.dart';
-import '../domain/server_selection.dart';
 
 /// The servers of one mode screen with the chosen one highlighted. A tap
-/// chooses a server for this group (tech.md 16 S1-09, 28).
+/// chooses a server for this group (tech.md 16 S1-09, 28). The ping feature
+/// supplies the order, the badges, and the header controls (tech.md 31.2).
 class ServerPicker extends ConsumerWidget {
   const ServerPicker({required this.group, super.key});
 
@@ -22,9 +24,17 @@ class ServerPicker extends ConsumerWidget {
     final strings = AppLocalizations.of(context);
     final state = ref.watch(profileControllerProvider);
     return ServerSheet(
-      header: Align(
-        alignment: Alignment.centerLeft,
-        child: Text(strings.serversTitle, style: AppText.title),
+      header: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(child: Text(strings.serversTitle, style: AppText.title)),
+              const PingRefreshButton(),
+            ],
+          ),
+          const SortByPingToggle(),
+        ],
       ),
       body: switch (state) {
         ProfileLoading() => const SizedBox(
@@ -35,9 +45,9 @@ class ServerPicker extends ConsumerWidget {
           error: strings.profileLoadFailed,
           onRetry: ref.read(profileControllerProvider.notifier).load,
         ),
-        ProfileReady(:final profile, :final fromCache) => _Servers(
+        ProfileReady(:final fromCache) => _Servers(
           group: group,
-          servers: serversOf(profile.servers, group),
+          servers: ref.watch(orderedServersProvider(group)),
           fromCache: fromCache,
         ),
       },
@@ -62,6 +72,9 @@ class _Servers extends ConsumerWidget {
     final chosen = ref.watch(chosenServerProvider(group));
     final tappable = ref.watch(serverTapsEnabledProvider);
     final choice = ref.read(serverChoiceProvider);
+    final pings = ref.watch(
+      pingControllerProvider.select((state) => state.pings),
+    );
     return Column(
       children: [
         if (fromCache)
@@ -82,8 +95,7 @@ class _Servers extends ConsumerWidget {
                 title: server.name,
                 subtitle: server.city,
                 countryCode: server.countryCode,
-                // S1-12 measures the ping.
-                ping: const PingValue.unknown(),
+                ping: pingValueOf(pings[server.id]),
                 selected: server.id == chosen,
                 onTap: tappable ? () => choice.choose(group, server.id) : null,
               ),

@@ -84,6 +84,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get serversEmpty => 'Серверов пока нет';
 
   @override
+  String get pingRefresh => 'Проверить пинг';
+
+  @override
+  String get pingSortByPing => 'Сортировать по пингу';
+
+  @override
   String get profileLoadFailed => 'Не удалось загрузить профиль';
 
   @override

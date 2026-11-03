@@ -29,6 +29,8 @@ func (stubEngine) Select(string, string) error { return nil }
 
 func (stubEngine) Traffic() (up, down int64, ok bool) { return 0, 0, true }
 
+func (stubEngine) URLTest(context.Context, string, string) (uint16, error) { return 12, nil }
+
 const hello = `{"jsonrpc":"2.0","id":1,"method":"hello","params":{"protocolVersion":1,"appVersion":"0.1.0"}}`
 
 func call(t *testing.T, conn net.Conn, reader *bufio.Reader, line string) string {
@@ -63,6 +65,10 @@ func TestServeRunsTheTunnelOverASocket(t *testing.T) {
 
 	state := `{"jsonrpc":"2.0","id":3,"method":"getState","params":{}}`
 	require.Contains(t, call(t, conn, reader, state), `"status":"connected"`)
+
+	urlTest := `{"jsonrpc":"2.0","id":4,"method":"urlTest","params":{"serverIds":["11111111-1111-4111-8111-111111111111"]}}`
+	require.Contains(t, call(t, conn, reader, urlTest),
+		`"results":[{"delayMs":12,"serverId":"11111111-1111-4111-8111-111111111111"}]`)
 
 	cancel()
 	require.NoError(t, conn.Close())

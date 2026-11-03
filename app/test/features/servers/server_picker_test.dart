@@ -8,6 +8,8 @@ import 'package:vpnclient/core/api/api_client.dart';
 import 'package:vpnclient/core/providers.dart';
 import 'package:vpnclient/core/storage/token_store.dart';
 import 'package:vpnclient/core/vpn/vpn_bridge.dart';
+import 'package:vpnclient/features/ping/application/ping_controller.dart';
+import 'package:vpnclient/features/ping/data/user_settings_store.dart';
 import 'package:vpnclient/features/profile/application/profile_controller.dart';
 import 'package:vpnclient/features/profile/data/profile_repository.dart';
 import 'package:vpnclient/features/servers/application/selection_controller.dart';
@@ -18,6 +20,7 @@ import 'package:vpnclient/gen/l10n/app_localizations.dart';
 import 'package:vpnclient/ui/ui.dart';
 
 import '../connection/connection_harness.dart';
+import '../ping/ping_harness.dart';
 
 const _regular = TunnelMode.regular;
 const _whitelist = TunnelMode.whitelist;
@@ -289,6 +292,10 @@ void main() {
               cache ?? MemoryProfileCache(),
             ),
             selectionStoreProvider.overrideWithValue(MemorySelectionStore()),
+            tcpPingProvider.overrideWithValue(InstantTcpPing()),
+            userSettingsStoreProvider.overrideWithValue(
+              MemoryUserSettingsStore(),
+            ),
             tokenStoreProvider.overrideWithValue(MemoryTokenStore('t')),
             initialTokenProvider.overrideWithValue('t'),
           ],

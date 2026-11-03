@@ -1,6 +1,7 @@
 package bind
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"os"
@@ -30,6 +31,7 @@ type stubEngine struct {
 	started int
 	closed  int
 	selects [][2]string
+	probes  []string
 }
 
 func (e *stubEngine) Start(option.Options) error {
@@ -48,6 +50,11 @@ func (e *stubEngine) Select(selector, member string) error {
 }
 
 func (e *stubEngine) Traffic() (up, down int64, ok bool) { return 0, 0, true }
+
+func (e *stubEngine) URLTest(_ context.Context, outbound, _ string) (uint16, error) {
+	e.probes = append(e.probes, outbound)
+	return 42, nil
+}
 
 func request(t *testing.T) string {
 	t.Helper()
@@ -136,9 +143,40 @@ func TestSwitchErrorsKeepTheirCode(t *testing.T) {
 	require.Equal(t, contract.CoreErrorCodeConfigInvalid, coreErr.Code)
 }
 
-func TestLaterSliceMethodsFailClearly(t *testing.T) {
+func TestURLTestTakesAJSONArrayAndAnswersAJSONEvent(t *testing.T) {
+	engine := &stubEngine{}
+	core := newCore(engine, &sink{})
+	require.NoError(t, core.Start(request(t)))
+
+	raw, err := core.URLTest(`["11111111-1111-4111-8111-111111111111"]`)
+	require.NoError(t, err)
+
+	var event contract.CoreEvent
+	require.NoError(t, json.Unmarshal([]byte(raw), &event))
+	require.Equal(t, contract.CoreEventTypeUrlTest, event.Type)
+	require.Len(t, event.UrlTest.Results, 1)
+	require.Equal(t, 42, *event.UrlTest.Results[0].DelayMs)
+	require.Equal(t, []string{"srv-11111111-1111-4111-8111-111111111111"}, engine.probes)
+}
+
+func TestURLTestRejectsWhatIsNotAnArrayOfIDs(t *testing.T) {
 	core := newCore(&stubEngine{}, &sink{})
-	_, err := core.URLTest("[]")
-	require.ErrorIs(t, err, errURLTestPending)
+	for _, input := range []string{"", "{}", `[1]`, `"id"`, `["a"] trailing`} {
+		_, err := core.URLTest(input)
+		var coreErr *runtime.Error
+		require.ErrorAs(t, err, &coreErr, input)
+		require.Equal(t, contract.CoreErrorCodeConfigInvalid, coreErr.Code, input)
+	}
+}
+
+func TestURLTestReportsASetupFailure(t *testing.T) {
+	failed := errors.New("setup failed")
+	core := &Core{initErr: failed}
+	_, err := core.URLTest(`[]`)
+	require.ErrorIs(t, err, failed)
+}
+
+func TestOnNetworkChangedWaitsForS2(_ *testing.T) {
+	core := newCore(&stubEngine{}, &sink{})
 	core.OnNetworkChanged("wifi")
 }
