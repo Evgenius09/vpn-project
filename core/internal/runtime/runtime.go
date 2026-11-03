@@ -14,6 +14,7 @@ import (
 
 	"github.com/sagernet/sing-box/option"
 
+	"github.com/Evgenius09/vpn-project/core/internal/autoswitch"
 	"github.com/Evgenius09/vpn-project/core/internal/config"
 	"github.com/Evgenius09/vpn-project/core/internal/contract"
 )
@@ -59,8 +60,7 @@ type Runtime struct {
 	newTicker      func() (<-chan time.Time, func())
 	urlTestTimeout time.Duration
 	status         contract.TunnelStatus
-	userMode       contract.TunnelMode
-	effectiveMode  contract.TunnelMode
+	auto           autoswitch.State
 	connectedSince *time.Time
 	request        *contract.TunnelRequest
 	selected       map[contract.TunnelMode]string
@@ -93,8 +93,7 @@ func New(options Options) *Runtime {
 		newTicker:      newTicker,
 		urlTestTimeout: timeout,
 		status:         contract.TunnelStatusDisconnected,
-		userMode:       contract.TunnelModeRegular,
-		effectiveMode:  contract.TunnelModeRegular,
+		auto:           autoswitch.New(contract.TunnelModeRegular, false, false),
 	}
 }
 
@@ -111,11 +110,15 @@ func (r *Runtime) Start(requestJSON string) error {
 	if r.status == contract.TunnelStatusConnected || r.status == contract.TunnelStatusConnecting {
 		return nil
 	}
-	return r.startEngine(request, options)
+	// A new tunnel forgets the last network: the host reports it again right
+	// after the start (tech.md 19.10).
+	auto := autoswitch.New(request.UserMode, request.AutoSwitch.Enabled, holdsGroup(request, contract.TunnelModeWhitelist))
+	return r.startEngine(request, options, auto, nil)
 }
 
 // Update applies new settings by restarting the box. A request it refuses
-// leaves the running tunnel alone.
+// leaves the running tunnel alone. The switch keeps the network and the
+// override, and the new box starts on the effective group.
 func (r *Runtime) Update(requestJSON string) error {
 	request, options, err := prepare(requestJSON)
 	if err != nil {
@@ -127,12 +130,63 @@ func (r *Runtime) Update(requestJSON string) error {
 	if r.status != contract.TunnelStatusConnected {
 		return nil
 	}
+	auto, modes := carry(r.auto, request)
+	if auto.Effective != request.UserMode {
+		if options, err = optionsOn(request, auto.Effective); err != nil {
+			return err
+		}
+	}
 	r.endTraffic()
 	r.connectedSince = nil
 	if err := r.engine.Close(); err != nil {
 		return r.failStart(fmt.Errorf("close engine: %w", err))
 	}
-	return r.startEngine(request, options)
+	return r.startEngine(request, options, auto, modes)
+}
+
+// carry feeds the switch only what the new request changed. A repeat of the
+// switch value would clear the user's override on every settings change.
+func carry(auto autoswitch.State, request contract.TunnelRequest) (autoswitch.State, []contract.ModePayload) {
+	var events []autoswitch.Event
+	if request.AutoSwitch.Enabled != auto.AutoSwitch {
+		events = append(events, autoswitch.AutoSwitchSet{Enabled: request.AutoSwitch.Enabled})
+	}
+	if available := holdsGroup(request, contract.TunnelModeWhitelist); available != auto.WhitelistAvailable {
+		events = append(events, autoswitch.ServersUpdated{WhitelistAvailable: available})
+	}
+	if request.UserMode != auto.UserMode {
+		events = append(events, autoswitch.UserModeSet{Mode: request.UserMode})
+	}
+
+	var modes []contract.ModePayload
+	for _, event := range events {
+		var actions []autoswitch.Action
+		auto, actions = autoswitch.Next(auto, event)
+		// SelectGroup needs no call: the new box starts on the effective group.
+		for _, action := range actions {
+			if emitted, ok := action.(autoswitch.Emit); ok {
+				modes = append(modes, emitted.Event)
+			}
+		}
+	}
+	return auto, modes
+}
+
+// optionsOn builds the options with the proxy selector on group, because
+// BuildOptions puts it on the user mode (tech.md 21.2).
+func optionsOn(request contract.TunnelRequest, group contract.TunnelMode) (option.Options, error) {
+	request.UserMode = group
+	options, err := config.BuildOptions(request)
+	if err != nil {
+		//nolint:wrapcheck // The host reads the code from the start of the message.
+		return option.Options{}, err
+	}
+	return options, nil
+}
+
+func holdsGroup(request contract.TunnelRequest, mode contract.TunnelMode) bool {
+	_, ok := config.SelectedServer(request, mode)
+	return ok
 }
 
 func prepare(requestJSON string) (contract.TunnelRequest, option.Options, error) {
@@ -148,10 +202,11 @@ func prepare(requestJSON string) (contract.TunnelRequest, option.Options, error)
 	return request, options, nil
 }
 
-func (r *Runtime) startEngine(request contract.TunnelRequest, options option.Options) error {
+func (r *Runtime) startEngine(
+	request contract.TunnelRequest, options option.Options, auto autoswitch.State, modes []contract.ModePayload,
+) error {
 	r.request = &request
-	r.userMode = request.UserMode
-	r.effectiveMode = request.UserMode
+	r.auto = auto
 	r.selected = map[contract.TunnelMode]string{}
 	for _, mode := range []contract.TunnelMode{contract.TunnelModeRegular, contract.TunnelModeWhitelist} {
 		if server, ok := config.SelectedServer(request, mode); ok {
@@ -167,6 +222,9 @@ func (r *Runtime) startEngine(request contract.TunnelRequest, options option.Opt
 	since := r.now().UTC()
 	r.connectedSince = &since
 	r.setStatus(contract.TunnelStatusConnected)
+	for _, mode := range modes {
+		r.emitMode(mode)
+	}
 	r.beginTraffic()
 	return nil
 }
@@ -198,8 +256,9 @@ func (r *Runtime) Stop() error {
 	return nil
 }
 
-// SetUserMode switches the group behind the proxy selector. Connections move
-// to the new group, the box keeps running.
+// SetUserMode reports a PowerButton tap. Connections move to the new group,
+// the box keeps running. A tap on the current user mode still counts: on
+// cellular it overrides the switch (tech.md 2.1).
 func (r *Runtime) SetUserMode(mode string) error {
 	target := contract.TunnelMode(mode)
 	if !target.Valid() {
@@ -208,7 +267,7 @@ func (r *Runtime) SetUserMode(mode string) error {
 
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if r.status != contract.TunnelStatusConnected || target == r.userMode {
+	if r.status != contract.TunnelStatusConnected {
 		return nil
 	}
 	if _, ok := r.selected[target]; !ok {
@@ -217,18 +276,49 @@ func (r *Runtime) SetUserMode(mode string) error {
 			Message: fmt.Sprintf("no servers in group %s", target),
 		}
 	}
-	if err := r.engine.Select(config.TagProxy, config.GroupTag(target)); err != nil {
-		return &Error{Code: contract.CoreErrorCodeInternal, Message: err.Error()}
+	return r.apply(autoswitch.UserModeSet{Mode: target})
+}
+
+// OnNetworkChanged reports the active network (tech.md 5.7). Outside connected
+// it does nothing: Start resets the network and the host reports it again.
+func (r *Runtime) OnNetworkChanged(netType string) error {
+	network := autoswitch.NetType(netType)
+	if !network.Valid() {
+		return &Error{Code: contract.CoreErrorCodeConfigInvalid, Message: "unknown network type"}
 	}
 
-	from := r.effectiveMode
-	r.userMode, r.effectiveMode = target, target
-	r.sink(encode(contract.CoreEvent{
-		Type: contract.CoreEventTypeMode,
-		At:   r.now().UTC(),
-		Mode: &contract.ModePayload{From: from, To: target, Reason: contract.ModeSwitchReasonUser},
-	}))
-	r.emitState()
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.status != contract.TunnelStatusConnected {
+		return nil
+	}
+	return r.apply(autoswitch.NetChanged{Net: network})
+}
+
+// apply runs one event through the switch. A failed switch keeps the old
+// state, so the same event can retry it.
+func (r *Runtime) apply(event autoswitch.Event) error {
+	next, actions := autoswitch.Next(r.auto, event)
+	var modes []contract.ModePayload
+	for _, action := range actions {
+		switch action := action.(type) {
+		case autoswitch.SelectGroup:
+			if err := r.engine.Select(config.TagProxy, config.GroupTag(action.Group)); err != nil {
+				return &Error{Code: contract.CoreErrorCodeInternal, Message: err.Error()}
+			}
+		case autoswitch.Emit:
+			modes = append(modes, action.Event)
+		}
+	}
+
+	visible := next.UserMode != r.auto.UserMode || next.Effective != r.auto.Effective
+	r.auto = next
+	for _, mode := range modes {
+		r.emitMode(mode)
+	}
+	if visible {
+		r.emitState()
+	}
 	return nil
 }
 
@@ -349,14 +439,18 @@ func (r *Runtime) emitState() {
 func (r *Runtime) stateEvent() contract.CoreEvent {
 	state := &contract.StatePayload{
 		Status:         r.status,
-		UserMode:       r.userMode,
-		EffectiveMode:  r.effectiveMode,
+		UserMode:       r.auto.UserMode,
+		EffectiveMode:  r.auto.Effective,
 		ConnectedSince: r.connectedSince,
 	}
-	if server, ok := r.selected[r.effectiveMode]; ok && r.status == contract.TunnelStatusConnected {
+	if server, ok := r.selected[r.auto.Effective]; ok && r.status == contract.TunnelStatusConnected {
 		state.ActiveServerId = &server
 	}
 	return contract.CoreEvent{Type: contract.CoreEventTypeState, At: r.now().UTC(), State: state}
+}
+
+func (r *Runtime) emitMode(mode contract.ModePayload) {
+	r.sink(encode(contract.CoreEvent{Type: contract.CoreEventTypeMode, At: r.now().UTC(), Mode: &mode}))
 }
 
 func (r *Runtime) emitError(err *Error) {
