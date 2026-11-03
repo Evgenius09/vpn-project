@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/Evgenius09/vpn-project/backend/internal/db/sqlc"
+	"github.com/Evgenius09/vpn-project/backend/internal/domain/catalog"
 	"github.com/Evgenius09/vpn-project/backend/internal/httpapi"
 	"github.com/Evgenius09/vpn-project/backend/internal/panel"
 	panelfake "github.com/Evgenius09/vpn-project/backend/internal/panel/fake"
@@ -134,6 +135,22 @@ func TestFakePanelServesTheSameData(t *testing.T) {
 
 	_, err = client.CreateUser(ctx, panel.CreateUserInput{Username: data.PanelUsername(), ExpiresAt: data.Account.ExpiresAt})
 	require.ErrorIs(t, err, panel.ErrConflict, "the seed user already exists")
+}
+
+// The dev catalog must describe the seed servers, or the first catalog_sync of
+// make dev would disable or rewrite them.
+func TestCatalogFixtureMatchesTheSeed(t *testing.T) {
+	data := load(t)
+
+	entries, err := catalog.LoadEntries("../../" + DefaultCatalogPath)
+
+	require.NoError(t, err)
+	want := data.CatalogEntries()
+	enabled := true
+	for index := range want {
+		want[index].Enabled = &enabled
+	}
+	require.Equal(t, want, entries)
 }
 
 func TestStartUpdateIsTheSeedUser(t *testing.T) {

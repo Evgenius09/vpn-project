@@ -449,7 +449,10 @@ func TestHashIsStableForEqualInput(t *testing.T) {
 		host := hostGen().Draw(t, "host")
 		entry := entryGen(host).Draw(t, "entry")
 
-		if publishOne(t, host, entry).ContentHash() != publishOne(t, host, entry).ContentHash() {
+		first := publishOne(t, host, entry).ContentHash()
+		second := publishOne(t, host, entry).ContentHash()
+
+		if first != second {
 			t.Fatal("same input, different hash")
 		}
 	})
