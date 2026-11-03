@@ -105,6 +105,8 @@ class TunnelController private constructor(private val context: Context) : Event
 
     fun state(): String = core.state()
 
+    suspend fun forgetLastRequest() = withContext(Dispatchers.IO) { lastRequest.clear() }
+
     companion object {
         @Volatile
         private var instance: TunnelController? = null

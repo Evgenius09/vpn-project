@@ -39,6 +39,8 @@ class HostApi(
 
     /** S3-03 lists the installed packages. */
     override suspend fun listApps(): List<String> = emptyList()
+
+    override suspend fun forgetLastRequest() = guarded { controller.forgetLastRequest() }
 }
 
 fun TunnelModeMsg.wireName(): String =
