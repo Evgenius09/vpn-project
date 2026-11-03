@@ -92,6 +92,15 @@ class RecordingVpnBridge extends FakeVpnBridge {
     requests.add(tunnelRequestJson);
     return super.start(tunnelRequestJson);
   }
+
+  /// Every request update received, accepted or not.
+  final updates = <String>[];
+
+  @override
+  Future<void> update(String tunnelRequestJson) {
+    updates.add(tunnelRequestJson);
+    return super.update(tunnelRequestJson);
+  }
 }
 
 const androidIdentity = DeviceIdentity(
@@ -185,6 +194,23 @@ class ConnectionHarness {
   Future<void> _settle(WidgetTester tester) async {
     await tester.pump();
     await tester.pump();
+  }
+
+  /// Delivers a mode event, as the auto switch of the core sends it.
+  Future<void> emitMode(
+    WidgetTester tester,
+    ModeSwitchReason reason, {
+    required TunnelMode from,
+    required TunnelMode to,
+  }) async {
+    bridge.emit(
+      CoreEvent(
+        type: CoreEventType.mode,
+        at: now,
+        mode: ModePayload(from: from, to: to, reason: reason),
+      ),
+    );
+    await _settle(tester);
   }
 
   Future<void> emitError(WidgetTester tester, CoreErrorCode code) async {
