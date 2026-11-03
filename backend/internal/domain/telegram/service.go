@@ -44,8 +44,8 @@ func NewService(pool *pgxpool.Pool, client tg.TelegramClient, queue Queue, logge
 	return &Service{pool: pool, client: client, queue: queue, logger: logger}
 }
 
-// HandleUpdate applies one update. An error means nothing was committed, so the
-// update is safe to deliver again.
+// HandleUpdate applies one update. After an error the update is safe to deliver
+// again: an uncommitted update applies anew, a committed one is a duplicate.
 func (s *Service) HandleUpdate(ctx context.Context, update tg.Update) error {
 	ctx, cancel := context.WithTimeout(ctx, handleTimeout)
 	defer cancel()
