@@ -1,3 +1,8 @@
 ---
 api_host_dir: /opt/vpnclient
 api_host_user: deploy
+api_http_port: 80
+api_https_port: 443
+telegram_mode: fake
+telegram_bot_token: ""
+telegram_bot_username: ""

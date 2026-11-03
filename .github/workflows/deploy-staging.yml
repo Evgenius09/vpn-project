@@ -1,6 +1,8 @@
 name: deploy-staging
 
-# Deploys main once a server exists: set the STAGING_HOST variable in S0-09b.
+# Deploys main to staging when the STAGING_ENABLED variable is true. The host
+# and its name live in secrets, because a public repository's logs mask only
+# secrets (tech.md 36.3).
 on:
   push:
     branches: [main]
@@ -18,7 +20,7 @@ concurrency:
 
 jobs:
   deploy:
-    if: ${{ vars.STAGING_HOST != '' }}
+    if: ${{ vars.STAGING_ENABLED == 'true' }}
     runs-on: ubuntu-24.04
     env:
       IMAGE: ghcr.io/evgenius09/vpn-project/backend:${{ github.sha }}
@@ -34,17 +36,21 @@ jobs:
       - name: Set up SSH
         env:
           SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
-          HOST: ${{ vars.STAGING_HOST }}
+          HOST: ${{ secrets.STAGING_HOST }}
         run: |
           install -m 700 -d ~/.ssh
           printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan "$HOST" >> ~/.ssh/known_hosts
+          ssh-keyscan "$HOST" >> ~/.ssh/known_hosts 2>/dev/null
       - name: Run the playbook
         working-directory: infra/ansible
         env:
-          HOST: ${{ vars.STAGING_HOST }}
-          API_DOMAIN: ${{ vars.STAGING_DOMAIN }}
+          HOST: ${{ secrets.STAGING_HOST }}
+          API_DOMAIN: ${{ secrets.STAGING_DOMAIN }}
+          HTTPS_PORT: ${{ vars.STAGING_HTTPS_PORT || '443' }}
+          BOT_TOKEN: ${{ secrets.STAGING_BOT_TOKEN }}
+          BOT_USERNAME: ${{ vars.STAGING_BOT_USERNAME }}
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           POSTGRES_PASSWORD: ${{ secrets.STAGING_POSTGRES_PASSWORD }}
           GRAFANA_PASSWORD: ${{ secrets.STAGING_GRAFANA_PASSWORD }}
           TOKEN_PEPPER: ${{ secrets.STAGING_TOKEN_PEPPER }}
@@ -57,8 +63,20 @@ jobs:
             "backend_image": "$IMAGE",
             "postgres_password": "$POSTGRES_PASSWORD",
             "grafana_password": "$GRAFANA_PASSWORD",
-            "token_pepper": "$TOKEN_PEPPER"
+            "token_pepper": "$TOKEN_PEPPER",
+            "api_https_port": $HTTPS_PORT,
+            "telegram_mode": "$([ -n "$BOT_TOKEN" ] && echo polling || echo fake)",
+            "telegram_bot_token": "$BOT_TOKEN",
+            "telegram_bot_username": "$BOT_USERNAME",
+            "registry_user": "$GITHUB_ACTOR",
+            "registry_token": "$REGISTRY_TOKEN"
           }
           VARS
           printf '[api]\n%s ansible_user=deploy\n' "$HOST" > inventory.ini
           ansible-playbook -i inventory.ini -e @extra.json playbooks/staging.yml
+      - name: Check the health endpoint
+        env:
+          API_DOMAIN: ${{ secrets.STAGING_DOMAIN }}
+          HTTPS_PORT: ${{ vars.STAGING_HTTPS_PORT || '443' }}
+        # Caddy may still be getting its first certificate.
+        run: curl -fsS --retry 10 --retry-delay 6 --retry-all-errors "https://$API_DOMAIN:$HTTPS_PORT/healthz"

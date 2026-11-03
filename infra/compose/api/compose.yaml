@@ -51,6 +51,15 @@ services:
       migrate:
         condition: service_completed_successfully
 
+  # Long polling for a host without a webhook address (tech.md 36.2).
+  bot:
+    <<: *backend
+    command: [/app/bot]
+    profiles: [polling]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
