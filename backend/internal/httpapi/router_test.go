@@ -168,7 +168,7 @@ func TestMalformedAuthorizationHeader(t *testing.T) {
 
 func TestPublicOperationsNeedNoToken(t *testing.T) {
 	h := newHarness(t)
-	body := `{"username":"seed_user","installId":"11111111-1111-4111-8111-111111111111"}`
+	body := `{"username":"seed_user","installId":"11111111-1111-4111-8111-111111111111","model":"Pixel 7"}`
 	response := h.do(http.MethodPost, "/v1/auth/telegram/start", "", body)
 	h.requireProblem(t, response, http.StatusNotImplemented, "internal")
 }

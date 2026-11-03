@@ -205,13 +205,17 @@ components:
     TelegramLoginStart:
       type: object
       additionalProperties: false
-      required: [username, installId]
+      required: [username, installId, model]
       properties:
         username:
           type: string
         installId:
           type: string
           format: uuid
+        model:
+          type: string
+          minLength: 1
+          maxLength: 64
 
     TelegramLoginChallenge:
       type: object

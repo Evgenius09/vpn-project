@@ -44,10 +44,12 @@ func (PanelProvisionUserArgs) InsertOpts() river.InsertOpts {
 }
 
 // TelegramSendCodeArgs sends a login code. Code is a secret: it stays in the
-// job row until retention removes it and never reaches the logs.
+// job row until retention removes it and never reaches the logs. Model is the
+// cleaned device model for the message.
 type TelegramSendCodeArgs struct {
 	LoginID uuid.UUID `json:"loginId"`
 	Code    string    `json:"code"`
+	Model   string    `json:"model"`
 }
 
 // Kind implements river.JobArgs.

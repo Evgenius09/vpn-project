@@ -1009,6 +1009,7 @@ type TelegramLoginChallenge struct {
 // TelegramLoginStart defines model for TelegramLoginStart.
 type TelegramLoginStart struct {
 	InstallId openapi_types.UUID `json:"installId"`
+	Model     string             `json:"model"`
 	Username  string             `json:"username"`
 }
 

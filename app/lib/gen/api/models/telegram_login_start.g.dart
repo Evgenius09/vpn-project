@@ -10,10 +10,12 @@ TelegramLoginStart _$TelegramLoginStartFromJson(Map<String, dynamic> json) =>
     TelegramLoginStart(
       username: json['username'] as String,
       installId: json['installId'] as String,
+      model: json['model'] as String,
     );
 
 Map<String, dynamic> _$TelegramLoginStartToJson(TelegramLoginStart instance) =>
     <String, dynamic>{
       'username': instance.username,
       'installId': instance.installId,
+      'model': instance.model,
     };

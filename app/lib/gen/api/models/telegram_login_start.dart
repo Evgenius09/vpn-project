@@ -8,13 +8,18 @@ part 'telegram_login_start.g.dart';
 
 @JsonSerializable()
 class TelegramLoginStart {
-  const TelegramLoginStart({required this.username, required this.installId});
+  const TelegramLoginStart({
+    required this.username,
+    required this.installId,
+    required this.model,
+  });
 
   factory TelegramLoginStart.fromJson(Map<String, Object?> json) =>
       _$TelegramLoginStartFromJson(json);
 
   final String username;
   final String installId;
+  final String model;
 
   Map<String, Object?> toJson() => _$TelegramLoginStartToJson(this);
 }
