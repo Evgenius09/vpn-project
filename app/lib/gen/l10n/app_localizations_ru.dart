@@ -25,9 +25,6 @@ class AppLocalizationsRu extends AppLocalizations {
   String get settingsTooltip => 'Открыть настройки';
 
   @override
-  String get loginTitle => 'Вход';
-
-  @override
   String get lockedByProvider => 'Задано провайдером';
 
   @override
@@ -92,4 +89,130 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get profileFromCache =>
       'Нет связи с сервером, показаны сохранённые данные';
+
+  @override
+  String get loginUsernameTitle => 'Вход через Telegram';
+
+  @override
+  String get loginUsernameMessage =>
+      'Введите ваш ник в Telegram. Бот пришлёт код для входа.';
+
+  @override
+  String get loginUsernameLabel => 'Ник в Telegram';
+
+  @override
+  String get loginGetCode => 'Получить код';
+
+  @override
+  String get loginInvalidUsername =>
+      'Ник: от 4 до 32 латинских букв, цифр или знаков подчёркивания';
+
+  @override
+  String get loginBotTitle => 'Откройте бота и нажмите Start';
+
+  @override
+  String get loginBotMessage =>
+      'Бот может написать только тем, кто его запустил. Нажмите Start в боте и вернитесь сюда.';
+
+  @override
+  String get loginOpenBot => 'Открыть бота';
+
+  @override
+  String get loginPressedStart => 'Я нажал Start, отправить код';
+
+  @override
+  String get loginChangeUsername => 'Изменить ник';
+
+  @override
+  String get loginCodeTitle => 'Введите код';
+
+  @override
+  String loginCodeMessage(String username) {
+    return 'Бот отправил 6-значный код пользователю @$username.';
+  }
+
+  @override
+  String loginResendIn(int seconds) {
+    return 'Отправить снова через $seconds с';
+  }
+
+  @override
+  String get loginResend => 'Отправить код снова';
+
+  @override
+  String get loginLinkFailed => 'Не удалось открыть ссылку';
+
+  @override
+  String get loginErrorUnavailable =>
+      'Нет связи с сервером. Проверьте интернет и повторите.';
+
+  @override
+  String get loginErrorUnexpected => 'Неожиданный ответ сервера. Повторите.';
+
+  @override
+  String get loginErrorUnauthorized => 'Сессия завершилась. Войдите снова.';
+
+  @override
+  String get loginErrorDeviceRevoked =>
+      'Это устройство отключено от аккаунта. Войдите снова.';
+
+  @override
+  String get loginErrorValidationFailed =>
+      'Сервер не принял данные. Проверьте ник и код.';
+
+  @override
+  String loginErrorRateLimited(int seconds) {
+    return 'Слишком много попыток. Повторите через $seconds с.';
+  }
+
+  @override
+  String get loginErrorRateLimitedLater =>
+      'Слишком много попыток. Повторите позже.';
+
+  @override
+  String get loginErrorUserNotFound =>
+      'Ник не найден среди пользователей бота. Откройте бота и нажмите Start.';
+
+  @override
+  String loginErrorCodeInvalid(int attempts) {
+    return 'Неверный код. Осталось попыток: $attempts.';
+  }
+
+  @override
+  String get loginErrorCodeInvalidNoCount => 'Неверный код.';
+
+  @override
+  String get loginErrorCodeExpired =>
+      'Код истёк или попытки закончились. Запросите новый код.';
+
+  @override
+  String get loginErrorDeviceLimit =>
+      'Достигнут лимит устройств аккаунта. Отключите другое устройство и введите код снова.';
+
+  @override
+  String get loginErrorPanelUnavailable =>
+      'Сервис VPN временно недоступен. Повторите позже.';
+
+  @override
+  String get loginErrorNotFound =>
+      'Сервер не нашёл запрос. Начните вход заново.';
+
+  @override
+  String get loginErrorInternal => 'Ошибка на сервере. Повторите позже.';
+
+  @override
+  String get settingsAccount => 'Аккаунт';
+
+  @override
+  String get logoutButton => 'Выйти из аккаунта';
+
+  @override
+  String get logoutConfirmTitle => 'Выйти из аккаунта?';
+
+  @override
+  String get logoutConfirmMessage =>
+      'VPN отключится, а устройство выйдет из аккаунта. Чтобы вернуться, войдите с новым кодом из бота.';
+
+  @override
+  String get logoutConfirm => 'Выйти';
 }

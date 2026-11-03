@@ -1,6 +1,6 @@
 # tech.md — ядро проекта VPN-клиента
 
-Версия ядра: **v8** (2026-11-03)
+Версия ядра: **v9** (2026-11-03)
 Владелец: тимлид. Файл меняется только append-only, только через PR с меткой `contract-change`. Каждое изменение контракта бампает версию и добавляет строку в changelog.
 
 ## Changelog
@@ -13,6 +13,7 @@
 - v6 — 2026-11-03 — §23: `revoked` от хоста Android, последний запрос на Android, согласие на VPN в CI. §1–§22 не менялись.
 - v7 — 2026-11-03 — §24: `syncRuleSets`, `listProcesses`, `last_request.json`, установщик. §1–§23 не менялись.
 - v8 — 2026-11-03 — §25: `model` в `TelegramLoginStart` и `telegram_send_code`, лимит по IP, правила входа. §1–§24 не менялись.
+- v9 — 2026-11-03 — §26: вход в `ApiClient` приложения, `DeviceIdentity`, `forgetLastRequest`, роуты входа и настроек, удаление `DEV_TOKEN`. §1–§25 не менялись.
 
 ---
 
@@ -1531,3 +1532,29 @@ S1-07 добавляет минимальный экран `/settings` с кно
 - 409 `device_limit_reached` не тратит код: пользователь освобождает слот и повторяет ввод.
 - Код: 6 цифр из криптостойкого генератора.
 - `TelegramLoginVerify.model` и `appVersion`: до 64 символов, `appVersion` не пустой. Иначе 400 `validation_failed`.
+
+---
+
+## 26. Поправки ядра v9
+
+### 26.1 Вход в `ApiClient`
+
+- `ApiClient` (`app/lib/core/api`) получает `startTelegramLogin(TelegramLoginStart) → TelegramLoginChallenge`, `verifyTelegramLogin(TelegramLoginVerify) → AuthResult` и `logout()`.
+- `ApiProblem` получает необязательные `botUrl`, `attemptsLeft` и `retryAfterSec` из тела проблемы, потому что экран входа показывает ссылку на бота, оставшиеся попытки и таймер.
+- `FakeApiClient` отвечает на `start` и `verify` для любого ввода, чтобы `FAKE_API` работал без бэкенда, и падает с заданным `ApiException`.
+
+### 26.2 Устройство
+
+- `DeviceIdentity { platform: Platform, model: String, installId: String }` и `deviceIdentityProvider` в `app/lib/core/device`, потому что ветки по платформе живут только в `app/lib/core`.
+- `installId`: случайный UUID v4 в secure storage. Выход его не удаляет, поэтому повторный вход получает тот же `deviceId` (§19.9).
+- `model`: на Android `manufacturer model`, на Windows название продукта ОС, до 64 символов. Пустое значение заменяется именем платформы. Пакет `device_info_plus`.
+
+### 26.3 Выход
+
+- Pigeon `VpnHostApi` получает `@async void forgetLastRequest();`, `VpnBridge` — `Future<void> forgetLastRequest()`. Android удаляет `last_request.json` (§23.1). Windows ничего не делает: файл службы остаётся, в IPC v1 нет метода для него.
+- Выход по шагам: `POST /v1/auth/logout` (сбой сети не мешает выходу), `stop`, `forgetLastRequest`, удаление кэша профиля, удаление токена.
+
+### 26.4 Роуты и dev-токен
+
+- `/login` строит `LoginScreen`, `/settings` строит `SettingsScreen` из `app/lib/features/auth`. `/settings/:section` остаётся заглушкой до S3-01.
+- `AppConfig.devToken`, его запись в `main.dart` и `DEV_TOKEN` в `env/dev.json` удаляются: вход заменяет их, а токен из env возвращал сессию после выхода.

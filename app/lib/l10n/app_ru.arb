@@ -5,7 +5,6 @@
   "modeWhitelist": "Белые списки",
   "settingsTitle": "Настройки",
   "settingsTooltip": "Открыть настройки",
-  "loginTitle": "Вход",
   "lockedByProvider": "Задано провайдером",
   "retry": "Повторить",
   "cancel": "Отмена",
@@ -52,5 +51,68 @@
   "serversTitle": "Серверы",
   "serversEmpty": "Серверов пока нет",
   "profileLoadFailed": "Не удалось загрузить профиль",
-  "profileFromCache": "Нет связи с сервером, показаны сохранённые данные"
+  "profileFromCache": "Нет связи с сервером, показаны сохранённые данные",
+  "loginUsernameTitle": "Вход через Telegram",
+  "loginUsernameMessage": "Введите ваш ник в Telegram. Бот пришлёт код для входа.",
+  "loginUsernameLabel": "Ник в Telegram",
+  "loginGetCode": "Получить код",
+  "loginInvalidUsername": "Ник: от 4 до 32 латинских букв, цифр или знаков подчёркивания",
+  "loginBotTitle": "Откройте бота и нажмите Start",
+  "loginBotMessage": "Бот может написать только тем, кто его запустил. Нажмите Start в боте и вернитесь сюда.",
+  "loginOpenBot": "Открыть бота",
+  "loginPressedStart": "Я нажал Start, отправить код",
+  "loginChangeUsername": "Изменить ник",
+  "loginCodeTitle": "Введите код",
+  "loginCodeMessage": "Бот отправил 6-значный код пользователю @{username}.",
+  "@loginCodeMessage": {
+    "placeholders": {
+      "username": {
+        "type": "String"
+      }
+    }
+  },
+  "loginResendIn": "Отправить снова через {seconds} с",
+  "@loginResendIn": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "loginResend": "Отправить код снова",
+  "loginLinkFailed": "Не удалось открыть ссылку",
+  "loginErrorUnavailable": "Нет связи с сервером. Проверьте интернет и повторите.",
+  "loginErrorUnexpected": "Неожиданный ответ сервера. Повторите.",
+  "loginErrorUnauthorized": "Сессия завершилась. Войдите снова.",
+  "loginErrorDeviceRevoked": "Это устройство отключено от аккаунта. Войдите снова.",
+  "loginErrorValidationFailed": "Сервер не принял данные. Проверьте ник и код.",
+  "loginErrorRateLimited": "Слишком много попыток. Повторите через {seconds} с.",
+  "@loginErrorRateLimited": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "loginErrorRateLimitedLater": "Слишком много попыток. Повторите позже.",
+  "loginErrorUserNotFound": "Ник не найден среди пользователей бота. Откройте бота и нажмите Start.",
+  "loginErrorCodeInvalid": "Неверный код. Осталось попыток: {attempts}.",
+  "@loginErrorCodeInvalid": {
+    "placeholders": {
+      "attempts": {
+        "type": "int"
+      }
+    }
+  },
+  "loginErrorCodeInvalidNoCount": "Неверный код.",
+  "loginErrorCodeExpired": "Код истёк или попытки закончились. Запросите новый код.",
+  "loginErrorDeviceLimit": "Достигнут лимит устройств аккаунта. Отключите другое устройство и введите код снова.",
+  "loginErrorPanelUnavailable": "Сервис VPN временно недоступен. Повторите позже.",
+  "loginErrorNotFound": "Сервер не нашёл запрос. Начните вход заново.",
+  "loginErrorInternal": "Ошибка на сервере. Повторите позже.",
+  "settingsAccount": "Аккаунт",
+  "logoutButton": "Выйти из аккаунта",
+  "logoutConfirmTitle": "Выйти из аккаунта?",
+  "logoutConfirmMessage": "VPN отключится, а устройство выйдет из аккаунта. Чтобы вернуться, войдите с новым кодом из бота.",
+  "logoutConfirm": "Выйти"
 }

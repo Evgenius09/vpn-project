@@ -123,6 +123,11 @@ interface VpnHostApi {
   suspend fun getState(): String
   /** Returns JSON objects with package and label. */
   suspend fun listApps(): List<String>
+  /**
+   * Deletes the stored last request, so always-on cannot reconnect after a
+   * logout (tech.md 26.3).
+   */
+  suspend fun forgetLastRequest()
 
   companion object {
     /** The codec used by VpnHostApi. */
@@ -292,6 +297,24 @@ interface VpnHostApi {
             CoroutineScope(Dispatchers.Main).launch {
               val wrapped: List<Any?> = try {
                 listOf(api.listApps())
+              } catch (exception: Throwable) {
+                VpnApiPigeonUtils.wrapError(exception)
+              }
+              reply.reply(wrapped)
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.vpnclient.VpnHostApi.forgetLastRequest$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            CoroutineScope(Dispatchers.Main).launch {
+              val wrapped: List<Any?> = try {
+                api.forgetLastRequest()
+                listOf(null)
               } catch (exception: Throwable) {
                 VpnApiPigeonUtils.wrapError(exception)
               }

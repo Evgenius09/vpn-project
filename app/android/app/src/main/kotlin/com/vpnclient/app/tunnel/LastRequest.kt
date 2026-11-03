@@ -18,4 +18,10 @@ class LastRequest(
         temporary.writeText(request)
         temporary.renameTo(file)
     }
+
+    /** Logout calls this, so always-on cannot reconnect a signed-out user. */
+    fun clear() {
+        temporary.delete()
+        file.delete()
+    }
 }

@@ -28,4 +28,19 @@ class LastRequestTest {
         LastRequest(folder.root).write("request")
         assertEquals(listOf("last_request.json"), folder.root.list()!!.toList())
     }
+
+    @Test
+    fun clearForgetsTheRequest() {
+        val stored = LastRequest(folder.root)
+        stored.write("request")
+        stored.clear()
+        assertNull(LastRequest(folder.root).read())
+        assertEquals(emptyList<String>(), folder.root.list()!!.toList())
+    }
+
+    @Test
+    fun clearWithoutARequestIsFine() {
+        LastRequest(folder.root).clear()
+        assertNull(LastRequest(folder.root).read())
+    }
 }

@@ -43,6 +43,11 @@ abstract class VpnHostApi {
   /// Returns JSON objects with package and label.
   @async
   List<String> listApps();
+
+  /// Deletes the stored last request, so always-on cannot reconnect after a
+  /// logout (tech.md 26.3).
+  @async
+  void forgetLastRequest();
 }
 
 @EventChannelApi()

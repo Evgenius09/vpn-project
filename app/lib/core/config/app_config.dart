@@ -5,7 +5,6 @@ class AppConfig {
     required this.apiBaseUrls,
     required this.fakeVpn,
     required this.fakeApi,
-    this.devToken = '',
   });
 
   factory AppConfig.fromEnvironment() => AppConfig(
@@ -13,16 +12,12 @@ class AppConfig {
     apiBaseUrls: parseUrls(const String.fromEnvironment('API_BASE_URLS')),
     fakeVpn: const bool.fromEnvironment('FAKE_VPN'),
     fakeApi: const bool.fromEnvironment('FAKE_API'),
-    devToken: const String.fromEnvironment('DEV_TOKEN'),
   );
 
   final String flavor;
   final List<String> apiBaseUrls;
   final bool fakeVpn;
   final bool fakeApi;
-
-  /// The seed device token, set only in dev until S1-07 adds the login.
-  final String devToken;
 
   static List<String> parseUrls(String raw) => raw
       .split(',')

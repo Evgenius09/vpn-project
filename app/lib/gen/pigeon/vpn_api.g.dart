@@ -270,6 +270,26 @@ class VpnHostApi {
     );
     return (pigeonVar_replyValue! as List<Object?>).cast<String>();
   }
+
+  /// Deletes the stored last request, so always-on cannot reconnect after a
+  /// logout (tech.md 26.3).
+  Future<void> forgetLastRequest() async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.vpnclient.VpnHostApi.forgetLastRequest$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: true,
+    );
+  }
 }
 
 /// A stream of JSON CoreEvent values.

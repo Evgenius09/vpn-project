@@ -175,6 +175,21 @@ void main() {
     });
   });
 
+  test('forgetLastRequest needs no service', () async {
+    // The service keeps its own last request and IPC v1 cannot delete it
+    // (tech.md 26.3), so logout must not fail on Windows.
+    var attempts = 0;
+    final bridge = PipeVpnBridge(
+      connect: () async {
+        attempts++;
+        throw Exception('no pipe');
+      },
+      appVersion: '0.1.0',
+    );
+    await expectLater(bridge.forgetLastRequest(), completes);
+    expect(attempts, 0);
+  });
+
   group('failures', () {
     test('a missing service is service_unavailable', () async {
       final bridge = PipeVpnBridge(

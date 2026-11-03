@@ -137,4 +137,9 @@ class FakeVpnBridge implements VpnBridge {
     _calls.add('syncRuleSets');
     return [for (final ruleSet in ruleSets) ruleSet.id];
   }
+
+  @override
+  Future<void> forgetLastRequest() async {
+    _calls.add('forgetLastRequest');
+  }
 }

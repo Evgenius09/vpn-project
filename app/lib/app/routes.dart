@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../features/auth/presentation/login_screen.dart';
+import '../features/auth/presentation/settings_screen.dart';
 import 'home_screen.dart';
 import 'kitchen_sink.dart';
 import 'placeholder_screen.dart';
@@ -37,13 +39,10 @@ final List<AppRoute> allRoutes = [
   AppRoute(
     path: RoutePaths.login,
     public: true,
-    build: (_) => const LoginPlaceholderScreen(),
+    build: (_) => const LoginScreen(),
   ),
   AppRoute(path: RoutePaths.home, build: (_) => const HomeScreen()),
-  AppRoute(
-    path: RoutePaths.settings,
-    build: (_) => const SettingsPlaceholderScreen(),
-  ),
+  AppRoute(path: RoutePaths.settings, build: (_) => const SettingsScreen()),
   AppRoute(
     path: RoutePaths.settingsSection,
     build: (_) => const SettingsPlaceholderScreen(),
