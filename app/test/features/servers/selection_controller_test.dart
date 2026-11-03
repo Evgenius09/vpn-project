@@ -6,9 +6,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vpnclient/core/api/api_client.dart';
 import 'package:vpnclient/core/providers.dart';
 import 'package:vpnclient/core/storage/token_store.dart';
+import 'package:vpnclient/core/vpn/fake_vpn_bridge.dart';
+import 'package:vpnclient/features/connection/application/connection_controller.dart';
 import 'package:vpnclient/features/profile/application/profile_controller.dart';
 import 'package:vpnclient/features/profile/data/profile_repository.dart';
 import 'package:vpnclient/features/servers/application/selection_controller.dart';
+import 'package:vpnclient/features/servers/application/server_choice.dart';
 import 'package:vpnclient/features/servers/data/selection_store.dart';
 import 'package:vpnclient/gen/api/export.dart';
 
@@ -23,6 +26,7 @@ const _petersburg = '10000000-0000-4000-8000-000000000005';
 ProviderContainer _container(
   MemorySelectionStore store, {
   String profile = 'seed',
+  FakeVpnBridge? bridge,
 }) {
   final container = ProviderContainer(
     overrides: [
@@ -33,6 +37,7 @@ ProviderContainer _container(
       tokenStoreProvider.overrideWithValue(MemoryTokenStore('t')),
       initialTokenProvider.overrideWithValue('t'),
       selectionStoreProvider.overrideWithValue(store),
+      if (bridge != null) vpnBridgeProvider.overrideWithValue(bridge),
     ],
   );
   addTearDown(container.dispose);
@@ -136,4 +141,33 @@ void main() {
 
     expect(_chosen(c, TunnelMode.regular), _frankfurt);
   });
+
+  for (final status in [TunnelStatus.connecting, TunnelStatus.disconnecting]) {
+    test('a tap that races into ${status.json} changes nothing', () async {
+      final bridge = FakeVpnBridge();
+      addTearDown(bridge.dispose);
+      final store = MemorySelectionStore();
+      final c = _container(store, bridge: bridge)
+        ..listen(connectionControllerProvider, (_, _) {});
+      await pumpEventQueue();
+      bridge.emit(
+        CoreEvent(
+          type: CoreEventType.state,
+          at: DateTime.utc(2026, 11, 3),
+          state: StatePayload(
+            status: status,
+            userMode: TunnelMode.regular,
+            effectiveMode: TunnelMode.regular,
+          ),
+        ),
+      );
+      await pumpEventQueue();
+
+      await c.read(serverChoiceProvider).choose(TunnelMode.regular, _amsterdam);
+
+      expect(store.value.toJson(), <String, Object?>{});
+      expect(_chosen(c, TunnelMode.regular), _frankfurt);
+      expect(bridge.calls, isNot(contains('selectServer')));
+    });
+  }
 }
