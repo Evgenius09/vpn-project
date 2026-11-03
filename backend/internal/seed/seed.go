@@ -56,12 +56,12 @@ type Device struct {
 
 // PanelUser is the panel side of the seed account.
 type PanelUser struct {
-	RemnawaveUUID     uuid.UUID `json:"remnawaveUuid"`
-	ShortUUID         string    `json:"shortUuid"`
-	VlessUUID         string    `json:"vlessUuid"`
-	Hysteria2Auth     string    `json:"hysteria2Auth"`
-	TrafficLimitBytes int64     `json:"trafficLimitBytes"`
-	TrafficUsedBytes  int64     `json:"trafficUsedBytes"`
+	RemnawaveID       int64  `json:"remnawaveId"`
+	ShortUUID         string `json:"shortUuid"`
+	VlessUUID         string `json:"vlessUuid"`
+	Hysteria2Auth     string `json:"hysteria2Auth"`
+	TrafficLimitBytes int64  `json:"trafficLimitBytes"`
+	TrafficUsedBytes  int64  `json:"trafficUsedBytes"`
 }
 
 // Server is one seed server.
@@ -150,7 +150,7 @@ func apply(ctx context.Context, queries *sqlc.Queries, data Data, pepper []byte)
 	panelUser := data.PanelUser
 	if err := queries.SeedPanelUser(ctx, sqlc.SeedPanelUserParams{
 		AccountID:         account.ID,
-		RemnawaveUuid:     panelUser.RemnawaveUUID,
+		RemnawaveID:       panelUser.RemnawaveID,
 		ShortUuid:         panelUser.ShortUUID,
 		VlessUuid:         panelUser.VlessUUID,
 		Hysteria2Auth:     panelUser.Hysteria2Auth,
@@ -238,7 +238,7 @@ func (d Data) PanelUsername() string {
 // FillPanel gives a fake panel the seed user and hosts.
 func FillPanel(client *panelfake.Client, data Data) {
 	client.AddUser(panel.PanelUser{
-		UUID:          data.PanelUser.RemnawaveUUID,
+		ID:            data.PanelUser.RemnawaveID,
 		ShortUUID:     data.PanelUser.ShortUUID,
 		Username:      data.PanelUsername(),
 		ExpiresAt:     data.Account.ExpiresAt,

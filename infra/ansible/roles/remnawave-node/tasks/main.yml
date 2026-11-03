@@ -123,3 +123,35 @@
     host: 127.0.0.1
     port: 443
     timeout: 120
+
+# The API host reaches the loopback-only panel and node_exporter over SSH
+# (tech.md 39.5). The key opens only these two ports and no shell.
+- name: Require the tunnel key
+  ansible.builtin.assert:
+    that: panel_tunnel_pubkey is defined and panel_tunnel_pubkey | length > 0
+    fail_msg: Set panel_tunnel_pubkey in the local inventory to the public half of STAGING_PANEL_SSH_KEY.
+
+- name: Create the tunnel user
+  ansible.builtin.user:
+    name: panel-tunnel
+    shell: /usr/sbin/nologin
+    password: "!"
+    create_home: true
+
+- name: Create the tunnel user's SSH directory
+  ansible.builtin.file:
+    path: /home/panel-tunnel/.ssh
+    state: directory
+    owner: panel-tunnel
+    group: panel-tunnel
+    mode: "0700"
+
+- name: Allow the tunnel key
+  ansible.builtin.copy:
+    content: >-
+      restrict,port-forwarding,permitopen="127.0.0.1:3000",permitopen="127.0.0.1:9100"
+      {{ panel_tunnel_pubkey }}
+    dest: /home/panel-tunnel/.ssh/authorized_keys
+    owner: panel-tunnel
+    group: panel-tunnel
+    mode: "0600"

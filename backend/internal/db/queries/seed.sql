@@ -24,7 +24,7 @@ set token_hash = excluded.token_hash,
 
 -- name: SeedPanelUser :exec
 insert into panel_users (
-    account_id, remnawave_uuid, short_uuid, vless_uuid, hysteria2_auth,
+    account_id, remnawave_id, short_uuid, vless_uuid, hysteria2_auth,
     traffic_limit_bytes, traffic_used_bytes
 )
 values ($1, $2, $3, $4, $5, $6, $7)

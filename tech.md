@@ -1,6 +1,6 @@
 # tech.md — ядро проекта VPN-клиента
 
-Версия ядра: **v21** (2026-11-03)
+Версия ядра: **v22** (2026-11-03)
 Владелец: тимлид. Файл меняется только append-only, только через PR с меткой `contract-change`. Каждое изменение контракта бампает версию и добавляет строку в changelog.
 
 ## Changelog
@@ -26,6 +26,7 @@
 - v19 — 2026-11-03 — §36: staging на общем VPS: порт HTTPS, имя sslip.io, бот в polling, адрес хоста в секретах, вход в реестр образов. §1–§35 не менялись.
 - v20 — 2026-11-03 — §37: сборка APK для staging по кнопке, раскладка S1-13 на одном сервере. §1–§36 не менялись.
 - v21 — 2026-11-03 — §38: Xray на ноде закреплён на v26.6.27, Hysteria2 на staging, пароль Hysteria2 в Remnawave, webhook бота на staging, плейбук нод и смоук. §1–§37 не менялись.
+- v22 — 2026-11-03 — §39: клиент Remnawave из OpenAPI 3.4.8, числовой id пользователя панели, поля Reality и Hysteria2 из API панели, squad новых пользователей, port hopping в `servers.yaml`, SSH-туннель к панели на staging. §1–§38 не менялись.
 
 ---
 
@@ -1816,3 +1817,42 @@ S1-07 добавляет минимальный экран `/settings` с кно
 
 - Роли `remnawave-panel` и `remnawave-node` запускаются вручную с машины разработчика. Инвентарь, адрес и имя ноды берутся из локальных переменных, в репозиторий не попадают. CI только прогоняет `ansible-lint`.
 - `infra/scripts/smoke-nodes.sh` берёт креды пробного пользователя с хоста по SSH и проверяет через sing-box ответ 204 на `https://www.gstatic.com/generate_204` по VLESS Reality, по Hysteria2 напрямую и по Hysteria2 с port hopping. Плейбук нод запускает его в конце.
+
+---
+
+## 39. Поправки ядра v22
+
+### 39.1 Клиент панели
+
+- Спецификация — `contracts/remnawave/openapi-3.4.8.json`, файл `/opt/app/openapi.json` из образа `remnawave/backend:3.4.8` без изменений, sha256 `b8c1480ab310da0af0f802f8d59b17766e6097ad5b5d6b83eb0bb9829e83b89b`. Апгрейд панели заменяет файл и бампает ядро (§3).
+- `make gen` генерирует `backend/internal/gen/remnawave` по `backend/oapi-codegen.remnawave.yaml`: модели и `client-with-responses`, только операции `UsersController_getUserByUsername`, `UsersController_createUser`, `UsersController_updateUser`, `HostsController_getHosts`, `ConfigProfileController_getAllInbounds`. Генератор берёт только нужные операции, потому что спецификация описывает 162 пути.
+- Каждый запрос несёт `X-Forwarded-For: 127.0.0.1` и `X-Forwarded-Proto: https`: панель за туннелем видит обычный HTTP и без этих заголовков отвергает API-токен.
+
+### 39.2 Пользователь панели
+
+- В Remnawave 3.4.8 у пользователя нет UUID, только числовой `id`. `PanelUser.UUID uuid.UUID` заменяется на `PanelUser.ID int64`, сигнатура меняется на `UpdateUser(ctx, id int64, in UpdateUserInput)`.
+- Миграция `00002`: `panel_users.remnawave_uuid uuid` → `remnawave_id bigint not null unique`. Строки в таблице есть только в dev-сиде, поэтому миграция падает, если таблица не пуста: dev-базу пересоздают, `make seed` пишет заново. Поле сида `remnawaveUuid` становится `remnawaveId`.
+- `CreateUser` шлёт `username`, `expireAt`, `trafficLimitBytes`, `trafficLimitStrategy = NO_RESET`, `status = ACTIVE` и `activeInternalSquads = [REMNAWAVE_SQUAD_UUID]`, потому что пользователь без internal squad не получает ни одного inbound.
+- Новая переменная `.env.example`: `REMNAWAVE_SQUAD_UUID`, обязательна при `PANEL_MODE=remnawave`.
+- `Hysteria2Auth = vlessUuid` (§38.3). `ErrNotFound` — 404, `ErrConflict` — ответ панели «имя занято», `ErrUnavailable` — 5xx, таймаут, сеть. Остальные ответы — ошибка без ретрая.
+
+### 39.3 Хосты панели
+
+- `ListHosts` берёт `GET /api/hosts` и `GET /api/config-profiles/inbounds` и связывает хост с inbound по `inbound.configProfileInboundUuid`.
+- `vless_reality` — inbound `vless` с `network = tcp` и `security = reality`: `flow = xtls-rprx-vision`, `serverName` из `sni` хоста, иначе `realitySettings.serverNames[0]`, `shortId = shortIds[0]`, `fingerprint` из хоста, иначе `chrome`. `publicKey` — X25519 от `realitySettings.privateKey`: панель отдаёт только приватный ключ. Приватный ключ не хранится и не логируется.
+- `hysteria2` — inbound `hysteria` с `version = 2`: `serverName` из `sni` хоста, иначе адрес хоста; `obfsSalamanderPassword` из `streamSettings.finalmask.udp` с `type = salamander`.
+- Хост на inbound другого типа в ответ `ListHosts` не попадает, и `catalog_sync` выключает его строку как исчезнувшую. `Enabled = !isDisabled && !isHidden`.
+- Решение записано в `docs/adr/0001-remnawave-panel-fields.md`.
+
+### 39.4 Port hopping в каталоге
+
+- Запись `servers.yaml` получает необязательное поле `portHopping: {ports, intervalSec}` по правилам §29.1. Панель port hopping не хранит.
+- `catalog_sync` кладёт его в `params` хоста `hysteria2`, поэтому поле входит в `content_hash`. `portHopping` у хоста другого протокола делает хост невалидным (§29.3).
+
+### 39.5 SSH-туннель к панели на staging
+
+- Панель и node_exporter ноды слушают только loopback (§37.2). Сервис `panel-tunnel` в `infra/compose/api/compose.yaml` (alpine с `openssh-client`, образ собирается рядом) держит `ssh -N -L 0.0.0.0:3000:127.0.0.1:3000 -L 0.0.0.0:9100:127.0.0.1:9100` к серверу ноды с `ExitOnForwardFailure`, `ServerAliveInterval` и `restart: unless-stopped`. Хост API не меняется (§36.1).
+- Воркер ходит на `REMNAWAVE_BASE_URL=http://panel-tunnel:3000`, Prometheus скрейпит `panel-tunnel:9100`. Порты наружу не публикуются.
+- На сервере ноды пользователь `panel-tunnel` без shell, ключ в `authorized_keys` с `restrict,port-forwarding,permitopen="127.0.0.1:3000",permitopen="127.0.0.1:9100"`. Его создаёт роль `remnawave-node`.
+- Секреты GitHub: `STAGING_NODE_HOST`, `STAGING_PANEL_SSH_KEY`, `STAGING_NODE_KNOWN_HOSTS` (ключ хоста закреплён, `StrictHostKeyChecking=yes`), `STAGING_REMNAWAVE_TOKEN`, `STAGING_REMNAWAVE_SQUAD_UUID`. Роль `api-host` кладёт ключ и known_hosts на хост с правами `0600`.
+- Staging ставит `PANEL_MODE=remnawave`. Воркер регистрирует `catalog_sync` с клиентом панели, предупреждение из §29.4 снимается. `infra/catalog/servers.yaml` получает UUID хостов `se-sto-1-vless` и `se-sto-1-hy2`.

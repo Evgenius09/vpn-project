@@ -8,4 +8,12 @@ telegram_bot_token: ""
 telegram_bot_username: ""
 # Generated on the host in webhook mode (tech.md 38.4).
 telegram_webhook_secret: ""
+panel_mode: fake
+# remnawave mode (tech.md 39.5): the node server, files holding the tunnel key
+# and its pinned host key, the panel API token and the squad of new users.
+node_host: ""
+panel_ssh_key_file: ""
+node_known_hosts_file: ""
+remnawave_api_token: ""
+remnawave_squad_uuid: ""
 api_public_url: "https://{{ api_domain }}{{ '' if (api_https_port | int) == 443 else ':' ~ api_https_port }}"

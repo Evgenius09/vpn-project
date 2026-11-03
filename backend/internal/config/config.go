@@ -8,6 +8,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
 // App environments.
@@ -45,6 +47,7 @@ type Config struct {
 	PanelMode             string
 	RemnawaveBaseURL      string
 	RemnawaveAPIToken     string
+	RemnawaveSquadUUID    string
 	TelegramMode          string
 	TelegramBotToken      string
 	TelegramBotUsername   string
@@ -116,6 +119,7 @@ func Load(lookup func(string) string) (Config, error) {
 		PanelMode:             get("PANEL_MODE", PanelFake),
 		RemnawaveBaseURL:      lookup("REMNAWAVE_BASE_URL"),
 		RemnawaveAPIToken:     lookup("REMNAWAVE_API_TOKEN"),
+		RemnawaveSquadUUID:    lookup("REMNAWAVE_SQUAD_UUID"),
 		TelegramMode:          get("TELEGRAM_MODE", TelegramFake),
 		TelegramBotToken:      lookup("TELEGRAM_BOT_TOKEN"),
 		TelegramBotUsername:   lookup("TELEGRAM_BOT_USERNAME"),
@@ -163,6 +167,9 @@ func (c Config) validate() []error {
 	if c.PanelMode == PanelRemnawave {
 		require("REMNAWAVE_BASE_URL", c.RemnawaveBaseURL)
 		require("REMNAWAVE_API_TOKEN", c.RemnawaveAPIToken)
+		if _, err := uuid.Parse(c.RemnawaveSquadUUID); err != nil {
+			fail("REMNAWAVE_SQUAD_UUID must be a uuid")
+		}
 	}
 	if c.TelegramMode != TelegramFake {
 		require("TELEGRAM_BOT_TOKEN", c.TelegramBotToken)
