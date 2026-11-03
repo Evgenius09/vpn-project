@@ -28,6 +28,8 @@ type fakeEngine struct {
 	selects   [][2]string
 	up, down  int64
 	noTraffic bool
+	// trafficReads counts Traffic calls, so a test knows a tick was handled.
+	trafficReads int
 }
 
 func (f *fakeEngine) Start(options option.Options) error {
@@ -54,6 +56,7 @@ func (f *fakeEngine) Select(selector, member string) error {
 func (f *fakeEngine) Traffic() (up, down int64, ok bool) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	f.trafficReads++
 	return f.up, f.down, !f.noTraffic
 }
 
@@ -717,6 +720,14 @@ func TestTrafficSkipsWhileCountersAreUnavailable(t *testing.T) {
 	require.NoError(t, r.Start(request(t)))
 
 	ticks <- time.Now()
+	// The runtime reads the counters on its own goroutine: flipping them
+	// before that read would let the first tick report traffic.
+	require.Eventually(t, func() bool {
+		engine.mu.Lock()
+		defer engine.mu.Unlock()
+		return engine.trafficReads == 1
+	}, time.Second, time.Millisecond)
+	require.Empty(t, trafficOf(events.decoded(t)), "no counters, no traffic event")
 	engine.mu.Lock()
 	engine.noTraffic = false
 	engine.mu.Unlock()
