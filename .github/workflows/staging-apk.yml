@@ -1,0 +1,51 @@
+name: staging-apk
+
+# Builds an APK that talks to staging, for a manual check on a phone. The
+# address comes from secrets, so the artifact lives one day and the person who
+# started the run deletes it once downloaded (tech.md 37.1).
+on: workflow_dispatch
+
+permissions:
+  contents: read
+
+jobs:
+  apk:
+    if: ${{ vars.STAGING_ENABLED == 'true' }}
+    runs-on: ubuntu-24.04
+    steps:
+      # The NDK and native libs do not fit next to the preinstalled SDKs.
+      - name: Free disk space
+        run: sudo rm -rf /usr/share/dotnet /usr/local/.ghcup /opt/ghc /opt/hostedtoolcache/CodeQL
+      - uses: actions/checkout@v7.0.1
+      - uses: jdx/mise-action@v5.2.5
+        with:
+          install_args: >-
+            go java flutter
+            go:github.com/sagernet/gomobile/cmd/gomobile
+            go:github.com/sagernet/gomobile/cmd/gobind
+      - name: Restore Go caches
+        uses: actions/cache@v6.1.0
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: go-android-${{ hashFiles('core/go.sum', '.tool-versions') }}
+      - name: Build the core
+        run: |
+          export ANDROID_NDK_HOME="$ANDROID_NDK_LATEST_HOME"
+          make core-android
+      - name: Build the APK
+        working-directory: app
+        env:
+          API_DOMAIN: ${{ secrets.STAGING_DOMAIN }}
+          HTTPS_PORT: ${{ vars.STAGING_HTTPS_PORT || '443' }}
+        run: |
+          cat > "$RUNNER_TEMP/staging.json" <<JSON
+          {"FLAVOR": "staging", "API_BASE_URLS": "https://$API_DOMAIN:$HTTPS_PORT", "FAKE_VPN": false, "FAKE_API": false}
+          JSON
+          flutter build apk --release --target-platform android-arm64 --dart-define-from-file="$RUNNER_TEMP/staging.json"
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: staging-apk
+          path: app/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 1
