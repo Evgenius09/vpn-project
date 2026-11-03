@@ -9,6 +9,7 @@ import (
 	box "github.com/sagernet/sing-box"
 	"github.com/sagernet/sing-box/adapter"
 	"github.com/sagernet/sing-box/common/trafficcontrol"
+	"github.com/sagernet/sing-box/common/urltest"
 	"github.com/sagernet/sing-box/include"
 	"github.com/sagernet/sing-box/log"
 	"github.com/sagernet/sing-box/option"
@@ -112,4 +113,30 @@ func (e *BoxEngine) Traffic() (up, down int64, ok bool) {
 	}
 	up, down = manager.Total()
 	return up, down, true
+}
+
+// URLTest implements Engine.
+func (e *BoxEngine) URLTest(ctx context.Context, outbound, link string) (uint16, error) {
+	e.mu.Lock()
+	if e.instance == nil {
+		e.mu.Unlock()
+		return 0, errNotRunning
+	}
+	outbounds := e.instance.Outbound()
+	e.mu.Unlock()
+	return URLTestOutbound(ctx, outbounds, outbound, link)
+}
+
+// URLTestOutbound requests link through the outbound tagged tag. The Android
+// engine shares it, because both reach the same outbound manager.
+func URLTestOutbound(ctx context.Context, outbounds adapter.OutboundManager, tag, link string) (uint16, error) {
+	outbound, found := outbounds.Outbound(tag)
+	if !found {
+		return 0, fmt.Errorf("outbound %s not found", tag)
+	}
+	delay, err := urltest.URLTest(ctx, link, outbound)
+	if err != nil {
+		return 0, fmt.Errorf("url test %s: %w", tag, err)
+	}
+	return delay, nil
 }

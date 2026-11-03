@@ -1,7 +1,12 @@
 package runtime
 
 import (
+	"context"
+	"net/http"
+	"net/http/httptest"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	C "github.com/sagernet/sing-box/constant"
 	"github.com/sagernet/sing-box/option"
@@ -72,4 +77,45 @@ func TestIdleBoxEngineRefuses(t *testing.T) {
 	require.Error(t, engine.Select("proxy", "first"))
 	_, _, ok := engine.Traffic()
 	require.False(t, ok)
+	_, err := engine.URLTest(context.Background(), "first", "http://127.0.0.1:1")
+	require.Error(t, err)
+}
+
+func TestBoxEngineURLTestsThroughAnOutbound(t *testing.T) {
+	var heads atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodHead {
+			heads.Add(1)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	engine := newBoxEngine(t)
+	require.NoError(t, engine.Start(selectorOptions()))
+	defer func() { require.NoError(t, engine.Close()) }()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_, err := engine.URLTest(ctx, "first", server.URL+"/generate_204")
+	require.NoError(t, err)
+	require.Equal(t, int32(1), heads.Load())
+
+	_, err = engine.URLTest(ctx, "missing", server.URL)
+	require.Error(t, err)
+}
+
+func TestBoxEngineURLTestFailsOnAClosedPort(t *testing.T) {
+	server := httptest.NewServer(http.NotFoundHandler())
+	closed := server.URL
+	server.Close()
+
+	engine := newBoxEngine(t)
+	require.NoError(t, engine.Start(selectorOptions()))
+	defer func() { require.NoError(t, engine.Close()) }()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_, err := engine.URLTest(ctx, "first", closed)
+	require.Error(t, err)
 }

@@ -3,9 +3,14 @@
 package bind
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
+	"io"
 
 	"github.com/sagernet/sing-box/experimental/libbox"
+
+	"github.com/Evgenius09/vpn-project/core/internal/contract"
 
 	"github.com/Evgenius09/vpn-project/core/internal/runtime"
 )
@@ -14,8 +19,6 @@ import (
 type EventSink interface {
 	OnEvent(coreEventJSON string)
 }
-
-var errURLTestPending = errors.New("core: url test comes with S1-12")
 
 // Core is one tunnel. Its methods are safe to call from any thread.
 type Core struct {
@@ -85,9 +88,31 @@ func (c *Core) SelectServer(group, serverID string) error {
 // OnNetworkChanged reports a NetType. S2-02 implements it.
 func (c *Core) OnNetworkChanged(string) {}
 
-// URLTest returns a JSON CoreEvent of type url_test. S1-12 implements it.
-func (c *Core) URLTest(string) (string, error) {
-	return "", errURLTestPending
+// URLTest measures the servers of a JSON array of ids and returns a JSON
+// CoreEvent of type url_test (tech.md 31.1).
+func (c *Core) URLTest(serverIDsJSON string) (string, error) {
+	if c.initErr != nil {
+		return "", c.initErr
+	}
+	ids, err := parseIDs(serverIDsJSON)
+	if err != nil {
+		return "", err
+	}
+	//nolint:wrapcheck // The host reads the core error code from this error.
+	return c.runtime.URLTest(ids)
+}
+
+func parseIDs(serverIDsJSON string) ([]string, error) {
+	var ids []string
+	decoder := json.NewDecoder(bytes.NewReader([]byte(serverIDsJSON)))
+	err := decoder.Decode(&ids)
+	if err == nil && !errors.Is(decoder.Decode(&struct{}{}), io.EOF) {
+		err = errors.New("trailing data")
+	}
+	if err != nil || ids == nil {
+		return nil, &runtime.Error{Code: contract.CoreErrorCodeConfigInvalid, Message: "server ids must be a JSON array of strings"}
+	}
+	return ids, nil
 }
 
 // State returns a JSON CoreEvent of type state.

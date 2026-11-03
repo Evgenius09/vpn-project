@@ -4,6 +4,7 @@ package runtime
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -31,6 +32,9 @@ type Engine interface {
 	// Traffic returns the byte totals of the running box, or false while it has
 	// none.
 	Traffic() (up, down int64, ok bool)
+	// URLTest requests link through one outbound and returns the delay in
+	// milliseconds.
+	URLTest(ctx context.Context, outbound, link string) (uint16, error)
 }
 
 // Options configures a Runtime.
@@ -42,6 +46,8 @@ type Options struct {
 	Now func() time.Time
 	// NewTicker is replaceable in tests. It returns the ticks and a stop function.
 	NewTicker func() (<-chan time.Time, func())
+	// URLTestTimeout bounds the test of one server. Zero means 5 seconds.
+	URLTestTimeout time.Duration
 }
 
 // Runtime is safe for concurrent use.
@@ -51,6 +57,7 @@ type Runtime struct {
 	sink           func(string)
 	now            func() time.Time
 	newTicker      func() (<-chan time.Time, func())
+	urlTestTimeout time.Duration
 	status         contract.TunnelStatus
 	userMode       contract.TunnelMode
 	effectiveMode  contract.TunnelMode
@@ -75,14 +82,19 @@ func New(options Options) *Runtime {
 			return ticker.C, ticker.Stop
 		}
 	}
+	timeout := options.URLTestTimeout
+	if timeout == 0 {
+		timeout = urlTestTimeout
+	}
 	return &Runtime{
-		engine:        options.Engine,
-		sink:          options.Sink,
-		now:           now,
-		newTicker:     newTicker,
-		status:        contract.TunnelStatusDisconnected,
-		userMode:      contract.TunnelModeRegular,
-		effectiveMode: contract.TunnelModeRegular,
+		engine:         options.Engine,
+		sink:           options.Sink,
+		now:            now,
+		newTicker:      newTicker,
+		urlTestTimeout: timeout,
+		status:         contract.TunnelStatusDisconnected,
+		userMode:       contract.TunnelModeRegular,
+		effectiveMode:  contract.TunnelModeRegular,
 	}
 }
 
