@@ -128,12 +128,6 @@ abstract class AppLocalizations {
   /// **'Открыть настройки'**
   String get settingsTooltip;
 
-  /// No description provided for @loginTitle.
-  ///
-  /// In ru, this message translates to:
-  /// **'Вход'**
-  String get loginTitle;
-
   /// No description provided for @lockedByProvider.
   ///
   /// In ru, this message translates to:
@@ -247,6 +241,216 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Нет связи с сервером, показаны сохранённые данные'**
   String get profileFromCache;
+
+  /// No description provided for @loginUsernameTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вход через Telegram'**
+  String get loginUsernameTitle;
+
+  /// No description provided for @loginUsernameMessage.
+  ///
+  /// In ru, this message translates to:
+  /// **'Введите ваш ник в Telegram. Бот пришлёт код для входа.'**
+  String get loginUsernameMessage;
+
+  /// No description provided for @loginUsernameLabel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ник в Telegram'**
+  String get loginUsernameLabel;
+
+  /// No description provided for @loginGetCode.
+  ///
+  /// In ru, this message translates to:
+  /// **'Получить код'**
+  String get loginGetCode;
+
+  /// No description provided for @loginInvalidUsername.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ник: от 4 до 32 латинских букв, цифр или знаков подчёркивания'**
+  String get loginInvalidUsername;
+
+  /// No description provided for @loginBotTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Откройте бота и нажмите Start'**
+  String get loginBotTitle;
+
+  /// No description provided for @loginBotMessage.
+  ///
+  /// In ru, this message translates to:
+  /// **'Бот может написать только тем, кто его запустил. Нажмите Start в боте и вернитесь сюда.'**
+  String get loginBotMessage;
+
+  /// No description provided for @loginOpenBot.
+  ///
+  /// In ru, this message translates to:
+  /// **'Открыть бота'**
+  String get loginOpenBot;
+
+  /// No description provided for @loginPressedStart.
+  ///
+  /// In ru, this message translates to:
+  /// **'Я нажал Start, отправить код'**
+  String get loginPressedStart;
+
+  /// No description provided for @loginChangeUsername.
+  ///
+  /// In ru, this message translates to:
+  /// **'Изменить ник'**
+  String get loginChangeUsername;
+
+  /// No description provided for @loginCodeTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Введите код'**
+  String get loginCodeTitle;
+
+  /// No description provided for @loginCodeMessage.
+  ///
+  /// In ru, this message translates to:
+  /// **'Бот отправил 6-значный код пользователю @{username}.'**
+  String loginCodeMessage(String username);
+
+  /// No description provided for @loginResendIn.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отправить снова через {seconds} с'**
+  String loginResendIn(int seconds);
+
+  /// No description provided for @loginResend.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отправить код снова'**
+  String get loginResend;
+
+  /// No description provided for @loginLinkFailed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось открыть ссылку'**
+  String get loginLinkFailed;
+
+  /// No description provided for @loginErrorUnavailable.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нет связи с сервером. Проверьте интернет и повторите.'**
+  String get loginErrorUnavailable;
+
+  /// No description provided for @loginErrorUnexpected.
+  ///
+  /// In ru, this message translates to:
+  /// **'Неожиданный ответ сервера. Повторите.'**
+  String get loginErrorUnexpected;
+
+  /// No description provided for @loginErrorUnauthorized.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сессия завершилась. Войдите снова.'**
+  String get loginErrorUnauthorized;
+
+  /// No description provided for @loginErrorDeviceRevoked.
+  ///
+  /// In ru, this message translates to:
+  /// **'Это устройство отключено от аккаунта. Войдите снова.'**
+  String get loginErrorDeviceRevoked;
+
+  /// No description provided for @loginErrorValidationFailed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сервер не принял данные. Проверьте ник и код.'**
+  String get loginErrorValidationFailed;
+
+  /// No description provided for @loginErrorRateLimited.
+  ///
+  /// In ru, this message translates to:
+  /// **'Слишком много попыток. Повторите через {seconds} с.'**
+  String loginErrorRateLimited(int seconds);
+
+  /// No description provided for @loginErrorRateLimitedLater.
+  ///
+  /// In ru, this message translates to:
+  /// **'Слишком много попыток. Повторите позже.'**
+  String get loginErrorRateLimitedLater;
+
+  /// No description provided for @loginErrorUserNotFound.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ник не найден среди пользователей бота. Откройте бота и нажмите Start.'**
+  String get loginErrorUserNotFound;
+
+  /// No description provided for @loginErrorCodeInvalid.
+  ///
+  /// In ru, this message translates to:
+  /// **'Неверный код. Осталось попыток: {attempts}.'**
+  String loginErrorCodeInvalid(int attempts);
+
+  /// No description provided for @loginErrorCodeInvalidNoCount.
+  ///
+  /// In ru, this message translates to:
+  /// **'Неверный код.'**
+  String get loginErrorCodeInvalidNoCount;
+
+  /// No description provided for @loginErrorCodeExpired.
+  ///
+  /// In ru, this message translates to:
+  /// **'Код истёк или попытки закончились. Запросите новый код.'**
+  String get loginErrorCodeExpired;
+
+  /// No description provided for @loginErrorDeviceLimit.
+  ///
+  /// In ru, this message translates to:
+  /// **'Достигнут лимит устройств аккаунта. Отключите другое устройство и введите код снова.'**
+  String get loginErrorDeviceLimit;
+
+  /// No description provided for @loginErrorPanelUnavailable.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сервис VPN временно недоступен. Повторите позже.'**
+  String get loginErrorPanelUnavailable;
+
+  /// No description provided for @loginErrorNotFound.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сервер не нашёл запрос. Начните вход заново.'**
+  String get loginErrorNotFound;
+
+  /// No description provided for @loginErrorInternal.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ошибка на сервере. Повторите позже.'**
+  String get loginErrorInternal;
+
+  /// No description provided for @settingsAccount.
+  ///
+  /// In ru, this message translates to:
+  /// **'Аккаунт'**
+  String get settingsAccount;
+
+  /// No description provided for @logoutButton.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выйти из аккаунта'**
+  String get logoutButton;
+
+  /// No description provided for @logoutConfirmTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выйти из аккаунта?'**
+  String get logoutConfirmTitle;
+
+  /// No description provided for @logoutConfirmMessage.
+  ///
+  /// In ru, this message translates to:
+  /// **'VPN отключится, а устройство выйдет из аккаунта. Чтобы вернуться, войдите с новым кодом из бота.'**
+  String get logoutConfirmMessage;
+
+  /// No description provided for @logoutConfirm.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выйти'**
+  String get logoutConfirm;
 }
 
 class _AppLocalizationsDelegate

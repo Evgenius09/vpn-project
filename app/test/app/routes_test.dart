@@ -12,6 +12,7 @@ import 'package:vpnclient/core/providers.dart';
 import 'package:vpnclient/core/storage/token_store.dart';
 import 'package:vpnclient/core/vpn/fake_vpn_bridge.dart';
 import 'package:vpnclient/core/vpn/vpn_bridge.dart';
+import 'package:vpnclient/features/auth/presentation/settings_screen.dart';
 import 'package:vpnclient/features/profile/application/profile_controller.dart';
 import 'package:vpnclient/features/profile/data/profile_repository.dart';
 import 'package:vpnclient/ui/ui.dart';
@@ -161,7 +162,7 @@ void main() {
       await pumpApp(tester, token: 'token');
       await tester.tap(find.byIcon(Icons.settings));
       await tester.pumpAndSettle();
-      expect(find.byType(EmptyState), findsOneWidget);
+      expect(find.byType(SettingsScreen), findsOneWidget);
       expect(find.byType(ModePager), findsNothing);
     });
 
