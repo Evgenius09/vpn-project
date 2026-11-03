@@ -309,7 +309,11 @@ func TestC5PlatformsDoNotMix(t *testing.T) {
 			require.Empty(t, tun.IncludePackage)
 			require.Empty(t, tun.ExcludePackage)
 		}
+		if req.Platform == contract.PlatformWindows {
+			require.Equal(t, string(req.Settings.Net.TunStack), tun.Stack)
+		}
 		if req.Platform == contract.PlatformAndroid {
+			require.Equal(t, "gvisor", tun.Stack, "the system TCP stack cannot answer an app outside its own VPN")
 			require.Contains(t, []string(tun.ExcludePackage), config.AndroidPackage)
 			require.NotContains(t, []string(tun.IncludePackage), config.AndroidPackage)
 			for _, rule := range options.Route.Rules {

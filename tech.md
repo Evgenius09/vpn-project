@@ -1,6 +1,6 @@
 # tech.md — ядро проекта VPN-клиента
 
-Версия ядра: **v22** (2026-11-03)
+Версия ядра: **v23** (2026-11-03)
 Владелец: тимлид. Файл меняется только append-only, только через PR с меткой `contract-change`. Каждое изменение контракта бампает версию и добавляет строку в changelog.
 
 ## Changelog
@@ -27,6 +27,7 @@
 - v20 — 2026-11-03 — §37: сборка APK для staging по кнопке, раскладка S1-13 на одном сервере. §1–§36 не менялись.
 - v21 — 2026-11-03 — §38: Xray на ноде закреплён на v26.6.27, Hysteria2 на staging, пароль Hysteria2 в Remnawave, webhook бота на staging, плейбук нод и смоук. §1–§37 не менялись.
 - v22 — 2026-11-03 — §39: клиент Remnawave из OpenAPI 3.4.8, числовой id пользователя панели, поля Reality и Hysteria2 из API панели, squad новых пользователей, port hopping в `servers.yaml`, SSH-туннель к панели на staging. §1–§38 не менялись.
+- v23 — 2026-11-03 — §40: TCP-стек `gvisor` на Android, слежение Android-хоста за физической сетью. §1–§39 не менялись.
 
 ---
 
@@ -1856,3 +1857,18 @@ S1-07 добавляет минимальный экран `/settings` с кно
 - На сервере ноды пользователь `panel-tunnel` без shell, ключ в `authorized_keys` с `restrict,port-forwarding,permitopen="127.0.0.1:3000",permitopen="127.0.0.1:9100"`. Его создаёт роль `remnawave-node`.
 - Секреты GitHub: `STAGING_NODE_HOST`, `STAGING_PANEL_SSH_KEY`, `STAGING_NODE_KNOWN_HOSTS` (ключ хоста закреплён, `StrictHostKeyChecking=yes`), `STAGING_REMNAWAVE_TOKEN`, `STAGING_REMNAWAVE_SQUAD_UUID`. Роль `api-host` кладёт ключ и known_hosts на хост с правами `0600`.
 - Staging ставит `PANEL_MODE=remnawave`. Воркер регистрирует `catalog_sync` с клиентом панели, предупреждение из §29.4 снимается. `infra/catalog/servers.yaml` получает UUID хостов `se-sto-1-vless` и `se-sto-1-hy2`.
+
+---
+
+## 40. Поправки ядра v23
+
+### 40.1 Стек TUN на Android
+
+- На Android ядро всегда ставит `stack: gvisor`. `net.tunStack` действует только на Windows. Пункт §5.8 о `stack` уточняется так.
+- Причина: стеки `system` и `mixed` принимают TCP сокетом процесса приложения, а приложение исключено из своего VPN (§5.8, §21.2). Ответ такого сокета уходит в физическую сеть мимо `tun0`, рукопожатие не завершается, и через туннель проходит только UDP. Так было на Galaxy A22 с Android 12 (issue #82).
+- Инвариант C5 дополняется: `platform = android` ⇒ `stack = gvisor`; `platform = windows` ⇒ `stack = net.tunStack`.
+
+### 40.2 Сеть по умолчанию на Android
+
+- Монитор интерфейса для sing-box и `NetworkMonitor` (§5.7) следят за лучшей сетью без VPN: запрос с `NET_CAPABILITY_NOT_VPN`, `registerBestMatchingNetworkCallback` на API 31+ и `requestNetwork` ниже, как официальный клиент sing-box.
+- Причина: `registerDefaultNetworkCallback` после подъёма туннеля отдаёт приложению его же `tun0`, хотя приложение исключено из VPN. sing-box остаётся без интерфейса по умолчанию, и все исходящие соединения падают с `no available network interface`.
