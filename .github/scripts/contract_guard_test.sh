@@ -61,7 +61,7 @@ CONTRACT_PATHS=(
   app/lib/core/vpn/vpn_bridge.dart
   installer/windows/setup.iss
   .github/workflows/pr.yml
-  infra/catalog/servers.yaml
+  infra/compose/api/compose.yaml
   .tool-versions
   Makefile
 )

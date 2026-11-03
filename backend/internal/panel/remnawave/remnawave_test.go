@@ -205,9 +205,18 @@ func TestUpdateUserNotFound(t *testing.T) {
 }
 
 func TestListHostsBuildsContractParams(t *testing.T) {
-	_, client := newFakePanel(t, map[string]string{
+	fake, client := newFakePanel(t, map[string]string{
 		"GET /api/hosts": "get_hosts", "GET /api/config-profiles/inbounds": "get_inbounds",
 	})
+	// The recorded hosts carry no catalog tags yet (tech.md 41.1).
+	var recordedHosts map[string][]map[string]any
+	require.NoError(t, json.Unmarshal(fake.responses["get_hosts"].Body, &recordedHosts))
+	recordedHosts["response"][0]["tags"] = []string{"COUNTRY:SE"}
+	recordedHosts["response"][1]["tags"] = []string{"COUNTRY:SE", "HOP:20000_50000:30"}
+	recordedHosts["response"][1]["serverDescription"] = "Stockholm"
+	edited, err := json.Marshal(recordedHosts)
+	require.NoError(t, err)
+	fake.responses["get_hosts"] = recorded{Status: http.StatusOK, Body: edited}
 
 	hosts, err := client.ListHosts(context.Background())
 
@@ -227,15 +236,20 @@ func TestListHostsBuildsContractParams(t *testing.T) {
 	require.Equal(t, "hy2.example.net", hy2.Address)
 	require.JSONEq(t, `{"serverName":"hy2.example.net","obfsSalamanderPassword":"fixture-obfs"}`, string(hy2.Params))
 
-	// The catalog decodes params strictly (tech.md 29.1), so this is the seam.
-	entries := []catalog.Entry{
-		{RemnawaveHostUUID: vless.UUID, Group: "regular", DisplayName: "Stockholm", CountryCode: "SE"},
-		{RemnawaveHostUUID: hy2.UUID, Group: "regular", DisplayName: "Stockholm", CountryCode: "SE"},
-	}
-	servers, skipped, err := catalog.Build(hosts, entries)
+	require.Equal(t, "se-sto-1-vless", vless.Remark)
+	require.Empty(t, vless.Description, "a null serverDescription")
+	require.Equal(t, []string{"COUNTRY:SE"}, vless.Tags)
+	require.Equal(t, 1, vless.ViewPosition)
+	require.Equal(t, "Stockholm", hy2.Description)
+	require.Equal(t, 2, hy2.ViewPosition)
+
+	// The catalog decodes params and tags strictly (tech.md 29.1, 41.1), so
+	// this is the seam.
+	servers, skipped, err := catalog.Build(hosts)
 	require.NoError(t, err)
 	require.Empty(t, skipped)
 	require.Len(t, servers, 2)
+	require.Contains(t, string(servers[1].Params), `"portHopping":{"intervalSec":30,"ports":"20000-50000"}`)
 }
 
 func TestListHostsKeepsThePrivateKeyOut(t *testing.T) {

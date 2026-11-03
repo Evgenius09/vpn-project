@@ -4,10 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log/slog"
 	"os"
-	"path/filepath"
 	"sync"
 	"testing"
 	"time"
@@ -27,32 +25,26 @@ import (
 )
 
 const (
-	seedPath        = "../../../" + seed.DefaultPath
-	seedCatalogPath = "../../../" + seed.DefaultCatalogPath
-	seedProfile     = "../../../../contracts/fixtures/profile/seed.json"
-	pepper          = "test-pepper"
+	seedPath    = "../../../" + seed.DefaultPath
+	seedProfile = "../../../../contracts/fixtures/profile/seed.json"
+	pepper      = "test-pepper"
 )
 
 type env struct {
 	pool    *pgxpool.Pool
 	data    seed.Data
 	panel   *panelfake.Client
-	catalog string
 	service *catalog.Service
 }
 
-// newEnv starts from an empty servers table, a fake panel with the seed hosts,
-// and a writable copy of the seed catalog.
+// newEnv starts from an empty servers table and a fake panel with the seed
+// hosts.
 func newEnv(t *testing.T) *env {
 	t.Helper()
 	data, err := seed.Load(seedPath)
 	require.NoError(t, err)
-	raw, err := os.ReadFile(seedCatalogPath)
-	require.NoError(t, err)
-	path := filepath.Join(t.TempDir(), "servers.yaml")
-	require.NoError(t, os.WriteFile(path, raw, 0o600))
 
-	e := &env{pool: testutil.NewDatabase(t), data: data, panel: panelfake.New(), catalog: path}
+	e := &env{pool: testutil.NewDatabase(t), data: data, panel: panelfake.New()}
 	seed.FillPanel(e.panel, data)
 	e.service = e.newService(e.panel)
 	return e
@@ -60,8 +52,7 @@ func newEnv(t *testing.T) *env {
 
 func (e *env) newService(client panel.PanelClient) *catalog.Service {
 	return catalog.NewService(catalog.NewPostgresStore(e.pool), client, catalog.Options{
-		CatalogFile: e.catalog,
-		Logger:      slog.New(slog.DiscardHandler),
+		Logger: slog.New(slog.DiscardHandler),
 	})
 }
 
@@ -70,11 +61,6 @@ func (e *env) sync(t *testing.T) catalog.Result {
 	result, err := e.service.Sync(context.Background())
 	require.NoError(t, err)
 	return result
-}
-
-func (e *env) writeCatalog(t *testing.T, content string) {
-	t.Helper()
-	require.NoError(t, os.WriteFile(e.catalog, []byte(content), 0o600))
 }
 
 func (e *env) setHosts(hosts []panel.PanelHost) { e.panel.SetHosts(hosts) }
@@ -116,10 +102,11 @@ func (e *env) rows(t *testing.T) map[uuid.UUID]row {
 
 func hostUUID(e *env, index int) uuid.UUID { return e.data.Servers[index].RemnawaveHostUUID }
 
-func TestSyncPublishesTheListedHosts(t *testing.T) {
+func TestSyncPublishesTheTaggedHosts(t *testing.T) {
 	e := newEnv(t)
 	stray := e.data.Servers[0].PanelHost()
 	stray.UUID = uuid.New()
+	stray.Tags = nil
 	e.setHosts(append(e.data.PanelHosts(), stray))
 
 	result := e.sync(t)
@@ -127,7 +114,7 @@ func TestSyncPublishesTheListedHosts(t *testing.T) {
 	require.Equal(t, catalog.Result{Published: 5, Changed: 5}, result)
 	rows := e.rows(t)
 	require.Len(t, rows, 5)
-	require.NotContains(t, rows, stray.UUID, "a host without a yaml entry is not published")
+	require.NotContains(t, rows, stray.UUID, "a host without a country tag is not published")
 	for _, server := range e.data.Servers {
 		got := rows[server.RemnawaveHostUUID]
 		require.True(t, got.Enabled)
@@ -176,11 +163,12 @@ func TestVanishedHostIsDisabled(t *testing.T) {
 	require.Equal(t, after, e.rows(t))
 }
 
-func TestHostDroppedFromTheYamlIsDisabled(t *testing.T) {
+func TestHostWithoutTheCountryTagIsDisabled(t *testing.T) {
 	e := newEnv(t)
 	e.sync(t)
-	entries := e.data.CatalogEntries()
-	e.writeCatalog(t, yamlOf(t, entries[1:]))
+	hosts := e.data.PanelHosts()
+	hosts[0].Tags = []string{"PROBE"}
+	e.setHosts(hosts)
 
 	result := e.sync(t)
 
@@ -204,23 +192,34 @@ func TestReturningHostIsEnabledAgain(t *testing.T) {
 	require.Equal(t, id, back.ID, "the server keeps its id, so clients keep their choice")
 }
 
-func TestDisabledFlagsReachTheRow(t *testing.T) {
+func TestDisabledFlagReachesTheRow(t *testing.T) {
 	e := newEnv(t)
 	hosts := e.data.PanelHosts()
 	hosts[0].Enabled = false
 	e.setHosts(hosts)
-	entries := e.data.CatalogEntries()
-	off := false
-	entries[1].Enabled = &off
-	e.writeCatalog(t, yamlOf(t, entries))
 
 	result := e.sync(t)
 
 	require.Equal(t, catalog.Result{Published: 5, Changed: 5}, result)
 	rows := e.rows(t)
 	require.False(t, rows[hostUUID(e, 0)].Enabled, "disabled in the panel")
-	require.False(t, rows[hostUUID(e, 1)].Enabled, "disabled in the yaml")
-	require.True(t, rows[hostUUID(e, 2)].Enabled)
+	require.True(t, rows[hostUUID(e, 1)].Enabled)
+}
+
+func TestRenamedHostUpdatesItsRow(t *testing.T) {
+	e := newEnv(t)
+	e.sync(t)
+	hosts := e.data.PanelHosts()
+	hosts[0].Remark = "Frankfurt 2"
+	hosts[0].Tags = append(hosts[0].Tags, "WHITELIST")
+	e.setHosts(hosts)
+
+	result := e.sync(t)
+
+	require.Equal(t, catalog.Result{Published: 5, Changed: 1}, result)
+	got := e.rows(t)[hostUUID(e, 0)]
+	require.Equal(t, "Frankfurt 2", got.DisplayName)
+	require.Equal(t, "whitelist", got.Group)
 }
 
 func TestChangedHostUpdatesOnlyItsRow(t *testing.T) {
@@ -287,30 +286,6 @@ func TestDuplicateHostsLeaveTheCatalogUntouched(t *testing.T) {
 
 	require.ErrorIs(t, err, catalog.ErrInvalidPanel)
 	require.Equal(t, before, e.rows(t))
-}
-
-func TestBrokenYamlLeavesTheCatalogUntouched(t *testing.T) {
-	for name, content := range map[string]string{
-		"bad entry":    "- remnawaveHostUuid: " + uuid.NewString() + "\n  group: vip\n  displayName: A\n  countryCode: DE\n",
-		"empty file":   "",
-		"missing file": "",
-	} {
-		t.Run(name, func(t *testing.T) {
-			e := newEnv(t)
-			e.sync(t)
-			before := e.rows(t)
-			if name == "missing file" {
-				require.NoError(t, os.Remove(e.catalog))
-			} else {
-				e.writeCatalog(t, content)
-			}
-
-			_, err := e.service.Sync(context.Background())
-
-			require.Error(t, err)
-			require.Equal(t, before, e.rows(t))
-		})
-	}
 }
 
 func TestSeedRowsAlreadyMatchASync(t *testing.T) {
@@ -395,12 +370,4 @@ func race(t *testing.T, pool *pgxpool.Pool, n int, fn func(i int) error) []error
 	close(gate)
 	group.Wait()
 	return errs
-}
-
-func yamlOf(t *testing.T, entries []catalog.Entry) string {
-	t.Helper()
-	// JSON is valid YAML.
-	encoded, err := json.Marshal(entries)
-	require.NoError(t, err)
-	return fmt.Sprintf("%s\n", encoded)
 }

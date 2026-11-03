@@ -137,20 +137,24 @@ func TestFakePanelServesTheSameData(t *testing.T) {
 	require.ErrorIs(t, err, panel.ErrConflict, "the seed user already exists")
 }
 
-// The dev catalog must describe the seed servers, or the first catalog_sync of
+// The seed hosts must publish as the seed servers, or the first catalog_sync of
 // make dev would disable or rewrite them.
-func TestCatalogFixtureMatchesTheSeed(t *testing.T) {
+func TestSeedHostsPublishAsTheSeedServers(t *testing.T) {
 	data := load(t)
 
-	entries, err := catalog.LoadEntries("../../" + DefaultCatalogPath)
+	servers, skipped, err := catalog.Build(data.PanelHosts())
 
 	require.NoError(t, err)
-	want := data.CatalogEntries()
-	enabled := true
-	for index := range want {
-		want[index].Enabled = &enabled
+	require.Empty(t, skipped)
+	require.Len(t, servers, len(data.Servers))
+	for index, server := range data.Servers {
+		published := servers[index]
+		require.Equal(t, server.Group, published.Group)
+		require.Equal(t, server.DisplayName, published.DisplayName)
+		require.Equal(t, server.CountryCode, published.CountryCode)
+		require.Equal(t, &server.City, published.City)
+		require.Equal(t, int(server.SortWeight), published.SortWeight)
 	}
-	require.Equal(t, want, entries)
 }
 
 func TestStartUpdateIsTheSeedUser(t *testing.T) {

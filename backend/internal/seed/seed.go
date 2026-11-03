@@ -21,12 +21,8 @@ import (
 	"github.com/Evgenius09/vpn-project/backend/internal/telegram"
 )
 
-// Fixture paths, relative to the backend module.
-const (
-	DefaultPath = "../contracts/fixtures/seed/seed.json"
-	// DefaultCatalogPath is the servers.yaml of the seed servers for make dev.
-	DefaultCatalogPath = "../contracts/fixtures/seed/catalog.yaml"
-)
+// DefaultPath is the seed fixture, relative to the backend module.
+const DefaultPath = "../contracts/fixtures/seed/seed.json"
 
 // Account is the seed account.
 type Account struct {
@@ -163,7 +159,7 @@ func apply(ctx context.Context, queries *sqlc.Queries, data Data, pepper []byte)
 	for _, server := range data.Servers {
 		// The row hashes the way catalog_sync would, so the first sync after a
 		// seed changes nothing.
-		published, err := catalog.Publish(server.PanelHost(), server.CatalogEntry())
+		published, err := catalog.Publish(server.PanelHost())
 		if err != nil {
 			return fmt.Errorf("server %s: %w", server.DisplayName, err)
 		}
@@ -187,28 +183,24 @@ func apply(ctx context.Context, queries *sqlc.Queries, data Data, pepper []byte)
 	return nil
 }
 
-// PanelHost is the server as the panel publishes it.
+// PanelHost is the server as the panel publishes it, tagged the way
+// catalog_sync reads it (tech.md 41.1).
 func (s Server) PanelHost() panel.PanelHost {
-	return panel.PanelHost{
-		UUID:     s.RemnawaveHostUUID,
-		Protocol: s.Protocol,
-		Address:  s.Address,
-		Port:     int(s.Port),
-		Params:   s.Params,
-		Enabled:  true,
+	tags := []string{"COUNTRY:" + s.CountryCode}
+	if s.Group == "whitelist" {
+		tags = append(tags, "WHITELIST")
 	}
-}
-
-// CatalogEntry is the servers.yaml record of the server.
-func (s Server) CatalogEntry() catalog.Entry {
-	city := s.City
-	return catalog.Entry{
-		RemnawaveHostUUID: s.RemnawaveHostUUID,
-		Group:             s.Group,
-		DisplayName:       s.DisplayName,
-		CountryCode:       s.CountryCode,
-		City:              &city,
-		SortWeight:        int(s.SortWeight),
+	return panel.PanelHost{
+		UUID:         s.RemnawaveHostUUID,
+		Protocol:     s.Protocol,
+		Address:      s.Address,
+		Port:         int(s.Port),
+		Params:       s.Params,
+		Enabled:      true,
+		Remark:       s.DisplayName,
+		Description:  s.City,
+		Tags:         tags,
+		ViewPosition: int(s.SortWeight),
 	}
 }
 
@@ -219,15 +211,6 @@ func (d Data) PanelHosts() []panel.PanelHost {
 		hosts = append(hosts, server.PanelHost())
 	}
 	return hosts
-}
-
-// CatalogEntries are the servers.yaml records of every seed server.
-func (d Data) CatalogEntries() []catalog.Entry {
-	entries := make([]catalog.Entry, 0, len(d.Servers))
-	for _, server := range d.Servers {
-		entries = append(entries, server.CatalogEntry())
-	}
-	return entries
 }
 
 // PanelUsername follows tg_<telegram_id> (tech.md 5.10).

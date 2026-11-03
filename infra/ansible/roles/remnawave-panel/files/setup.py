@@ -28,6 +28,7 @@ parser.add_argument("--node-name", required=True)
 parser.add_argument("--node-address", required=True, help="public address of the VLESS host")
 parser.add_argument("--node-fqdn", required=True, help="certificate name of the Hysteria2 host")
 parser.add_argument("--country", required=True)
+parser.add_argument("--city", required=True, help="name the app shows for the server")
 parser.add_argument("--reality-target", required=True)
 args = parser.parse_args()
 
@@ -182,19 +183,29 @@ elif sorted(i["uuid"] for i in squad["inbounds"]) != active:
     call("PATCH", "/api/internal-squads", {"uuid": squad["uuid"], "inbounds": active})
     changed("squad inbounds updated")
 
-remarks = {h["remark"] for h in call("GET", "/api/hosts")}
-if f"{args.node_name}-vless" not in remarks:
-    call("POST", "/api/hosts", {
-        "inbound": {"configProfileUuid": profile["uuid"], "configProfileInboundUuid": inbounds["VLESS_REALITY"]},
-        "remark": f"{args.node_name}-vless", "address": args.node_address, "port": 443,
-        "sni": args.reality_target, "fingerprint": "chrome", "securityLayer": "DEFAULT"})
-    changed("vless host created")
-if f"{args.node_name}-hy2" not in remarks:
-    call("POST", "/api/hosts", {
-        "inbound": {"configProfileUuid": profile["uuid"], "configProfileInboundUuid": inbounds["HYSTERIA2"]},
-        "remark": f"{args.node_name}-hy2", "address": args.node_fqdn, "port": 443,
-        "sni": args.node_fqdn, "securityLayer": "DEFAULT"})
-    changed("hysteria2 host created")
+# The app reads its server list from these tags and texts (tech.md 41.1). The
+# hop range is the one the node role opens and redirects (tech.md 38.2).
+country = "COUNTRY:" + args.country.upper()
+wanted = {
+    "VLESS_REALITY": (args.node_address, {"sni": args.reality_target, "fingerprint": "chrome"}, [country]),
+    "HYSTERIA2": (args.node_fqdn, {"sni": args.node_fqdn}, [country, "HOP:20000_50000:30"]),
+}
+hosts = call("GET", "/api/hosts")
+for tag, (address, extra, tags) in wanted.items():
+    host = next((h for h in hosts if h["inbound"]["configProfileInboundUuid"] == inbounds[tag]
+                 and h["address"] == address), None)
+    if host is None:
+        call("POST", "/api/hosts", dict({
+            "inbound": {"configProfileUuid": profile["uuid"], "configProfileInboundUuid": inbounds[tag]},
+            "remark": args.city, "serverDescription": args.city, "address": address, "port": 443,
+            "securityLayer": "DEFAULT", "tags": tags}, **extra))
+        changed(f"{tag} host created")
+    elif not any(t.startswith("COUNTRY:") for t in host.get("tags") or []):
+        # Hosts made before tech.md 41 have no catalog tags. Once tagged, the
+        # panel owns the texts, so edits made there stay.
+        call("PATCH", "/api/hosts", {"uuid": host["uuid"], "remark": args.city, "serverDescription": args.city,
+                                     "tags": sorted(set(host.get("tags") or []) | set(tags))})
+        changed(f"{tag} host tagged")
 
 user = next((u for u in call("GET", "/api/users?size=100")["users"] if u["username"] == "staging_probe"), None)
 if user is None:

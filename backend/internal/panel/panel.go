@@ -40,6 +40,11 @@ type PanelHost struct {
 	Port     int
 	Params   json.RawMessage // non-secret inbound and host parameters
 	Enabled  bool
+	// What the catalog reads besides the connection (tech.md 41.1).
+	Remark       string
+	Description  string // serverDescription, "" when unset
+	Tags         []string
+	ViewPosition int
 }
 
 // CreateUserInput describes a new panel user.

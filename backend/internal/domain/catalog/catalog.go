@@ -1,5 +1,5 @@
-// Package catalog syncs the servers table from the panel hosts and
-// servers.yaml (tech.md 6, 7, 16 S1-11).
+// Package catalog syncs the servers table from the panel hosts (tech.md 6, 7,
+// 16 S1-11, 41).
 package catalog
 
 import (
@@ -11,22 +11,19 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"os"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode"
 
 	"github.com/google/uuid"
-	"sigs.k8s.io/yaml"
 
 	"github.com/Evgenius09/vpn-project/backend/internal/gen/api"
 	"github.com/Evgenius09/vpn-project/backend/internal/panel"
 )
 
 var (
-	// ErrInvalidCatalog means servers.yaml cannot be trusted as a whole.
-	ErrInvalidCatalog = errors.New("catalog: invalid servers.yaml")
 	// ErrInvalidPanel means the host list cannot be trusted as a whole.
 	ErrInvalidPanel = errors.New("catalog: invalid panel hosts")
 	// ErrInvalidHost means one host cannot be published.
@@ -39,21 +36,24 @@ const (
 	maxPort         = 65535
 )
 
+// Host tags that carry what the servers table needs beyond the connection
+// (tech.md 41.1). The panel allows only A-Z, 0-9, _ and : in a tag.
+const (
+	tagCountry   = "COUNTRY:"
+	tagWhitelist = "WHITELIST"
+	tagHop       = "HOP:"
+)
+
 var countryPattern = regexp.MustCompile(`^[A-Z]{2}$`)
 
-// Entry is one record of servers.yaml: what the panel does not know.
-type Entry struct {
-	RemnawaveHostUUID uuid.UUID `json:"remnawaveHostUuid"`
-	Group             string    `json:"group"`
-	DisplayName       string    `json:"displayName"`
-	CountryCode       string    `json:"countryCode"`
-	City              *string   `json:"city,omitempty"`
-	SortWeight        int       `json:"sortWeight"`
-	// Enabled is true when omitted.
-	Enabled *bool `json:"enabled,omitempty"`
-	// PortHopping is for hysteria2 hosts only: the panel does not store it
-	// (tech.md 39.4).
-	PortHopping *api.PortHopping `json:"portHopping,omitempty"`
+// entry is what the host tags and texts say about the server.
+type entry struct {
+	group       string
+	displayName string
+	countryCode string
+	city        *string
+	sortWeight  int
+	portHopping *api.PortHopping
 }
 
 // Server is a row of the servers table without its id.
@@ -100,14 +100,10 @@ type Skipped struct {
 	Err      error
 }
 
-// Build joins hosts with entries. A host without an entry is not published.
-// A host that fails validation is skipped, so one broken host cannot freeze
-// the rest of the catalog. Entries must come from LoadEntries.
-func Build(hosts []panel.PanelHost, entries []Entry) ([]Server, []Skipped, error) {
-	byHost := make(map[uuid.UUID]Entry, len(entries))
-	for _, entry := range entries {
-		byHost[entry.RemnawaveHostUUID] = entry
-	}
+// Build publishes the hosts tagged with a country. A host without that tag is
+// not for the app. A host that fails validation is skipped, so one broken host
+// cannot freeze the rest of the catalog.
+func Build(hosts []panel.PanelHost) ([]Server, []Skipped, error) {
 	seen := make(map[uuid.UUID]struct{}, len(hosts))
 	var servers []Server
 	var skipped []Skipped
@@ -116,11 +112,10 @@ func Build(hosts []panel.PanelHost, entries []Entry) ([]Server, []Skipped, error
 			return nil, nil, fmt.Errorf("%w: host %s listed twice", ErrInvalidPanel, host.UUID)
 		}
 		seen[host.UUID] = struct{}{}
-		entry, listed := byHost[host.UUID]
-		if !listed {
+		if !listed(host) {
 			continue
 		}
-		server, err := publish(host, entry)
+		server, err := Publish(host)
 		if err != nil {
 			skipped = append(skipped, Skipped{HostUUID: host.UUID, Err: err})
 			continue
@@ -130,8 +125,14 @@ func Build(hosts []panel.PanelHost, entries []Entry) ([]Server, []Skipped, error
 	return servers, skipped, nil
 }
 
-func publish(host panel.PanelHost, entry Entry) (Server, error) {
-	entry, err := normalizeEntry(entry)
+func listed(host panel.PanelHost) bool {
+	return slices.ContainsFunc(host.Tags, func(tag string) bool { return strings.HasPrefix(tag, tagCountry) })
+}
+
+// Publish returns the row of one host. The seed uses it so that its rows hash
+// the way a sync would.
+func Publish(host panel.PanelHost) (Server, error) {
+	entry, err := entryOf(host)
 	if err != nil {
 		return Server{}, fmt.Errorf("%w: %w", ErrInvalidHost, err)
 	}
@@ -145,12 +146,12 @@ func publish(host panel.PanelHost, entry Entry) (Server, error) {
 	var params json.RawMessage
 	switch api.ServerProtocol(host.Protocol) {
 	case api.ServerProtocolVlessReality:
-		if entry.PortHopping != nil {
-			return Server{}, fmt.Errorf("%w: portHopping on a vless host", ErrInvalidHost)
+		if entry.portHopping != nil {
+			return Server{}, fmt.Errorf("%w: port hopping on a vless host", ErrInvalidHost)
 		}
 		params, err = vlessParams(host.Params)
 	case api.ServerProtocolHysteria2:
-		params, err = hysteriaParams(host.Params, entry.PortHopping)
+		params, err = hysteriaParams(host.Params, entry.portHopping)
 	default:
 		err = errors.New("unknown protocol")
 	}
@@ -159,23 +160,17 @@ func publish(host panel.PanelHost, entry Entry) (Server, error) {
 	}
 	return Server{
 		HostUUID:    host.UUID,
-		Group:       entry.Group,
+		Group:       entry.group,
 		Protocol:    host.Protocol,
-		DisplayName: entry.DisplayName,
-		CountryCode: entry.CountryCode,
-		City:        entry.City,
+		DisplayName: entry.displayName,
+		CountryCode: entry.countryCode,
+		City:        entry.city,
 		Address:     address,
 		Port:        host.Port,
 		Params:      params,
-		SortWeight:  entry.SortWeight,
-		Enabled:     host.Enabled && (entry.Enabled == nil || *entry.Enabled),
+		SortWeight:  entry.sortWeight,
+		Enabled:     host.Enabled,
 	}, nil
-}
-
-// Publish returns the row one host and its entry produce. The seed uses it so
-// that its rows hash the way a sync would.
-func Publish(host panel.PanelHost, entry Entry) (Server, error) {
-	return publish(host, entry)
 }
 
 // vlessFields are the non-secret fields of VlessRealityParams. Without uuid the
@@ -320,61 +315,56 @@ func marshal(value any) (json.RawMessage, error) {
 	return encoded, nil
 }
 
-func normalizeEntry(entry Entry) (Entry, error) {
-	entry.DisplayName = strings.TrimSpace(entry.DisplayName)
-	entry.CountryCode = strings.ToUpper(strings.TrimSpace(entry.CountryCode))
-	if entry.City != nil {
-		city := strings.TrimSpace(*entry.City)
-		entry.City = &city
-		if city == "" {
-			entry.City = nil
+// entryOf reads the tags and texts of a host. Unknown tags belong to other
+// panel users and are ignored.
+func entryOf(host panel.PanelHost) (entry, error) {
+	result := entry{
+		group:       string(api.TunnelModeRegular),
+		displayName: strings.TrimSpace(host.Remark),
+		sortWeight:  host.ViewPosition,
+	}
+	if city := strings.TrimSpace(host.Description); city != "" {
+		result.city = &city
+	}
+	countries, hops := 0, 0
+	for _, tag := range host.Tags {
+		switch {
+		case tag == tagWhitelist:
+			result.group = string(api.TunnelModeWhitelist)
+		case strings.HasPrefix(tag, tagCountry):
+			countries++
+			result.countryCode = strings.TrimPrefix(tag, tagCountry)
+		case strings.HasPrefix(tag, tagHop):
+			hops++
+			hopping, err := hopOf(strings.TrimPrefix(tag, tagHop))
+			if err != nil {
+				return entry{}, err
+			}
+			result.portHopping = hopping
 		}
 	}
 	switch {
-	case entry.RemnawaveHostUUID == uuid.Nil:
-		return Entry{}, errors.New("missing remnawaveHostUuid")
-	case !api.TunnelMode(entry.Group).Valid():
-		return Entry{}, fmt.Errorf("host %s: unknown group", entry.RemnawaveHostUUID)
-	case entry.DisplayName == "":
-		return Entry{}, fmt.Errorf("host %s: blank displayName", entry.RemnawaveHostUUID)
-	case !countryPattern.MatchString(entry.CountryCode):
-		return Entry{}, fmt.Errorf("host %s: countryCode must be two letters", entry.RemnawaveHostUUID)
-	case entry.SortWeight < math.MinInt32 || entry.SortWeight > math.MaxInt32:
-		return Entry{}, fmt.Errorf("host %s: sortWeight out of range", entry.RemnawaveHostUUID)
+	case countries != 1:
+		return entry{}, errors.New("want exactly one country tag")
+	case !countryPattern.MatchString(result.countryCode):
+		return entry{}, errors.New("country tag must hold two letters")
+	case hops > 1:
+		return entry{}, errors.New("want at most one hop tag")
+	case result.displayName == "":
+		return entry{}, errors.New("blank remark")
+	case result.sortWeight < math.MinInt32 || result.sortWeight > math.MaxInt32:
+		return entry{}, errors.New("view position out of range")
 	}
-	return entry, nil
+	return result, nil
 }
 
-// LoadEntries reads servers.yaml. Any bad entry fails the whole file: the file
-// ships as one deploy artifact, and a missing or broken file read as empty
-// would switch every server off.
-func LoadEntries(path string) ([]Entry, error) {
-	raw, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("read catalog: %w", err)
+// hopOf reads <ports>:<intervalSec>, where _ stands for the - of a range,
+// because a tag cannot hold a dash or a comma.
+func hopOf(value string) (*api.PortHopping, error) {
+	ports, interval, found := strings.Cut(value, ":")
+	seconds, err := strconv.Atoi(interval)
+	if !found || err != nil {
+		return nil, errors.New("hop tag must be HOP:<ports>:<intervalSec>")
 	}
-	encoded, err := yaml.YAMLToJSON(raw)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrInvalidCatalog, err)
-	}
-	if bytes.Equal(bytes.TrimSpace(encoded), []byte("null")) {
-		return nil, fmt.Errorf("%w: the file must hold a list, write [] for none", ErrInvalidCatalog)
-	}
-	var entries []Entry
-	decoder := json.NewDecoder(bytes.NewReader(encoded))
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&entries); err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrInvalidCatalog, err)
-	}
-	seen := make(map[uuid.UUID]struct{}, len(entries))
-	for index, entry := range entries {
-		if entries[index], err = normalizeEntry(entry); err != nil {
-			return nil, fmt.Errorf("%w: entry %d: %w", ErrInvalidCatalog, index+1, err)
-		}
-		if _, duplicate := seen[entry.RemnawaveHostUUID]; duplicate {
-			return nil, fmt.Errorf("%w: host %s listed twice", ErrInvalidCatalog, entry.RemnawaveHostUUID)
-		}
-		seen[entry.RemnawaveHostUUID] = struct{}{}
-	}
-	return entries, nil
+	return &api.PortHopping{Ports: strings.ReplaceAll(ports, "_", "-"), IntervalSec: seconds}, nil
 }

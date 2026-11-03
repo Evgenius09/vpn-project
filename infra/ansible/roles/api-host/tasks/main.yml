@@ -36,7 +36,6 @@
   loop:
     - { src: compose/api/, dest: compose/api/ }
     - { src: monitoring, dest: "" }
-    - { src: catalog, dest: "" }
 
 # The secret never leaves the host: GitHub does not need it (tech.md 38.4).
 - name: Prepare the webhook secret

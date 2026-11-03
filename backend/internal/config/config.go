@@ -52,7 +52,6 @@ type Config struct {
 	TelegramBotToken      string
 	TelegramBotUsername   string
 	TelegramWebhookSecret string
-	CatalogFile           string
 	PolicyFile            string
 	TokenPepper           string
 	TrialDays             int
@@ -124,7 +123,6 @@ func Load(lookup func(string) string) (Config, error) {
 		TelegramBotToken:      lookup("TELEGRAM_BOT_TOKEN"),
 		TelegramBotUsername:   lookup("TELEGRAM_BOT_USERNAME"),
 		TelegramWebhookSecret: lookup("TELEGRAM_WEBHOOK_SECRET"),
-		CatalogFile:           get("CATALOG_FILE", "../infra/catalog/servers.yaml"),
 		PolicyFile:            get("POLICY_FILE", "config/policy.yaml"),
 		TokenPepper:           get("TOKEN_PEPPER", defaultPepper),
 		TrialDays:             number("TRIAL_DAYS", 3),
