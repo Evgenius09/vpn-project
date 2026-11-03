@@ -1,0 +1,22 @@
+# Remnawave node 3.4.4 next to the panel on the staging node host (tech.md 37.2).
+# Host networking lets Xray bind 443/tcp, 443/udp, and the Hysteria2 port range.
+# SECRET_KEY comes from the panel when the node is added; it lives in .env.
+services:
+  remnawave-node:
+    image: remnawave/node:3.4.4
+    container_name: remnawave-node
+    hostname: remnawave-node
+    network_mode: host
+    restart: always
+    cap_add:
+      - NET_ADMIN
+    ulimits:
+      nofile:
+        soft: 1048576
+        hard: 1048576
+    env_file: .env
+    logging:
+      driver: json-file
+      options:
+        max-size: 100m
+        max-file: 5
