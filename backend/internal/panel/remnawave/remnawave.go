@@ -55,7 +55,7 @@ func New(baseURL, token string, squad uuid.UUID) (*Client, error) {
 // GetUserByUsername implements panel.PanelClient.
 func (c *Client) GetUserByUsername(ctx context.Context, username string) (panel.PanelUser, error) {
 	var out remnawave.UserResponseDto
-	resp, err := c.api.UsersControllerGetUserByUsername(ctx, username)
+	resp, err := c.api.UsersControllerGetUserByUsername(ctx, username) //nolint:bodyclose // decode closes it.
 	if err := decode("get user", resp, err, http.StatusOK, &out); err != nil {
 		return panel.PanelUser{}, err
 	}
@@ -69,7 +69,7 @@ func (c *Client) CreateUser(ctx context.Context, in panel.CreateUserInput) (pane
 	limit := float64(in.TrafficLimit)
 	squads := []uuid.UUID{c.squad}
 	var out remnawave.UserResponseDto
-	resp, err := c.api.UsersControllerCreateUser(ctx, remnawave.CreateUserBodyDto{
+	resp, err := c.api.UsersControllerCreateUser(ctx, remnawave.CreateUserBodyDto{ //nolint:bodyclose // decode closes it.
 		Username:             in.Username,
 		ExpireAt:             in.ExpiresAt.UTC().Format(time.RFC3339),
 		TrafficLimitBytes:    &limit,
@@ -90,7 +90,7 @@ func (c *Client) UpdateUser(ctx context.Context, id int64, in panel.UpdateUserIn
 	expires := in.ExpiresAt.UTC().Format(time.RFC3339)
 	limit := float64(in.TrafficLimit)
 	var out remnawave.UserResponseDto
-	resp, err := c.api.UsersControllerUpdateUser(ctx, remnawave.UpdateUserBodyDto{
+	resp, err := c.api.UsersControllerUpdateUser(ctx, remnawave.UpdateUserBodyDto{ //nolint:bodyclose // decode closes it.
 		Id: &panelID, ExpireAt: &expires, TrafficLimitBytes: &limit,
 	})
 	if err := decode("update user", resp, err, http.StatusOK, &out); err != nil {
@@ -118,12 +118,12 @@ func toUser(dto remnawave.UserResponseDto) panel.PanelUser {
 // are left out, so catalog_sync switches their rows off (tech.md 39.3).
 func (c *Client) ListHosts(ctx context.Context) ([]panel.PanelHost, error) {
 	var hosts remnawave.GetHostsResponseDto
-	resp, err := c.api.HostsControllerGetHosts(ctx)
+	resp, err := c.api.HostsControllerGetHosts(ctx) //nolint:bodyclose // decode closes it.
 	if err := decode("list hosts", resp, err, http.StatusOK, &hosts); err != nil {
 		return nil, err
 	}
 	var inbounds remnawave.GetAllInboundsResponseDto
-	resp, err = c.api.ConfigProfileControllerGetAllInbounds(ctx)
+	resp, err = c.api.ConfigProfileControllerGetAllInbounds(ctx) //nolint:bodyclose // decode closes it.
 	if err := decode("list inbounds", resp, err, http.StatusOK, &inbounds); err != nil {
 		return nil, err
 	}
@@ -215,7 +215,7 @@ func hostParams(inbound rawInbound, sni, fingerprint, address string) (string, j
 		if len(reality.ShortIDs) > 0 {
 			shortID = reality.ShortIDs[0]
 		}
-		params, err := json.Marshal(map[string]string{
+		params, err := marshal(map[string]string{
 			"flow": "xtls-rprx-vision", "serverName": sni, "publicKey": publicKey,
 			"shortId": shortID, "fingerprint": fingerprint,
 		})
@@ -230,7 +230,7 @@ func hostParams(inbound rawInbound, sni, fingerprint, address string) (string, j
 				fields["obfsSalamanderPassword"] = mask.Settings.Password
 			}
 		}
-		params, err := json.Marshal(fields)
+		params, err := marshal(fields)
 		return "hysteria2", params, err
 	}
 	return "", nil, nil
@@ -279,6 +279,14 @@ func decode(op string, resp *http.Response, err error, want int, out any) error 
 		return fmt.Errorf("%w: %s", panel.ErrConflict, op)
 	}
 	return fmt.Errorf("remnawave %s: status %d, error code %q", op, resp.StatusCode, problem.ErrorCode)
+}
+
+func marshal(params map[string]string) (json.RawMessage, error) {
+	encoded, err := json.Marshal(params)
+	if err != nil {
+		return nil, fmt.Errorf("encode params: %w", err)
+	}
+	return encoded, nil
 }
 
 func deref[T any](value *T) T {
