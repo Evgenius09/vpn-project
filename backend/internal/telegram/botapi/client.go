@@ -36,7 +36,7 @@ func New(token string, logger *slog.Logger, options ...Option) (*Client, error) 
 		// Concurrent dispatch would reorder the updates of one user.
 		bot.WithNotAsyncHandlers(),
 		bot.WithErrorsHandler(func(err error) {
-			logger.WarnContext(context.Background(), "telegram client error", "error", err)
+			logger.Warn("telegram client error", "error", err)
 		}),
 	}
 	client, err := bot.New(token, append(defaults, options...)...)

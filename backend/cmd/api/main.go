@@ -14,10 +14,14 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/Evgenius09/vpn-project/backend/internal/app"
+	"github.com/Evgenius09/vpn-project/backend/internal/config"
 	"github.com/Evgenius09/vpn-project/backend/internal/db/sqlc"
 	"github.com/Evgenius09/vpn-project/backend/internal/domain/profile"
+	"github.com/Evgenius09/vpn-project/backend/internal/domain/telegram"
 	"github.com/Evgenius09/vpn-project/backend/internal/gen/api"
 	"github.com/Evgenius09/vpn-project/backend/internal/httpapi"
+	"github.com/Evgenius09/vpn-project/backend/internal/jobs"
+	"github.com/Evgenius09/vpn-project/backend/internal/telegram/botapi"
 )
 
 const (
@@ -56,6 +60,11 @@ func run(ctx context.Context) error {
 	}
 	service := profile.NewService(profile.NewPostgresStore(queries), profile.Options{Policy: policy, Endpoints: endpoints})
 
+	webhook, err := telegramWebhook(runtime)
+	if err != nil {
+		return fmt.Errorf("telegram webhook: %w", err)
+	}
+
 	metrics := httpapi.NewMetrics()
 	router := httpapi.NewRouter(httpapi.Deps{
 		Handlers: handlers{profile: profile.NewHandler(service)},
@@ -63,6 +72,7 @@ func run(ctx context.Context) error {
 		Pepper:   []byte(runtime.Config.TokenPepper),
 		Logger:   runtime.Logger,
 		Metrics:  metrics,
+		Webhook:  webhook,
 	})
 
 	group, ctx := errgroup.WithContext(ctx)
@@ -74,6 +84,24 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("serve: %w", err)
 	}
 	return nil
+}
+
+// telegramWebhook returns nil outside webhook mode, which leaves the route out.
+func telegramWebhook(runtime app.Runtime) (http.Handler, error) {
+	cfg := runtime.Config
+	if cfg.TelegramMode != config.TelegramWebhook {
+		return nil, nil
+	}
+	client, err := botapi.New(cfg.TelegramBotToken, runtime.Logger)
+	if err != nil {
+		return nil, fmt.Errorf("create client: %w", err)
+	}
+	queue, err := jobs.NewClient(runtime.Pool, jobs.Options{Logger: runtime.Logger})
+	if err != nil {
+		return nil, fmt.Errorf("create queue: %w", err)
+	}
+	service := telegram.NewService(runtime.Pool, client, queue, runtime.Logger)
+	return telegram.NewWebhookHandler(service, cfg.TelegramWebhookSecret, runtime.Logger), nil
 }
 
 // handlers composes the domain slices. Operations without a slice stay
