@@ -11,3 +11,8 @@ output-options:
     - UsersController_updateUser
     - HostsController_getHosts
     - ConfigProfileController_getAllInbounds
+  # The panel types ids and byte counts as number; float32 loses precision.
+  type-mapping:
+    number:
+      default:
+        type: float64

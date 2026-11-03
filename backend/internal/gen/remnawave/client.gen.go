@@ -2013,7 +2013,7 @@ type CreateHostBodyDtoSchema0 struct {
 type CreateHostBodyDtoSchema00 = string
 
 // CreateHostBodyDtoSchema01 defines model for CreateHostBodyDtoSchema0.1.
-type CreateHostBodyDtoSchema01 = float32
+type CreateHostBodyDtoSchema01 = float64
 
 // CreateHostBodyDtoSchema02 defines model for CreateHostBodyDtoSchema0.2.
 type CreateHostBodyDtoSchema02 = bool
@@ -2033,7 +2033,7 @@ type CreateHostBodyDtoSchema1 struct {
 type CreateHostBodyDtoSchema10 = string
 
 // CreateHostBodyDtoSchema11 defines model for CreateHostBodyDtoSchema1.1.
-type CreateHostBodyDtoSchema11 = float32
+type CreateHostBodyDtoSchema11 = float64
 
 // CreateHostBodyDtoSchema12 defines model for CreateHostBodyDtoSchema1.2.
 type CreateHostBodyDtoSchema12 = bool
@@ -2053,7 +2053,7 @@ type CreateHostBodyDtoSchema2 struct {
 type CreateHostBodyDtoSchema20 = string
 
 // CreateHostBodyDtoSchema21 defines model for CreateHostBodyDtoSchema2.1.
-type CreateHostBodyDtoSchema21 = float32
+type CreateHostBodyDtoSchema21 = float64
 
 // CreateHostBodyDtoSchema22 defines model for CreateHostBodyDtoSchema2.2.
 type CreateHostBodyDtoSchema22 = bool
@@ -2073,7 +2073,7 @@ type CreateHostBodyDtoSchema3 struct {
 type CreateHostBodyDtoSchema30 = string
 
 // CreateHostBodyDtoSchema31 defines model for CreateHostBodyDtoSchema3.1.
-type CreateHostBodyDtoSchema31 = float32
+type CreateHostBodyDtoSchema31 = float64
 
 // CreateHostBodyDtoSchema32 defines model for CreateHostBodyDtoSchema3.2.
 type CreateHostBodyDtoSchema32 = bool
@@ -2093,7 +2093,7 @@ type CreateHostBodyDtoSchema4 struct {
 type CreateHostBodyDtoSchema40 = string
 
 // CreateHostBodyDtoSchema41 defines model for CreateHostBodyDtoSchema4.1.
-type CreateHostBodyDtoSchema41 = float32
+type CreateHostBodyDtoSchema41 = float64
 
 // CreateHostBodyDtoSchema42 defines model for CreateHostBodyDtoSchema4.2.
 type CreateHostBodyDtoSchema42 = bool
@@ -2113,7 +2113,7 @@ type CreateHostBodyDtoSchema5 struct {
 type CreateHostBodyDtoSchema50 = string
 
 // CreateHostBodyDtoSchema51 defines model for CreateHostBodyDtoSchema5.1.
-type CreateHostBodyDtoSchema51 = float32
+type CreateHostBodyDtoSchema51 = float64
 
 // CreateHostBodyDtoSchema52 defines model for CreateHostBodyDtoSchema5.2.
 type CreateHostBodyDtoSchema52 = bool
@@ -2133,7 +2133,7 @@ type CreateHostBodyDtoSchema6 struct {
 type CreateHostBodyDtoSchema60 = string
 
 // CreateHostBodyDtoSchema61 defines model for CreateHostBodyDtoSchema6.1.
-type CreateHostBodyDtoSchema61 = float32
+type CreateHostBodyDtoSchema61 = float64
 
 // CreateHostBodyDtoSchema62 defines model for CreateHostBodyDtoSchema6.2.
 type CreateHostBodyDtoSchema62 = bool
@@ -2153,7 +2153,7 @@ type CreateHostBodyDtoSchema7 struct {
 type CreateHostBodyDtoSchema70 = string
 
 // CreateHostBodyDtoSchema71 defines model for CreateHostBodyDtoSchema7.1.
-type CreateHostBodyDtoSchema71 = float32
+type CreateHostBodyDtoSchema71 = float64
 
 // CreateHostBodyDtoSchema72 defines model for CreateHostBodyDtoSchema7.2.
 type CreateHostBodyDtoSchema72 = bool
@@ -2203,10 +2203,10 @@ type CreateUserBodyDto struct {
 	Tag *string `json:"tag,omitempty"`
 
 	// TelegramId Optional. Telegram user ID for notifications. Must be an integer.
-	TelegramId *float32 `json:"telegramId,omitempty"`
+	TelegramId *float64 `json:"telegramId,omitempty"`
 
 	// TrafficLimitBytes Optional. Traffic limit in bytes. Set to 0 for unlimited traffic.
-	TrafficLimitBytes *float32 `json:"trafficLimitBytes,omitempty"`
+	TrafficLimitBytes *float64 `json:"trafficLimitBytes,omitempty"`
 
 	// TrafficLimitStrategy Available reset periods
 	TrafficLimitStrategy *CreateUserBodyDtoTrafficLimitStrategy `json:"trafficLimitStrategy,omitempty"`
@@ -2233,7 +2233,7 @@ type GetAllInboundsResponseDto struct {
 		Inbounds []struct {
 			ActiveSquads []openapi_types.UUID `json:"activeSquads"`
 			Network      *string              `json:"network"`
-			Port         *float32             `json:"port"`
+			Port         *float64             `json:"port"`
 			ProfileUuid  openapi_types.UUID   `json:"profileUuid"`
 			RawInbound   interface{}          `json:"rawInbound"`
 			Security     *string              `json:"security"`
@@ -2241,7 +2241,7 @@ type GetAllInboundsResponseDto struct {
 			Type         string               `json:"type"`
 			Uuid         openapi_types.UUID   `json:"uuid"`
 		} `json:"inbounds"`
-		Total float32 `json:"total"`
+		Total float64 `json:"total"`
 	} `json:"response"`
 }
 
@@ -2328,7 +2328,7 @@ type GetHostsResponseDtoResponseMapperBase641Op string
 type GetHostsResponseDtoResponseMapperBase641Value0 = string
 
 // GetHostsResponseDtoResponseMapperBase641Value1 defines model for GetHostsResponseDto.Response.Mapper.Base64.1.Value.1.
-type GetHostsResponseDtoResponseMapperBase641Value1 = float32
+type GetHostsResponseDtoResponseMapperBase641Value1 = float64
 
 // GetHostsResponseDtoResponseMapperBase641Value2 defines model for GetHostsResponseDto.Response.Mapper.Base64.1.Value.2.
 type GetHostsResponseDtoResponseMapperBase641Value2 = bool
@@ -2382,7 +2382,7 @@ type GetHostsResponseDtoResponseMapperMihomo1Op string
 type GetHostsResponseDtoResponseMapperMihomo1Value0 = string
 
 // GetHostsResponseDtoResponseMapperMihomo1Value1 defines model for GetHostsResponseDto.Response.Mapper.Mihomo.1.Value.1.
-type GetHostsResponseDtoResponseMapperMihomo1Value1 = float32
+type GetHostsResponseDtoResponseMapperMihomo1Value1 = float64
 
 // GetHostsResponseDtoResponseMapperMihomo1Value2 defines model for GetHostsResponseDto.Response.Mapper.Mihomo.1.Value.2.
 type GetHostsResponseDtoResponseMapperMihomo1Value2 = bool
@@ -2436,7 +2436,7 @@ type GetHostsResponseDtoResponseMapperSingbox1Op string
 type GetHostsResponseDtoResponseMapperSingbox1Value0 = string
 
 // GetHostsResponseDtoResponseMapperSingbox1Value1 defines model for GetHostsResponseDto.Response.Mapper.Singbox.1.Value.1.
-type GetHostsResponseDtoResponseMapperSingbox1Value1 = float32
+type GetHostsResponseDtoResponseMapperSingbox1Value1 = float64
 
 // GetHostsResponseDtoResponseMapperSingbox1Value2 defines model for GetHostsResponseDto.Response.Mapper.Singbox.1.Value.2.
 type GetHostsResponseDtoResponseMapperSingbox1Value2 = bool
@@ -2490,7 +2490,7 @@ type GetHostsResponseDtoResponseMapperXrayJson1Op string
 type GetHostsResponseDtoResponseMapperXrayJson1Value0 = string
 
 // GetHostsResponseDtoResponseMapperXrayJson1Value1 defines model for GetHostsResponseDto.Response.Mapper.XrayJson.1.Value.1.
-type GetHostsResponseDtoResponseMapperXrayJson1Value1 = float32
+type GetHostsResponseDtoResponseMapperXrayJson1Value1 = float64
 
 // GetHostsResponseDtoResponseMapperXrayJson1Value2 defines model for GetHostsResponseDto.Response.Mapper.XrayJson.1.Value.2.
 type GetHostsResponseDtoResponseMapperXrayJson1Value2 = bool
@@ -2535,7 +2535,7 @@ type GetHostsResponseDtoSchema0 struct {
 type GetHostsResponseDtoSchema00 = string
 
 // GetHostsResponseDtoSchema01 defines model for GetHostsResponseDtoSchema0.1.
-type GetHostsResponseDtoSchema01 = float32
+type GetHostsResponseDtoSchema01 = float64
 
 // GetHostsResponseDtoSchema02 defines model for GetHostsResponseDtoSchema0.2.
 type GetHostsResponseDtoSchema02 = bool
@@ -2555,7 +2555,7 @@ type GetHostsResponseDtoSchema1 struct {
 type GetHostsResponseDtoSchema10 = string
 
 // GetHostsResponseDtoSchema11 defines model for GetHostsResponseDtoSchema1.1.
-type GetHostsResponseDtoSchema11 = float32
+type GetHostsResponseDtoSchema11 = float64
 
 // GetHostsResponseDtoSchema12 defines model for GetHostsResponseDtoSchema1.2.
 type GetHostsResponseDtoSchema12 = bool
@@ -2575,7 +2575,7 @@ type GetHostsResponseDtoSchema2 struct {
 type GetHostsResponseDtoSchema20 = string
 
 // GetHostsResponseDtoSchema21 defines model for GetHostsResponseDtoSchema2.1.
-type GetHostsResponseDtoSchema21 = float32
+type GetHostsResponseDtoSchema21 = float64
 
 // GetHostsResponseDtoSchema22 defines model for GetHostsResponseDtoSchema2.2.
 type GetHostsResponseDtoSchema22 = bool
@@ -2595,7 +2595,7 @@ type GetHostsResponseDtoSchema3 struct {
 type GetHostsResponseDtoSchema30 = string
 
 // GetHostsResponseDtoSchema31 defines model for GetHostsResponseDtoSchema3.1.
-type GetHostsResponseDtoSchema31 = float32
+type GetHostsResponseDtoSchema31 = float64
 
 // GetHostsResponseDtoSchema32 defines model for GetHostsResponseDtoSchema3.2.
 type GetHostsResponseDtoSchema32 = bool
@@ -2615,7 +2615,7 @@ type GetHostsResponseDtoSchema4 struct {
 type GetHostsResponseDtoSchema40 = string
 
 // GetHostsResponseDtoSchema41 defines model for GetHostsResponseDtoSchema4.1.
-type GetHostsResponseDtoSchema41 = float32
+type GetHostsResponseDtoSchema41 = float64
 
 // GetHostsResponseDtoSchema42 defines model for GetHostsResponseDtoSchema4.2.
 type GetHostsResponseDtoSchema42 = bool
@@ -2635,7 +2635,7 @@ type GetHostsResponseDtoSchema5 struct {
 type GetHostsResponseDtoSchema50 = string
 
 // GetHostsResponseDtoSchema51 defines model for GetHostsResponseDtoSchema5.1.
-type GetHostsResponseDtoSchema51 = float32
+type GetHostsResponseDtoSchema51 = float64
 
 // GetHostsResponseDtoSchema52 defines model for GetHostsResponseDtoSchema5.2.
 type GetHostsResponseDtoSchema52 = bool
@@ -2655,7 +2655,7 @@ type GetHostsResponseDtoSchema6 struct {
 type GetHostsResponseDtoSchema60 = string
 
 // GetHostsResponseDtoSchema61 defines model for GetHostsResponseDtoSchema6.1.
-type GetHostsResponseDtoSchema61 = float32
+type GetHostsResponseDtoSchema61 = float64
 
 // GetHostsResponseDtoSchema62 defines model for GetHostsResponseDtoSchema6.2.
 type GetHostsResponseDtoSchema62 = bool
@@ -2675,7 +2675,7 @@ type GetHostsResponseDtoSchema7 struct {
 type GetHostsResponseDtoSchema70 = string
 
 // GetHostsResponseDtoSchema71 defines model for GetHostsResponseDtoSchema7.1.
-type GetHostsResponseDtoSchema71 = float32
+type GetHostsResponseDtoSchema71 = float64
 
 // GetHostsResponseDtoSchema72 defines model for GetHostsResponseDtoSchema7.2.
 type GetHostsResponseDtoSchema72 = bool
@@ -2695,7 +2695,7 @@ type GetRawSubscriptionByShortUuidResponseDtoSchema0 struct {
 type GetRawSubscriptionByShortUuidResponseDtoSchema00 = string
 
 // GetRawSubscriptionByShortUuidResponseDtoSchema01 defines model for GetRawSubscriptionByShortUuidResponseDtoSchema0.1.
-type GetRawSubscriptionByShortUuidResponseDtoSchema01 = float32
+type GetRawSubscriptionByShortUuidResponseDtoSchema01 = float64
 
 // GetRawSubscriptionByShortUuidResponseDtoSchema02 defines model for GetRawSubscriptionByShortUuidResponseDtoSchema0.2.
 type GetRawSubscriptionByShortUuidResponseDtoSchema02 = bool
@@ -2715,7 +2715,7 @@ type GetRawSubscriptionByShortUuidResponseDtoSchema1 struct {
 type GetRawSubscriptionByShortUuidResponseDtoSchema10 = string
 
 // GetRawSubscriptionByShortUuidResponseDtoSchema11 defines model for GetRawSubscriptionByShortUuidResponseDtoSchema1.1.
-type GetRawSubscriptionByShortUuidResponseDtoSchema11 = float32
+type GetRawSubscriptionByShortUuidResponseDtoSchema11 = float64
 
 // GetRawSubscriptionByShortUuidResponseDtoSchema12 defines model for GetRawSubscriptionByShortUuidResponseDtoSchema1.2.
 type GetRawSubscriptionByShortUuidResponseDtoSchema12 = bool
@@ -2735,7 +2735,7 @@ type GetRawSubscriptionByShortUuidResponseDtoSchema2 struct {
 type GetRawSubscriptionByShortUuidResponseDtoSchema20 = string
 
 // GetRawSubscriptionByShortUuidResponseDtoSchema21 defines model for GetRawSubscriptionByShortUuidResponseDtoSchema2.1.
-type GetRawSubscriptionByShortUuidResponseDtoSchema21 = float32
+type GetRawSubscriptionByShortUuidResponseDtoSchema21 = float64
 
 // GetRawSubscriptionByShortUuidResponseDtoSchema22 defines model for GetRawSubscriptionByShortUuidResponseDtoSchema2.2.
 type GetRawSubscriptionByShortUuidResponseDtoSchema22 = bool
@@ -2755,7 +2755,7 @@ type GetRawSubscriptionByShortUuidResponseDtoSchema3 struct {
 type GetRawSubscriptionByShortUuidResponseDtoSchema30 = string
 
 // GetRawSubscriptionByShortUuidResponseDtoSchema31 defines model for GetRawSubscriptionByShortUuidResponseDtoSchema3.1.
-type GetRawSubscriptionByShortUuidResponseDtoSchema31 = float32
+type GetRawSubscriptionByShortUuidResponseDtoSchema31 = float64
 
 // GetRawSubscriptionByShortUuidResponseDtoSchema32 defines model for GetRawSubscriptionByShortUuidResponseDtoSchema3.2.
 type GetRawSubscriptionByShortUuidResponseDtoSchema32 = bool
@@ -2775,7 +2775,7 @@ type GetRawSubscriptionByShortUuidResponseDtoSchema4 struct {
 type GetRawSubscriptionByShortUuidResponseDtoSchema40 = string
 
 // GetRawSubscriptionByShortUuidResponseDtoSchema41 defines model for GetRawSubscriptionByShortUuidResponseDtoSchema4.1.
-type GetRawSubscriptionByShortUuidResponseDtoSchema41 = float32
+type GetRawSubscriptionByShortUuidResponseDtoSchema41 = float64
 
 // GetRawSubscriptionByShortUuidResponseDtoSchema42 defines model for GetRawSubscriptionByShortUuidResponseDtoSchema4.2.
 type GetRawSubscriptionByShortUuidResponseDtoSchema42 = bool
@@ -2795,7 +2795,7 @@ type GetRawSubscriptionByShortUuidResponseDtoSchema5 struct {
 type GetRawSubscriptionByShortUuidResponseDtoSchema50 = string
 
 // GetRawSubscriptionByShortUuidResponseDtoSchema51 defines model for GetRawSubscriptionByShortUuidResponseDtoSchema5.1.
-type GetRawSubscriptionByShortUuidResponseDtoSchema51 = float32
+type GetRawSubscriptionByShortUuidResponseDtoSchema51 = float64
 
 // GetRawSubscriptionByShortUuidResponseDtoSchema52 defines model for GetRawSubscriptionByShortUuidResponseDtoSchema5.2.
 type GetRawSubscriptionByShortUuidResponseDtoSchema52 = bool
@@ -2815,7 +2815,7 @@ type GetRawSubscriptionByShortUuidResponseDtoSchema6 struct {
 type GetRawSubscriptionByShortUuidResponseDtoSchema60 = string
 
 // GetRawSubscriptionByShortUuidResponseDtoSchema61 defines model for GetRawSubscriptionByShortUuidResponseDtoSchema6.1.
-type GetRawSubscriptionByShortUuidResponseDtoSchema61 = float32
+type GetRawSubscriptionByShortUuidResponseDtoSchema61 = float64
 
 // GetRawSubscriptionByShortUuidResponseDtoSchema62 defines model for GetRawSubscriptionByShortUuidResponseDtoSchema6.2.
 type GetRawSubscriptionByShortUuidResponseDtoSchema62 = bool
@@ -2835,7 +2835,7 @@ type GetRawSubscriptionByShortUuidResponseDtoSchema7 struct {
 type GetRawSubscriptionByShortUuidResponseDtoSchema70 = string
 
 // GetRawSubscriptionByShortUuidResponseDtoSchema71 defines model for GetRawSubscriptionByShortUuidResponseDtoSchema7.1.
-type GetRawSubscriptionByShortUuidResponseDtoSchema71 = float32
+type GetRawSubscriptionByShortUuidResponseDtoSchema71 = float64
 
 // GetRawSubscriptionByShortUuidResponseDtoSchema72 defines model for GetRawSubscriptionByShortUuidResponseDtoSchema7.2.
 type GetRawSubscriptionByShortUuidResponseDtoSchema72 = bool
@@ -2855,7 +2855,7 @@ type HostResponseDtoSchema0 struct {
 type HostResponseDtoSchema00 = string
 
 // HostResponseDtoSchema01 defines model for HostResponseDtoSchema0.1.
-type HostResponseDtoSchema01 = float32
+type HostResponseDtoSchema01 = float64
 
 // HostResponseDtoSchema02 defines model for HostResponseDtoSchema0.2.
 type HostResponseDtoSchema02 = bool
@@ -2875,7 +2875,7 @@ type HostResponseDtoSchema1 struct {
 type HostResponseDtoSchema10 = string
 
 // HostResponseDtoSchema11 defines model for HostResponseDtoSchema1.1.
-type HostResponseDtoSchema11 = float32
+type HostResponseDtoSchema11 = float64
 
 // HostResponseDtoSchema12 defines model for HostResponseDtoSchema1.2.
 type HostResponseDtoSchema12 = bool
@@ -2895,7 +2895,7 @@ type HostResponseDtoSchema2 struct {
 type HostResponseDtoSchema20 = string
 
 // HostResponseDtoSchema21 defines model for HostResponseDtoSchema2.1.
-type HostResponseDtoSchema21 = float32
+type HostResponseDtoSchema21 = float64
 
 // HostResponseDtoSchema22 defines model for HostResponseDtoSchema2.2.
 type HostResponseDtoSchema22 = bool
@@ -2915,7 +2915,7 @@ type HostResponseDtoSchema3 struct {
 type HostResponseDtoSchema30 = string
 
 // HostResponseDtoSchema31 defines model for HostResponseDtoSchema3.1.
-type HostResponseDtoSchema31 = float32
+type HostResponseDtoSchema31 = float64
 
 // HostResponseDtoSchema32 defines model for HostResponseDtoSchema3.2.
 type HostResponseDtoSchema32 = bool
@@ -2935,7 +2935,7 @@ type HostResponseDtoSchema4 struct {
 type HostResponseDtoSchema40 = string
 
 // HostResponseDtoSchema41 defines model for HostResponseDtoSchema4.1.
-type HostResponseDtoSchema41 = float32
+type HostResponseDtoSchema41 = float64
 
 // HostResponseDtoSchema42 defines model for HostResponseDtoSchema4.2.
 type HostResponseDtoSchema42 = bool
@@ -2955,7 +2955,7 @@ type HostResponseDtoSchema5 struct {
 type HostResponseDtoSchema50 = string
 
 // HostResponseDtoSchema51 defines model for HostResponseDtoSchema5.1.
-type HostResponseDtoSchema51 = float32
+type HostResponseDtoSchema51 = float64
 
 // HostResponseDtoSchema52 defines model for HostResponseDtoSchema5.2.
 type HostResponseDtoSchema52 = bool
@@ -2975,7 +2975,7 @@ type HostResponseDtoSchema6 struct {
 type HostResponseDtoSchema60 = string
 
 // HostResponseDtoSchema61 defines model for HostResponseDtoSchema6.1.
-type HostResponseDtoSchema61 = float32
+type HostResponseDtoSchema61 = float64
 
 // HostResponseDtoSchema62 defines model for HostResponseDtoSchema6.2.
 type HostResponseDtoSchema62 = bool
@@ -2995,7 +2995,7 @@ type HostResponseDtoSchema7 struct {
 type HostResponseDtoSchema70 = string
 
 // HostResponseDtoSchema71 defines model for HostResponseDtoSchema7.1.
-type HostResponseDtoSchema71 = float32
+type HostResponseDtoSchema71 = float64
 
 // HostResponseDtoSchema72 defines model for HostResponseDtoSchema7.2.
 type HostResponseDtoSchema72 = bool
@@ -3582,7 +3582,7 @@ type RemnawaveValidationErrorDto struct {
 	Message string `json:"message"`
 
 	// StatusCode HTTP status code.
-	StatusCode float32 `json:"statusCode"`
+	StatusCode float64 `json:"statusCode"`
 }
 
 // UpdateHostBodyDtoSchema0 defines model for UpdateHostBodyDto__schema0.
@@ -3594,7 +3594,7 @@ type UpdateHostBodyDtoSchema0 struct {
 type UpdateHostBodyDtoSchema00 = string
 
 // UpdateHostBodyDtoSchema01 defines model for UpdateHostBodyDtoSchema0.1.
-type UpdateHostBodyDtoSchema01 = float32
+type UpdateHostBodyDtoSchema01 = float64
 
 // UpdateHostBodyDtoSchema02 defines model for UpdateHostBodyDtoSchema0.2.
 type UpdateHostBodyDtoSchema02 = bool
@@ -3614,7 +3614,7 @@ type UpdateHostBodyDtoSchema1 struct {
 type UpdateHostBodyDtoSchema10 = string
 
 // UpdateHostBodyDtoSchema11 defines model for UpdateHostBodyDtoSchema1.1.
-type UpdateHostBodyDtoSchema11 = float32
+type UpdateHostBodyDtoSchema11 = float64
 
 // UpdateHostBodyDtoSchema12 defines model for UpdateHostBodyDtoSchema1.2.
 type UpdateHostBodyDtoSchema12 = bool
@@ -3634,7 +3634,7 @@ type UpdateHostBodyDtoSchema2 struct {
 type UpdateHostBodyDtoSchema20 = string
 
 // UpdateHostBodyDtoSchema21 defines model for UpdateHostBodyDtoSchema2.1.
-type UpdateHostBodyDtoSchema21 = float32
+type UpdateHostBodyDtoSchema21 = float64
 
 // UpdateHostBodyDtoSchema22 defines model for UpdateHostBodyDtoSchema2.2.
 type UpdateHostBodyDtoSchema22 = bool
@@ -3654,7 +3654,7 @@ type UpdateHostBodyDtoSchema3 struct {
 type UpdateHostBodyDtoSchema30 = string
 
 // UpdateHostBodyDtoSchema31 defines model for UpdateHostBodyDtoSchema3.1.
-type UpdateHostBodyDtoSchema31 = float32
+type UpdateHostBodyDtoSchema31 = float64
 
 // UpdateHostBodyDtoSchema32 defines model for UpdateHostBodyDtoSchema3.2.
 type UpdateHostBodyDtoSchema32 = bool
@@ -3674,7 +3674,7 @@ type UpdateHostBodyDtoSchema4 struct {
 type UpdateHostBodyDtoSchema40 = string
 
 // UpdateHostBodyDtoSchema41 defines model for UpdateHostBodyDtoSchema4.1.
-type UpdateHostBodyDtoSchema41 = float32
+type UpdateHostBodyDtoSchema41 = float64
 
 // UpdateHostBodyDtoSchema42 defines model for UpdateHostBodyDtoSchema4.2.
 type UpdateHostBodyDtoSchema42 = bool
@@ -3694,7 +3694,7 @@ type UpdateHostBodyDtoSchema5 struct {
 type UpdateHostBodyDtoSchema50 = string
 
 // UpdateHostBodyDtoSchema51 defines model for UpdateHostBodyDtoSchema5.1.
-type UpdateHostBodyDtoSchema51 = float32
+type UpdateHostBodyDtoSchema51 = float64
 
 // UpdateHostBodyDtoSchema52 defines model for UpdateHostBodyDtoSchema5.2.
 type UpdateHostBodyDtoSchema52 = bool
@@ -3714,7 +3714,7 @@ type UpdateHostBodyDtoSchema6 struct {
 type UpdateHostBodyDtoSchema60 = string
 
 // UpdateHostBodyDtoSchema61 defines model for UpdateHostBodyDtoSchema6.1.
-type UpdateHostBodyDtoSchema61 = float32
+type UpdateHostBodyDtoSchema61 = float64
 
 // UpdateHostBodyDtoSchema62 defines model for UpdateHostBodyDtoSchema6.2.
 type UpdateHostBodyDtoSchema62 = bool
@@ -3734,7 +3734,7 @@ type UpdateHostBodyDtoSchema7 struct {
 type UpdateHostBodyDtoSchema70 = string
 
 // UpdateHostBodyDtoSchema71 defines model for UpdateHostBodyDtoSchema7.1.
-type UpdateHostBodyDtoSchema71 = float32
+type UpdateHostBodyDtoSchema71 = float64
 
 // UpdateHostBodyDtoSchema72 defines model for UpdateHostBodyDtoSchema7.2.
 type UpdateHostBodyDtoSchema72 = bool
@@ -3754,7 +3754,7 @@ type UpdateManyHostsBodyDtoSchema0 struct {
 type UpdateManyHostsBodyDtoSchema00 = string
 
 // UpdateManyHostsBodyDtoSchema01 defines model for UpdateManyHostsBodyDtoSchema0.1.
-type UpdateManyHostsBodyDtoSchema01 = float32
+type UpdateManyHostsBodyDtoSchema01 = float64
 
 // UpdateManyHostsBodyDtoSchema02 defines model for UpdateManyHostsBodyDtoSchema0.2.
 type UpdateManyHostsBodyDtoSchema02 = bool
@@ -3774,7 +3774,7 @@ type UpdateManyHostsBodyDtoSchema1 struct {
 type UpdateManyHostsBodyDtoSchema10 = string
 
 // UpdateManyHostsBodyDtoSchema11 defines model for UpdateManyHostsBodyDtoSchema1.1.
-type UpdateManyHostsBodyDtoSchema11 = float32
+type UpdateManyHostsBodyDtoSchema11 = float64
 
 // UpdateManyHostsBodyDtoSchema12 defines model for UpdateManyHostsBodyDtoSchema1.2.
 type UpdateManyHostsBodyDtoSchema12 = bool
@@ -3794,7 +3794,7 @@ type UpdateManyHostsBodyDtoSchema2 struct {
 type UpdateManyHostsBodyDtoSchema20 = string
 
 // UpdateManyHostsBodyDtoSchema21 defines model for UpdateManyHostsBodyDtoSchema2.1.
-type UpdateManyHostsBodyDtoSchema21 = float32
+type UpdateManyHostsBodyDtoSchema21 = float64
 
 // UpdateManyHostsBodyDtoSchema22 defines model for UpdateManyHostsBodyDtoSchema2.2.
 type UpdateManyHostsBodyDtoSchema22 = bool
@@ -3814,7 +3814,7 @@ type UpdateManyHostsBodyDtoSchema3 struct {
 type UpdateManyHostsBodyDtoSchema30 = string
 
 // UpdateManyHostsBodyDtoSchema31 defines model for UpdateManyHostsBodyDtoSchema3.1.
-type UpdateManyHostsBodyDtoSchema31 = float32
+type UpdateManyHostsBodyDtoSchema31 = float64
 
 // UpdateManyHostsBodyDtoSchema32 defines model for UpdateManyHostsBodyDtoSchema3.2.
 type UpdateManyHostsBodyDtoSchema32 = bool
@@ -3834,7 +3834,7 @@ type UpdateManyHostsBodyDtoSchema4 struct {
 type UpdateManyHostsBodyDtoSchema40 = string
 
 // UpdateManyHostsBodyDtoSchema41 defines model for UpdateManyHostsBodyDtoSchema4.1.
-type UpdateManyHostsBodyDtoSchema41 = float32
+type UpdateManyHostsBodyDtoSchema41 = float64
 
 // UpdateManyHostsBodyDtoSchema42 defines model for UpdateManyHostsBodyDtoSchema4.2.
 type UpdateManyHostsBodyDtoSchema42 = bool
@@ -3854,7 +3854,7 @@ type UpdateManyHostsBodyDtoSchema5 struct {
 type UpdateManyHostsBodyDtoSchema50 = string
 
 // UpdateManyHostsBodyDtoSchema51 defines model for UpdateManyHostsBodyDtoSchema5.1.
-type UpdateManyHostsBodyDtoSchema51 = float32
+type UpdateManyHostsBodyDtoSchema51 = float64
 
 // UpdateManyHostsBodyDtoSchema52 defines model for UpdateManyHostsBodyDtoSchema5.2.
 type UpdateManyHostsBodyDtoSchema52 = bool
@@ -3874,7 +3874,7 @@ type UpdateManyHostsBodyDtoSchema6 struct {
 type UpdateManyHostsBodyDtoSchema60 = string
 
 // UpdateManyHostsBodyDtoSchema61 defines model for UpdateManyHostsBodyDtoSchema6.1.
-type UpdateManyHostsBodyDtoSchema61 = float32
+type UpdateManyHostsBodyDtoSchema61 = float64
 
 // UpdateManyHostsBodyDtoSchema62 defines model for UpdateManyHostsBodyDtoSchema6.2.
 type UpdateManyHostsBodyDtoSchema62 = bool
@@ -3894,7 +3894,7 @@ type UpdateManyHostsBodyDtoSchema7 struct {
 type UpdateManyHostsBodyDtoSchema70 = string
 
 // UpdateManyHostsBodyDtoSchema71 defines model for UpdateManyHostsBodyDtoSchema7.1.
-type UpdateManyHostsBodyDtoSchema71 = float32
+type UpdateManyHostsBodyDtoSchema71 = float64
 
 // UpdateManyHostsBodyDtoSchema72 defines model for UpdateManyHostsBodyDtoSchema7.2.
 type UpdateManyHostsBodyDtoSchema72 = bool
@@ -3919,13 +3919,13 @@ type UpdateUserBodyDto struct {
 	HwidDeviceLimit   *int                `json:"hwidDeviceLimit,omitempty"`
 
 	// Id ID of the user
-	Id         *float32                 `json:"id,omitempty"`
+	Id         *float64                 `json:"id,omitempty"`
 	Status     *UpdateUserBodyDtoStatus `json:"status,omitempty"`
 	Tag        *string                  `json:"tag,omitempty"`
-	TelegramId *float32                 `json:"telegramId,omitempty"`
+	TelegramId *float64                 `json:"telegramId,omitempty"`
 
 	// TrafficLimitBytes Traffic limit in bytes. 0 - unlimited
-	TrafficLimitBytes *float32 `json:"trafficLimitBytes,omitempty"`
+	TrafficLimitBytes *float64 `json:"trafficLimitBytes,omitempty"`
 
 	// TrafficLimitStrategy Traffic limit reset strategy
 	TrafficLimitStrategy *UpdateUserBodyDtoTrafficLimitStrategy `json:"trafficLimitStrategy,omitempty"`
@@ -3953,7 +3953,7 @@ type UserResponseDto struct {
 		ExpireAt               time.Time                     `json:"expireAt"`
 		ExternalSquadUuid      *openapi_types.UUID           `json:"externalSquadUuid"`
 		HwidDeviceLimit        *int                          `json:"hwidDeviceLimit"`
-		Id                     float32                       `json:"id"`
+		Id                     float64                       `json:"id"`
 		LastTrafficResetAt     *time.Time                    `json:"lastTrafficResetAt"`
 		LastTriggeredThreshold int                           `json:"lastTriggeredThreshold"`
 		ShortUuid              string                        `json:"shortUuid"`
@@ -3962,8 +3962,8 @@ type UserResponseDto struct {
 		SubRevokedAt           *time.Time                    `json:"subRevokedAt"`
 		SubscriptionUrl        string                        `json:"subscriptionUrl"`
 		Tag                    *string                       `json:"tag"`
-		TelegramId             *float32                      `json:"telegramId"`
-		TrafficLimitBytes      float32                       `json:"trafficLimitBytes"`
+		TelegramId             *float64                      `json:"telegramId"`
+		TrafficLimitBytes      float64                       `json:"trafficLimitBytes"`
 
 		// TrafficLimitStrategy Available reset periods
 		TrafficLimitStrategy UserResponseDtoResponseTrafficLimitStrategy `json:"trafficLimitStrategy"`
@@ -3972,9 +3972,9 @@ type UserResponseDto struct {
 		UserTraffic          struct {
 			FirstConnectedAt         *time.Time          `json:"firstConnectedAt"`
 			LastConnectedNodeUuid    *openapi_types.UUID `json:"lastConnectedNodeUuid"`
-			LifetimeUsedTrafficBytes float32             `json:"lifetimeUsedTrafficBytes"`
+			LifetimeUsedTrafficBytes float64             `json:"lifetimeUsedTrafficBytes"`
 			OnlineAt                 *time.Time          `json:"onlineAt"`
-			UsedTrafficBytes         float32             `json:"usedTrafficBytes"`
+			UsedTrafficBytes         float64             `json:"usedTrafficBytes"`
 		} `json:"userTraffic"`
 		Username  string             `json:"username"`
 		VlessUuid openapi_types.UUID `json:"vlessUuid"`
