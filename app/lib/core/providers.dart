@@ -3,6 +3,7 @@ import 'dart:io' as io;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'api/api_client.dart';
+import 'api/fallback_api_client.dart';
 import 'config/app_config.dart';
 import 'storage/token_store.dart';
 import 'vpn/fake_vpn_bridge.dart';
@@ -44,16 +45,20 @@ final sessionProvider = NotifierProvider<SessionNotifier, bool>(
   SessionNotifier.new,
 );
 
+final apiEndpointsProvider = Provider<ApiEndpoints>(
+  (ref) => ApiEndpoints(ref.watch(appConfigProvider).apiBaseUrls),
+);
+
 final apiClientProvider = Provider<ApiClient>((ref) {
   final config = ref.watch(appConfigProvider);
   if (config.fakeApi) {
     return FakeApiClient();
   }
-  return HttpApiClient(
-    createGeneratedClient(
-      baseUrl: config.apiBaseUrls.first,
-      tokens: ref.watch(tokenStoreProvider),
-    ),
+  final tokens = ref.watch(tokenStoreProvider);
+  return FallbackApiClient(
+    ref.watch(apiEndpointsProvider),
+    (baseUrl) =>
+        HttpApiClient(createGeneratedClient(baseUrl: baseUrl, tokens: tokens)),
   );
 });
 

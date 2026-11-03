@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 
 import '../../gen/api/export.dart';
 import '../storage/token_store.dart';
+import 'fallback_api_client.dart';
 
 const _fakeProfileAsset = 'assets/gen/profile.json';
 
@@ -56,7 +57,11 @@ final class ApiProblem extends ApiException {
 /// No usable answer: the network failed or the server is broken. Callers may
 /// fall back to cached data.
 final class ApiUnavailable extends ApiException {
-  const ApiUnavailable();
+  const ApiUnavailable({this.requestSent = true});
+
+  /// False when the connection failed, so the server never saw the request
+  /// and another address may take it (tech.md 35.1).
+  final bool requestSent;
 }
 
 /// What features use. The generated client and the fake stay behind it.
@@ -82,7 +87,11 @@ class HttpApiClient implements ApiClient {
   static Object _translate(DioException error) {
     final response = error.response;
     if (response == null || response.statusCode == null) {
-      return const ApiUnavailable();
+      return ApiUnavailable(
+        requestSent:
+            error.type != DioExceptionType.connectionTimeout &&
+            error.type != DioExceptionType.connectionError,
+      );
     }
     final status = response.statusCode!;
     if (status >= _serverErrorStart) {
@@ -253,8 +262,13 @@ VpnApiClient createGeneratedClient({
   required TokenStore tokens,
   HttpClientAdapter? adapter,
 }) {
-  final dio = Dio(BaseOptions(baseUrl: baseUrl))
-    ..interceptors.add(AuthInterceptor(tokens));
+  final dio = Dio(
+    BaseOptions(
+      baseUrl: baseUrl,
+      connectTimeout: apiAttemptTimeout,
+      receiveTimeout: apiAttemptTimeout,
+    ),
+  )..interceptors.add(AuthInterceptor(tokens));
   if (adapter != null) {
     dio.httpClientAdapter = adapter;
   }

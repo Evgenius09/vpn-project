@@ -120,6 +120,7 @@ class ConnectionHarness {
   /// Answers at once by default, so the ping on open settles.
   final TcpPing tcp;
   final settings = MemoryUserSettingsStore();
+  final cache = MemoryProfileCache();
   final bridge = RecordingVpnBridge();
   final selection = MemorySelectionStore();
   DateTime now = DateTime.utc(2026, 11, 3, 12);
@@ -137,7 +138,7 @@ class ConnectionHarness {
           tokenStoreProvider.overrideWithValue(MemoryTokenStore('t')),
           initialTokenProvider.overrideWithValue('t'),
           vpnBridgeProvider.overrideWithValue(bridge),
-          profileCacheProvider.overrideWithValue(MemoryProfileCache()),
+          profileCacheProvider.overrideWithValue(cache),
           selectionStoreProvider.overrideWithValue(selection),
           deviceIdentityProvider.overrideWith((ref) async => androidIdentity),
           connectionClockProvider.overrideWithValue(() => now),

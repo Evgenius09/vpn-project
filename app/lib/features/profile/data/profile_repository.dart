@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import '../../../core/api/api_client.dart';
+import '../../../core/api/fallback_api_client.dart';
 import '../../../gen/api/export.dart';
 
 /// A saved profile with the ETag it came with.
@@ -86,15 +87,20 @@ class ProfileLoad {
 }
 
 class ProfileRepository {
-  ProfileRepository(this._api, this._cache);
+  ProfileRepository(this._api, this._cache, this._endpoints);
 
   final ApiClient _api;
   final ProfileCache _cache;
+  final ApiEndpoints _endpoints;
 
   /// Loads the profile. Failure to reach the API falls back to the cache, so
   /// a signed-in device keeps working (tech.md 18.5).
   Future<ProfileLoad> load() async {
     final cached = await _cache.read();
+    if (cached != null) {
+      // The first request after a start already knows the fallback addresses.
+      _endpoints.learn(cached.profile.endpoints.api);
+    }
     final ProfileFetch fetch;
     try {
       fetch = await _api.fetchProfile(etag: cached?.etag);
@@ -114,6 +120,7 @@ class ProfileRepository {
     if (profile == null) {
       return ProfileLoad(cached!.profile);
     }
+    _endpoints.learn(profile.endpoints.api);
     await _cache.write(CachedProfile(profile, fetch.etag));
     return ProfileLoad(profile, retryAfterSec: fetch.retryAfterSec);
   }
