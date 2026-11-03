@@ -304,7 +304,8 @@ void main() {
 
     await enterUsername(tester, 'seed_user');
     await enterCode(tester, '123456');
-    await tester.drag(find.byType(ServerSheet), const Offset(0, -400));
+    // The header holds the ping controls, so drag it rather than the middle.
+    await tester.drag(find.text('Servers').first, const Offset(0, -400));
     await tester.pumpAndSettle();
 
     expect(find.byType(ServerTile), findsWidgets);

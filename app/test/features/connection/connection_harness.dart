@@ -13,12 +13,17 @@ import 'package:vpnclient/core/storage/token_store.dart';
 import 'package:vpnclient/core/vpn/fake_vpn_bridge.dart';
 import 'package:vpnclient/core/vpn/vpn_bridge.dart';
 import 'package:vpnclient/features/connection/application/connection_controller.dart';
+import 'package:vpnclient/features/ping/application/ping_controller.dart';
+import 'package:vpnclient/features/ping/data/tcp_ping.dart';
+import 'package:vpnclient/features/ping/data/user_settings_store.dart';
 import 'package:vpnclient/features/profile/application/profile_controller.dart';
 import 'package:vpnclient/features/profile/data/profile_repository.dart';
 import 'package:vpnclient/features/servers/application/selection_controller.dart';
 import 'package:vpnclient/features/servers/data/selection_store.dart';
 import 'package:vpnclient/gen/api/export.dart';
 import 'package:vpnclient/ui/ui.dart';
+
+import '../ping/ping_harness.dart';
 
 String seedProfileJson() =>
     File('../contracts/fixtures/profile/seed.json').readAsStringSync();
@@ -97,10 +102,15 @@ const androidIdentity = DeviceIdentity(
 
 /// The signed-in app over fakes, on the home screen.
 class ConnectionHarness {
-  ConnectionHarness({String? profile})
-    : api = FakeApiClient(load: () async => profile ?? seedProfileJson());
+  ConnectionHarness({String? profile, TcpPing? tcp})
+    : api = FakeApiClient(load: () async => profile ?? seedProfileJson()),
+      tcp = tcp ?? InstantTcpPing();
 
   final FakeApiClient api;
+
+  /// Answers at once by default, so the ping on open settles.
+  final TcpPing tcp;
+  final settings = MemoryUserSettingsStore();
   final bridge = RecordingVpnBridge();
   final selection = MemorySelectionStore();
   DateTime now = DateTime.utc(2026, 11, 3, 12);
@@ -108,7 +118,8 @@ class ConnectionHarness {
   /// Bridge calls after the start-up getState.
   List<String> get taps => bridge.calls.skip(1).toList();
 
-  Future<void> pump(WidgetTester tester) async {
+  /// [settle] false leaves a running ping spinning, for a gated TcpPing.
+  Future<void> pump(WidgetTester tester, {bool settle = true}) async {
     addTearDown(bridge.dispose);
     await tester.pumpWidget(
       ProviderScope(
@@ -121,11 +132,19 @@ class ConnectionHarness {
           selectionStoreProvider.overrideWithValue(selection),
           deviceIdentityProvider.overrideWith((ref) async => androidIdentity),
           connectionClockProvider.overrideWithValue(() => now),
+          tcpPingProvider.overrideWithValue(tcp),
+          userSettingsStoreProvider.overrideWithValue(settings),
         ],
         child: const VpnClientApp(),
       ),
     );
-    await tester.pumpAndSettle();
+    if (settle) {
+      await tester.pumpAndSettle();
+    } else {
+      for (var i = 0; i < 5; i++) {
+        await tester.pump();
+      }
+    }
     expect(bridge.calls, ['getState'], reason: 'the panel reads the state');
   }
 
