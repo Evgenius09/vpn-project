@@ -16,6 +16,7 @@ final profileRepositoryProvider = Provider<ProfileRepository>(
   (ref) => ProfileRepository(
     ref.watch(apiClientProvider),
     ref.watch(profileCacheProvider),
+    ref.watch(apiEndpointsProvider),
   ),
 );
 

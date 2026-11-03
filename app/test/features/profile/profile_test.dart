@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vpnclient/app/app.dart';
 import 'package:vpnclient/core/api/api_client.dart';
+import 'package:vpnclient/core/api/fallback_api_client.dart';
 import 'package:vpnclient/core/providers.dart';
 import 'package:vpnclient/core/storage/token_store.dart';
 import 'package:vpnclient/features/profile/application/profile_controller.dart';
@@ -31,7 +32,7 @@ void main() {
     setUp(() {
       api = _api();
       cache = MemoryProfileCache();
-      repository = ProfileRepository(api, cache);
+      repository = ProfileRepository(api, cache, ApiEndpoints(const []));
     });
 
     test('loads the seed profile and caches it with its ETag', () async {
@@ -72,6 +73,38 @@ void main() {
 
       await expectLater(repository.load(), throwsA(isA<ApiProblem>()));
       expect(cache.value, isNull);
+    });
+
+    group('API addresses (tech.md 35.1)', () {
+      const built = 'https://built.example';
+
+      test('the cached addresses lead the first request', () async {
+        final endpoints = ApiEndpoints(const [built]);
+        cache.value = CachedProfile(_seedProfile(), '"old"');
+        List<String>? seen;
+        final repository = ProfileRepository(
+          FakeApiClient(
+            load: () async {
+              seen = endpoints.ordered;
+              return _fixtureJson();
+            },
+          ),
+          cache,
+          endpoints,
+        );
+
+        await repository.load();
+
+        expect(seen, ['http://localhost:8080', built]);
+      });
+
+      test('a fetched profile teaches its addresses', () async {
+        final endpoints = ApiEndpoints(const [built]);
+
+        await ProfileRepository(api, cache, endpoints).load();
+
+        expect(endpoints.ordered, ['http://localhost:8080', built]);
+      });
     });
 
     test('a validation problem keeps the cache', () async {
