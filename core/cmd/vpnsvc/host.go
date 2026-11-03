@@ -17,8 +17,6 @@ import (
 
 const lastRequestFile = "last_request.json"
 
-var errURLTestPending = errors.New("url test comes with S1-12")
-
 // hostOptions holds what differs between the real service and the tests.
 type hostOptions struct {
 	// DataDir is %ProgramData%\vpnclient.
@@ -91,11 +89,6 @@ func writeProtected(path, content string, protect func(string) error) error {
 		return fmt.Errorf("replace file: %w", err)
 	}
 	return nil
-}
-
-// URLTest implements ipc.Backend.
-func (*backend) URLTest([]string) (string, error) {
-	return "", &runtime.Error{Code: contract.CoreErrorCodeInternal, Message: errURLTestPending.Error()}
 }
 
 // SyncRuleSets implements ipc.Backend.
