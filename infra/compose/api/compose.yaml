@@ -51,7 +51,7 @@ services:
       migrate:
         condition: service_completed_successfully
 
-  # Long polling for a host without a webhook address (tech.md 36.2).
+  # Long polling for a host without a webhook address (tech.md 36.2, 38.4).
   bot:
     <<: *backend
     command: [/app/bot]
