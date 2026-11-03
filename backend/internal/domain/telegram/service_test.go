@@ -523,3 +523,16 @@ func TestIsStartNeedsTheWholeCommandWord(t *testing.T) {
 		require.True(t, isStart("/start@"+suffix))
 	})
 }
+
+func TestCodeMessageNamesTheCodeAndTheDevice(t *testing.T) {
+	text := CodeMessage("123456", "Pixel 7")
+
+	require.Contains(t, text, "123456")
+	require.Contains(t, text, "Pixel 7")
+	require.Contains(t, text, "Если это не вы")
+	require.Contains(t, text, "проигнорируйте")
+}
+
+func TestCodeMessageWithoutADeviceName(t *testing.T) {
+	require.Contains(t, CodeMessage("123456", ""), "неизвестное устройство")
+}
