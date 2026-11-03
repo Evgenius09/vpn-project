@@ -21,10 +21,3 @@ final class ProfileReady extends ProfileState {
 final class ProfileFailed extends ProfileState {
   const ProfileFailed();
 }
-
-extension ProfileServers on ProfileV1 {
-  /// The servers of one screen in catalog order.
-  List<ServerNode> serversIn(TunnelMode group) =>
-      servers.where((server) => server.group == group).toList()
-        ..sort((a, b) => a.sortWeight.compareTo(b.sortWeight));
-}

@@ -9,6 +9,7 @@ import '../../../core/vpn/vpn_bridge.dart';
 import '../../../gen/api/export.dart';
 import '../../profile/application/profile_controller.dart';
 import '../../profile/domain/profile_state.dart';
+import '../../servers/application/selection_controller.dart';
 import '../domain/connection_state.dart';
 import '../domain/tunnel_request.dart';
 import 'power_view.dart';
@@ -112,13 +113,28 @@ class ConnectionController extends Notifier<ConnectionState> {
         throw const VpnBridgeException(CoreErrorCode.permissionDenied);
       }
       final identity = await ref.read(deviceIdentityProvider.future);
+      final choice = await ref.read(selectionControllerProvider.future);
       final request = buildTunnelRequest(
         platform: identity.platform,
         userMode: mode,
         profile: profile.profile,
+        choice: choice,
       );
       await bridge.start(jsonEncode(request.toJson()));
     });
+  }
+
+  /// Moves the running tunnel of [group] to [serverId] without a reconnect.
+  /// Either group, so a later setUserMode lands on the chosen server. Outside
+  /// connected the core ignores it, and the next start carries the choice
+  /// (tech.md 22.1, 28.2).
+  Future<void> selectServer(TunnelMode group, String serverId) async {
+    if (state.tunnel.status != TunnelStatus.connected) {
+      return;
+    }
+    await _call(
+      () => ref.read(vpnBridgeProvider).selectServer(group, serverId),
+    );
   }
 
   /// Runs one bridge call with taps held and turns its failure into a banner.
