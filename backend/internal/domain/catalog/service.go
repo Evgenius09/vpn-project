@@ -10,16 +10,14 @@ import (
 
 // Options are the values that come from configuration.
 type Options struct {
-	CatalogFile string
-	Logger      *slog.Logger
+	Logger *slog.Logger
 }
 
 // Service runs catalog_sync.
 type Service struct {
-	store       Store
-	panel       panel.PanelClient
-	catalogFile string
-	logger      *slog.Logger
+	store  Store
+	panel  panel.PanelClient
+	logger *slog.Logger
 }
 
 // NewService returns a service.
@@ -28,31 +26,26 @@ func NewService(store Store, client panel.PanelClient, options Options) *Service
 	if logger == nil {
 		logger = slog.Default()
 	}
-	return &Service{store: store, panel: client, catalogFile: options.CatalogFile, logger: logger}
+	return &Service{store: store, panel: client, logger: logger}
 }
 
 // Result counts what a sync did.
 type Result struct {
-	// Published counts listed hosts that passed validation, enabled or not.
+	// Published counts tagged hosts that passed validation, enabled or not.
 	Published int
 	Changed   int
 	Disabled  int
 	Skipped   int
 }
 
-// Sync reads the panel and servers.yaml, then writes the servers table. Both
-// inputs are read before the write, so a failure of either leaves the catalog
-// as it was.
+// Sync reads the panel, then writes the servers table. A failed read leaves the
+// catalog as it was.
 func (s *Service) Sync(ctx context.Context) (Result, error) {
-	entries, err := LoadEntries(s.catalogFile)
-	if err != nil {
-		return Result{}, err
-	}
 	hosts, err := s.panel.ListHosts(ctx)
 	if err != nil {
 		return Result{}, fmt.Errorf("list hosts: %w", err)
 	}
-	servers, skipped, err := Build(hosts, entries)
+	servers, skipped, err := Build(hosts)
 	if err != nil {
 		return Result{}, err
 	}
