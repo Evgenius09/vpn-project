@@ -51,6 +51,9 @@ type Entry struct {
 	SortWeight        int       `json:"sortWeight"`
 	// Enabled is true when omitted.
 	Enabled *bool `json:"enabled,omitempty"`
+	// PortHopping is for hysteria2 hosts only: the panel does not store it
+	// (tech.md 39.4).
+	PortHopping *api.PortHopping `json:"portHopping,omitempty"`
 }
 
 // Server is a row of the servers table without its id.
@@ -142,9 +145,12 @@ func publish(host panel.PanelHost, entry Entry) (Server, error) {
 	var params json.RawMessage
 	switch api.ServerProtocol(host.Protocol) {
 	case api.ServerProtocolVlessReality:
+		if entry.PortHopping != nil {
+			return Server{}, fmt.Errorf("%w: portHopping on a vless host", ErrInvalidHost)
+		}
 		params, err = vlessParams(host.Params)
 	case api.ServerProtocolHysteria2:
-		params, err = hysteriaParams(host.Params)
+		params, err = hysteriaParams(host.Params, entry.PortHopping)
 	default:
 		err = errors.New("unknown protocol")
 	}
@@ -228,10 +234,14 @@ type hysteriaFields struct {
 	DownMbps               *int             `json:"downMbps,omitempty"`
 }
 
-func hysteriaParams(raw json.RawMessage) (json.RawMessage, error) {
+// hopping from the catalog entry replaces the one in the host params.
+func hysteriaParams(raw json.RawMessage, hopping *api.PortHopping) (json.RawMessage, error) {
 	var fields hysteriaFields
 	if err := decodeStrict(raw, &fields); err != nil {
 		return nil, err
+	}
+	if hopping != nil {
+		fields.PortHopping = hopping
 	}
 	fields.ServerName = strings.TrimSpace(fields.ServerName)
 	switch {

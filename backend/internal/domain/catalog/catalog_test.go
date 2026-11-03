@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"pgregory.net/rapid"
 
+	"github.com/Evgenius09/vpn-project/backend/internal/gen/api"
 	"github.com/Evgenius09/vpn-project/backend/internal/panel"
 )
 
@@ -541,4 +542,70 @@ func TestHashLeavesEnabledOut(t *testing.T) {
 			t.Fatal("enabled is tracked by its own column, not by the hash")
 		}
 	})
+}
+
+func TestEntryPortHoppingReachesHysteriaParams(t *testing.T) {
+	host := hysteriaHost()
+	host.Params = deleteParam(t, host.Params, "portHopping")
+	entry := entryFor(host)
+	entry.PortHopping = &api.PortHopping{Ports: " 20000 - 50000 ", IntervalSec: 30}
+
+	servers, skipped, err := Build([]panel.PanelHost{host}, []Entry{entry})
+
+	require.NoError(t, err)
+	require.Empty(t, skipped)
+	require.Contains(t, string(servers[0].Params), `"portHopping":{"intervalSec":30,"ports":"20000-50000"}`)
+
+	without, _, err := Build([]panel.PanelHost{host}, []Entry{entryFor(host)})
+	require.NoError(t, err)
+	require.NotEqual(t, without[0].ContentHash(), servers[0].ContentHash(), "hopping is part of the hash")
+}
+
+func TestEntryPortHoppingFollowsTheHostRules(t *testing.T) {
+	for name, hopping := range map[string]api.PortHopping{
+		"zero interval":  {Ports: "20000-50000", IntervalSec: 0},
+		"reversed range": {Ports: "50000-20000", IntervalSec: 30},
+		"port zero":      {Ports: "0,443", IntervalSec: 30},
+	} {
+		t.Run(name, func(t *testing.T) {
+			host := hysteriaHost()
+			entry := entryFor(host)
+			entry.PortHopping = &hopping
+
+			servers, skipped, err := Build([]panel.PanelHost{host}, []Entry{entry})
+
+			require.NoError(t, err)
+			require.Empty(t, servers)
+			require.Len(t, skipped, 1)
+			require.ErrorIs(t, skipped[0].Err, ErrInvalidHost)
+		})
+	}
+}
+
+func TestEntryPortHoppingOnVlessHostIsInvalid(t *testing.T) {
+	host := vlessHost()
+	entry := entryFor(host)
+	entry.PortHopping = &api.PortHopping{Ports: "20000-50000", IntervalSec: 30}
+
+	_, skipped, err := Build([]panel.PanelHost{host}, []Entry{entry})
+
+	require.NoError(t, err)
+	require.Len(t, skipped, 1)
+	require.ErrorIs(t, skipped[0].Err, ErrInvalidHost)
+}
+
+func TestLoadEntriesReadsPortHopping(t *testing.T) {
+	path := writeCatalog(t, `
+- remnawaveHostUuid: 20000000-0000-4000-8000-000000000001
+  group: regular
+  displayName: Stockholm
+  countryCode: SE
+  sortWeight: 10
+  portHopping: {ports: "20000-50000", intervalSec: 30}
+`)
+
+	entries, err := LoadEntries(path)
+
+	require.NoError(t, err)
+	require.Equal(t, &api.PortHopping{Ports: "20000-50000", IntervalSec: 30}, entries[0].PortHopping)
 }
