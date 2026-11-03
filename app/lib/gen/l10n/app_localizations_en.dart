@@ -279,4 +279,34 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get connectionErrorInternal =>
       'Something went wrong inside the VPN. Try again.';
+
+  @override
+  String modeNoticeCellular(String mode) {
+    return 'Mobile network: switched to $mode';
+  }
+
+  @override
+  String modeNoticeWifi(String mode) {
+    return 'Network changed: switched to $mode';
+  }
+
+  @override
+  String modeNoticeOverrideCleared(String mode) {
+    return 'Auto switch follows the network again: switched to $mode';
+  }
+
+  @override
+  String modeNoticeNoWhitelist(String mode) {
+    return 'No whitelist servers: $mode stays on';
+  }
+
+  @override
+  String get autoSwitchTitle => 'Whitelists on mobile data';
+
+  @override
+  String get autoSwitchSubtitle =>
+      'Switch to whitelists when Wi-Fi gives way to mobile data';
+
+  @override
+  String get settingsConnection => 'Connection';
 }

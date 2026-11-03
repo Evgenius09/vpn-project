@@ -1,5 +1,6 @@
 import '../../../gen/api/export.dart';
 import '../../servers/domain/server_selection.dart';
+import '../../whitelist/domain/auto_switch_setting.dart';
 
 /// Values for keys the policy leaves out (tech.md 27.2). They match
 /// backend/config/policy.yaml, so a profile without defaults behaves like the
@@ -27,8 +28,6 @@ const builtInSettings = TunnelSettings(
   ),
   perApp: PerAppSettings(mode: PerAppMode.off, apps: []),
 );
-
-const builtInAutoOnCellular = true;
 
 /// The tunnel settings of [patch] over the built-in values. S3-01 adds the
 /// user's own values and `locked` on top.
@@ -75,15 +74,15 @@ bool hasServersIn(ProfileV1 profile, TunnelMode mode) =>
 /// The request a tap on the PowerButton sends (tech.md 5.4, 27.2). It carries
 /// the servers of both groups, so setUserMode switches without a restart, and
 /// the [choice] of each group resolved against the profile (tech.md 28.2).
+/// [autoOnCellular] is the user's toggle, null until they touch it.
 TunnelRequest buildTunnelRequest({
   required Platform platform,
   required TunnelMode userMode,
   required ProfileV1 profile,
   SelectedServers choice = const SelectedServers(),
+  bool? autoOnCellular,
 }) {
   final policy = profile.policy;
-  final autoOnCellular =
-      policy.defaults.whitelist?.autoOnCellular ?? builtInAutoOnCellular;
   return TunnelRequest(
     schemaVersion: 1,
     platform: platform,
@@ -91,7 +90,7 @@ TunnelRequest buildTunnelRequest({
     selected: selectedIn(profile.servers, choice),
     servers: profile.servers,
     autoSwitch: AutoSwitchRequest(
-      enabled: policy.flags.autoWhitelist && autoOnCellular,
+      enabled: autoSwitchEnabled(policy, autoOnCellular),
     ),
     settings: tunnelSettingsFrom(policy.defaults),
     log: const TunnelLog(level: LogLevel.warn),

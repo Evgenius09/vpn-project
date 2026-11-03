@@ -1,6 +1,6 @@
 # tech.md — ядро проекта VPN-клиента
 
-Версия ядра: **v16** (2026-11-03)
+Версия ядра: **v17** (2026-11-03)
 Владелец: тимлид. Файл меняется только append-only, только через PR с меткой `contract-change`. Каждое изменение контракта бампает версию и добавляет строку в changelog.
 
 ## Changelog
@@ -21,6 +21,7 @@
 - v14 — 2026-11-03 — §31: `URLTest` в ядре и `urlTest` по IPC, пинг и сортировка по пингу в приложении. §1–§30 не менялись.
 - v15 — 2026-11-03 — §32: автопереключение в runtime и `core/bind`, причины смены режима, `Update` с состоянием автопереключения. §1–§31 не менялись.
 - v16 — 2026-11-03 — §33: стрелки ← → на главном экране при фокусе вне `ModePager`, раскладка S2-01. §1–§32 не менялись.
+- v17 — 2026-11-03 — §34: тумблер `whitelist.autoOnCellular` на экране «Белые списки» и в настройках, `update` при смене тумблера, реакция приложения на событие `mode`. §1–§33 не менялись.
 
 ---
 
@@ -1704,3 +1705,22 @@ S1-07 добавляет минимальный экран `/settings` с кно
 ### 33.2 Раскладка S2-01
 
 - Экран «Белые списки» уже собран по §27 и §28: `ConnectionPanel` и `ServerPicker(group: whitelist)`, `EmptyState` для пустой группы. S2-01 добавляет `ModeScreenKeys` и тесты карточки в `app/test/features/whitelist/`.
+
+---
+
+## 34. Поправки ядра v17
+
+### 34.1 Тумблер автоперехода
+
+- `AutoSwitchToggle` из `app/lib/features/whitelist` — `SettingsToggleTile` ключа `whitelist.autoOnCellular`. `app/lib/app/home_screen.dart` ставит его под `ConnectionPanel` экрана «Белые списки», `SettingsScreen` из `app/lib/features/auth` — в раздел «Подключение» над разделом «Аккаунт».
+- Тумблер скрыт, пока профиль не готов и когда `policy.flags.autoWhitelist == false`.
+- Значение: выбор пользователя, иначе `policy.defaults.whitelist.autoOnCellular`, иначе `true`. Ключ в `policy.locked` → тумблер заблокирован, значение из `defaults`. Выбор хранится в `user_settings.json` (§31.2).
+- `TunnelRequest.autoSwitch.enabled = policy.flags.autoWhitelist && значение тумблера`. Пункт §27.2 об `autoSwitch.enabled` уточняется так.
+- Смена значения в `connected` зовёт `update` с запросом, собранным для текущего `userMode`, потому что ядро узнаёт о тумблере только из запроса (§32.1). Вне `connected` значение только сохраняется, следующий `start` несёт его. Ошибка `update` показывает баннер панели подключения по коду, выбор остаётся сохранённым.
+
+### 34.2 Событие `mode` в приложении
+
+- Событие `mode` с причиной, отличной от `user`, переводит `ModePager` на экран `to`. Причина `user` экран не меняет: пользователь уже на экране режима или сам выключил автопереход.
+- `ConnectionPanel` на обоих экранах показывает баннер о последнем событии `mode`: `network_cellular`, `network_wifi` и `override_cleared` — `info`, `no_whitelist_servers` — `warning`. Причина `user` баннер снимает.
+- Баннер снимается, когда туннель выходит из `connected`, и при новом тапе по `PowerButton`.
+- `home_screen.dart` слушает события через `ConnectionController` из `app/lib/features/connection`, потому что фичи не зависят от `app/lib/app`.

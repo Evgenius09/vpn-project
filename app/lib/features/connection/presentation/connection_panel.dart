@@ -11,6 +11,7 @@ import '../application/power_view.dart';
 import '../domain/connection_state.dart';
 import '../domain/elapsed.dart';
 import 'connection_error_text.dart';
+import 'mode_notice_text.dart';
 
 /// The PowerButton, its status line, traffic, and the error banner of one
 /// mode screen (tech.md 2.1, 27.1).
@@ -32,6 +33,7 @@ class ConnectionPanel extends ConsumerWidget {
     );
     final traffic = connection.traffic;
     final issue = connection.issue;
+    final notice = connection.notice;
     final controller = ref.read(connectionControllerProvider.notifier);
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -44,6 +46,15 @@ class ConnectionPanel extends ConsumerWidget {
         if (view.state == PowerState.connected && traffic != null) ...[
           const SizedBox(height: AppSpacing.sm),
           TrafficCounter(upBps: traffic.upBps, downBps: traffic.downBps),
+        ],
+        if (notice != null) ...[
+          const SizedBox(height: AppSpacing.md),
+          StatusBanner(
+            kind: notice.reason == ModeSwitchReason.noWhitelistServers
+                ? BannerKind.warning
+                : BannerKind.info,
+            text: modeNoticeText(strings, notice),
+          ),
         ],
         if (issue != null) ...[
           const SizedBox(height: AppSpacing.md),

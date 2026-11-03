@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
+
 import '../../../gen/api/export.dart';
 
 /// The user's own settings as a SettingsPatch (tech.md 31.2). S1-12 keeps only
@@ -9,6 +12,10 @@ abstract interface class UserSettingsStore {
   Future<SettingsPatch> read();
   Future<void> write(SettingsPatch settings);
 }
+
+final userSettingsStoreProvider = Provider<UserSettingsStore>(
+  (ref) => FileUserSettingsStore(getApplicationSupportDirectory),
+);
 
 class FileUserSettingsStore implements UserSettingsStore {
   FileUserSettingsStore(this._directory);

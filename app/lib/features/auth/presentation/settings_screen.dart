@@ -3,9 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../gen/l10n/app_localizations.dart';
 import '../../../ui/ui.dart';
+import '../../whitelist/application/auto_switch_controller.dart';
+import '../../whitelist/presentation/auto_switch_toggle.dart';
 import '../application/logout_controller.dart';
 
-/// The minimal settings of tech.md 19.9: only logout. S3-01 replaces it.
+/// The minimal settings of tech.md 19.9 and 34.1: the auto switch toggle and
+/// logout. S3-01 replaces it.
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -33,6 +36,15 @@ class SettingsScreen extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.all(AppSpacing.lg),
           children: [
+            // An empty section would remain when the provider keeps the
+            // feature off.
+            if (ref.watch(autoSwitchToggleProvider) != null) ...[
+              SettingsSection(
+                title: strings.settingsConnection,
+                children: const [AutoSwitchToggle()],
+              ),
+              const SizedBox(height: AppSpacing.lg),
+            ],
             SettingsSection(
               title: strings.settingsAccount,
               children: [

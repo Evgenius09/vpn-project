@@ -75,5 +75,12 @@
   "connectionErrorRevoked": "Another VPN app took over the connection.",
   "connectionErrorServiceUnavailable": "The VPN service is not responding. Reinstall the app.",
   "connectionErrorVersionMismatch": "The VPN service and the app versions differ. Reinstall the app.",
-  "connectionErrorInternal": "Something went wrong inside the VPN. Try again."
+  "connectionErrorInternal": "Something went wrong inside the VPN. Try again.",
+  "modeNoticeCellular": "Mobile network: switched to {mode}",
+  "modeNoticeWifi": "Network changed: switched to {mode}",
+  "modeNoticeOverrideCleared": "Auto switch follows the network again: switched to {mode}",
+  "modeNoticeNoWhitelist": "No whitelist servers: {mode} stays on",
+  "autoSwitchTitle": "Whitelists on mobile data",
+  "autoSwitchSubtitle": "Switch to whitelists when Wi-Fi gives way to mobile data",
+  "settingsConnection": "Connection"
 }

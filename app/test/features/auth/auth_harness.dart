@@ -28,9 +28,15 @@ const testIdentity = DeviceIdentity(
 class AuthHarness {
   AuthHarness({String? token}) : tokens = MemoryTokenStore(token);
 
-  final api = FakeApiClient(
-    load: () async =>
-        File('../contracts/fixtures/profile/seed.json').readAsStringSync(),
+  /// Like the server, it answers 401 without a token: the settings screen
+  /// still watches the profile while logout drops the session.
+  late final api = FakeApiClient(
+    load: () async {
+      if (await tokens.read() == null) {
+        throw const ApiProblem(401, ProblemCode.unauthorized);
+      }
+      return File('../contracts/fixtures/profile/seed.json').readAsStringSync();
+    },
   );
   final MemoryTokenStore tokens;
   final bridge = FakeVpnBridge();

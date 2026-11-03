@@ -10,6 +10,7 @@ import '../../../gen/api/export.dart';
 import '../../profile/application/profile_controller.dart';
 import '../../profile/domain/profile_state.dart';
 import '../../servers/application/selection_controller.dart';
+import '../../whitelist/application/auto_switch_controller.dart';
 import '../domain/connection_state.dart';
 import '../domain/tunnel_request.dart';
 import 'power_view.dart';
@@ -34,6 +35,12 @@ class ConnectionController extends Notifier<ConnectionState> {
     final bridge = ref.watch(vpnBridgeProvider);
     final subscription = bridge.events.listen(_onEvent);
     ref.onDispose(subscription.cancel);
+    // The core hears of the toggle only through a request (tech.md 34.1).
+    ref.listen<bool?>(autoSwitchEnabledProvider, (previous, next) {
+      if (previous != null && next != null && previous != next) {
+        unawaited(_update());
+      }
+    });
     unawaited(Future.microtask(() => _readState(bridge)));
     return const ConnectionState();
   }
@@ -61,7 +68,7 @@ class ConnectionController extends Notifier<ConnectionState> {
         final tunnel = TunnelSnapshot.fromPayload(payload);
         var next = state.copyWith(tunnel: tunnel);
         if (tunnel.status != TunnelStatus.connected) {
-          next = next.withTraffic(null);
+          next = next.withTraffic(null).withNotice(null);
         } else {
           next = next.withIssue(null);
         }
@@ -75,8 +82,15 @@ class ConnectionController extends Notifier<ConnectionState> {
         if (error != null) {
           state = state.withIssue(error.code);
         }
-      case CoreEventType.mode || CoreEventType.urlTest:
-        // S2-05 shows mode changes; effectiveMode arrives with state.
+      case CoreEventType.mode:
+        final mode = event.mode;
+        if (mode != null) {
+          // The user made this change, so it needs no explanation.
+          state = state.withNotice(
+            mode.reason == ModeSwitchReason.user ? null : mode,
+          );
+        }
+      case CoreEventType.urlTest:
         break;
     }
   }
@@ -90,6 +104,9 @@ class ConnectionController extends Notifier<ConnectionState> {
   Future<void> tap(TunnelMode screen) async {
     final action = viewFor(screen).action;
     final bridge = ref.read(vpnBridgeProvider);
+    if (action != null) {
+      state = state.withNotice(null);
+    }
     switch (action) {
       case null:
         return;
@@ -112,16 +129,36 @@ class ConnectionController extends Notifier<ConnectionState> {
       if (await bridge.prepare() == VpnPrepareResult.denied) {
         throw const VpnBridgeException(CoreErrorCode.permissionDenied);
       }
-      final identity = await ref.read(deviceIdentityProvider.future);
-      final choice = await ref.read(selectionControllerProvider.future);
-      final request = buildTunnelRequest(
-        platform: identity.platform,
-        userMode: mode,
-        profile: profile.profile,
-        choice: choice,
-      );
-      await bridge.start(jsonEncode(request.toJson()));
+      await bridge.start(await _request(profile.profile, mode));
     });
+  }
+
+  /// Applies changed settings to the running tunnel. Outside connected the
+  /// next start carries them.
+  Future<void> _update() async {
+    final profile = ref.read(profileControllerProvider);
+    if (state.tunnel.status != TunnelStatus.connected ||
+        profile is! ProfileReady) {
+      return;
+    }
+    final bridge = ref.read(vpnBridgeProvider);
+    final mode = state.tunnel.userMode;
+    await _call(
+      () async => bridge.update(await _request(profile.profile, mode)),
+    );
+  }
+
+  Future<String> _request(ProfileV1 profile, TunnelMode mode) async {
+    final identity = await ref.read(deviceIdentityProvider.future);
+    final choice = await ref.read(selectionControllerProvider.future);
+    final request = buildTunnelRequest(
+      platform: identity.platform,
+      userMode: mode,
+      profile: profile,
+      choice: choice,
+      autoOnCellular: await ref.read(autoSwitchChoiceProvider.future),
+    );
+    return jsonEncode(request.toJson());
   }
 
   /// Moves the running tunnel of [group] to [serverId] without a reconnect.
