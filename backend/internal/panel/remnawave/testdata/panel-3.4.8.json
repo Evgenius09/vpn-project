@@ -1,0 +1,380 @@
+{
+  "create_user": {
+    "body": {
+      "response": {
+        "activeInternalSquads": [
+          {
+            "name": "staging",
+            "uuid": "baf9736b-afde-4875-aad1-a2a0ba300d51"
+          }
+        ],
+        "createdAt": "2026-11-03T17:53:02.797Z",
+        "description": null,
+        "email": null,
+        "expireAt": "2026-11-06T00:00:00.000Z",
+        "externalSquadUuid": null,
+        "hwidDeviceLimit": null,
+        "id": 3,
+        "lastTrafficResetAt": null,
+        "lastTriggeredThreshold": 0,
+        "shortUuid": "fixtureshort",
+        "ssPassword": "fixture-ss",
+        "status": "ACTIVE",
+        "subRevokedAt": null,
+        "subscriptionUrl": "https://127.0.0.1:3000/api/sub/fixtureshort",
+        "tag": null,
+        "telegramId": null,
+        "trafficLimitBytes": 0,
+        "trafficLimitStrategy": "NO_RESET",
+        "trojanPassword": "fixture-trojan",
+        "updatedAt": "2026-11-03T17:53:02.797Z",
+        "userTraffic": {
+          "firstConnectedAt": null,
+          "lastConnectedNodeUuid": null,
+          "lifetimeUsedTrafficBytes": 0,
+          "onlineAt": null,
+          "usedTrafficBytes": 0
+        },
+        "username": "tg_990000001",
+        "vlessUuid": "c1000000-0000-4000-8000-000000000001"
+      }
+    },
+    "status": 201
+  },
+  "create_user_conflict": {
+    "body": {
+      "errorCode": "A019",
+      "message": "User username already exists",
+      "path": "/api/users",
+      "timestamp": "2026-11-03T17:53:02.947Z"
+    },
+    "status": 400
+  },
+  "get_hosts": {
+    "body": {
+      "response": [
+        {
+          "address": "203.0.113.10",
+          "alpn": null,
+          "excludeFromSubscriptionTypes": [],
+          "finalMask": null,
+          "fingerprint": "chrome",
+          "host": null,
+          "inbound": {
+            "configProfileInboundUuid": "f2768c4f-b2cf-4dd0-b7f4-932a71a1ec44",
+            "configProfileUuid": "52399840-d1cd-4492-bf4f-87168661c59c"
+          },
+          "internalSquads": {
+            "mode": "EXCLUDE",
+            "squads": []
+          },
+          "isDisabled": false,
+          "isHidden": false,
+          "keepSniBlank": false,
+          "mapper": {},
+          "mihomoIpVersion": null,
+          "mihomoX25519": false,
+          "muxParams": null,
+          "nodes": [],
+          "overrideSniFromAddress": false,
+          "path": null,
+          "pinnedPeerCertSha256": null,
+          "port": 443,
+          "remark": "se-sto-1-vless",
+          "securityLayer": "DEFAULT",
+          "serverDescription": null,
+          "shuffleHost": false,
+          "sni": "www.klarna.com",
+          "sockoptParams": null,
+          "tags": [],
+          "uuid": "6d03977d-2193-46d0-9c57-c7eff7998eb8",
+          "verifyPeerCertByName": null,
+          "viewPosition": 1,
+          "vlessRouteId": null,
+          "xhttpExtraParams": null,
+          "xrayJsonTemplateUuid": null
+        },
+        {
+          "address": "hy2.example.net",
+          "alpn": null,
+          "excludeFromSubscriptionTypes": [],
+          "finalMask": null,
+          "fingerprint": null,
+          "host": null,
+          "inbound": {
+            "configProfileInboundUuid": "e5972992-9bd4-4975-9e85-c27c2d966f13",
+            "configProfileUuid": "52399840-d1cd-4492-bf4f-87168661c59c"
+          },
+          "internalSquads": {
+            "mode": "EXCLUDE",
+            "squads": []
+          },
+          "isDisabled": false,
+          "isHidden": false,
+          "keepSniBlank": false,
+          "mapper": {},
+          "mihomoIpVersion": null,
+          "mihomoX25519": false,
+          "muxParams": null,
+          "nodes": [],
+          "overrideSniFromAddress": false,
+          "path": null,
+          "pinnedPeerCertSha256": null,
+          "port": 443,
+          "remark": "se-sto-1-hy2",
+          "securityLayer": "DEFAULT",
+          "serverDescription": null,
+          "shuffleHost": false,
+          "sni": "hy2.example.net",
+          "sockoptParams": null,
+          "tags": [],
+          "uuid": "b225a0cb-9d46-4af6-b608-96a248141054",
+          "verifyPeerCertByName": null,
+          "viewPosition": 2,
+          "vlessRouteId": null,
+          "xhttpExtraParams": null,
+          "xrayJsonTemplateUuid": null
+        }
+      ]
+    },
+    "status": 200
+  },
+  "get_inbounds": {
+    "body": {
+      "response": {
+        "inbounds": [
+          {
+            "activeSquads": [
+              "157531a3-7e22-4160-a3fd-1800d98f95f5"
+            ],
+            "network": null,
+            "port": 1234,
+            "profileUuid": "00000000-0000-0000-0000-000000000000",
+            "rawInbound": {
+              "port": 1234,
+              "protocol": "shadowsocks",
+              "settings": {
+                "clients": [],
+                "method": "chacha20-ietf-poly1305",
+                "network": "tcp,udp"
+              },
+              "sniffing": {
+                "destOverride": [
+                  "http",
+                  "tls",
+                  "quic"
+                ],
+                "enabled": true
+              },
+              "tag": "Shadowsocks"
+            },
+            "security": null,
+            "tag": "Shadowsocks",
+            "type": "shadowsocks",
+            "uuid": "38941ade-e75b-444d-bbde-1b0cfa6591f7"
+          },
+          {
+            "activeSquads": [
+              "baf9736b-afde-4875-aad1-a2a0ba300d51"
+            ],
+            "network": "tcp",
+            "port": 443,
+            "profileUuid": "52399840-d1cd-4492-bf4f-87168661c59c",
+            "rawInbound": {
+              "listen": "203.0.113.10",
+              "port": 443,
+              "protocol": "vless",
+              "settings": {
+                "clients": [],
+                "decryption": "none"
+              },
+              "sniffing": {
+                "destOverride": [
+                  "http",
+                  "tls",
+                  "quic"
+                ],
+                "enabled": true
+              },
+              "streamSettings": {
+                "network": "tcp",
+                "realitySettings": {
+                  "privateKey": "dwdtCnMYpX08FsFyUbJmRd9ML4frwJkqsXf7pR25LCo",
+                  "serverNames": [
+                    "www.klarna.com"
+                  ],
+                  "shortIds": [
+                    "0c490741"
+                  ],
+                  "show": false,
+                  "target": "www.klarna.com:443",
+                  "xver": 0
+                },
+                "security": "reality"
+              },
+              "tag": "VLESS_REALITY"
+            },
+            "security": "reality",
+            "tag": "VLESS_REALITY",
+            "type": "vless",
+            "uuid": "f2768c4f-b2cf-4dd0-b7f4-932a71a1ec44"
+          },
+          {
+            "activeSquads": [
+              "baf9736b-afde-4875-aad1-a2a0ba300d51"
+            ],
+            "network": "hysteria",
+            "port": 443,
+            "profileUuid": "52399840-d1cd-4492-bf4f-87168661c59c",
+            "rawInbound": {
+              "listen": "203.0.113.10",
+              "port": 443,
+              "protocol": "hysteria",
+              "settings": {
+                "clients": [],
+                "version": 2
+              },
+              "streamSettings": {
+                "finalmask": {
+                  "udp": [
+                    {
+                      "settings": {
+                        "password": "fixture-obfs"
+                      },
+                      "type": "salamander"
+                    }
+                  ]
+                },
+                "hysteriaSettings": {
+                  "version": 2
+                },
+                "network": "hysteria",
+                "security": "tls",
+                "tlsSettings": {
+                  "alpn": [
+                    "h3"
+                  ],
+                  "certificates": [
+                    {
+                      "certificateFile": "/etc/letsencrypt/live/hy2.example.net/fullchain.pem",
+                      "keyFile": "/etc/letsencrypt/live/hy2.example.net/privkey.pem"
+                    }
+                  ]
+                }
+              },
+              "tag": "HYSTERIA2"
+            },
+            "security": "tls",
+            "tag": "HYSTERIA2",
+            "type": "hysteria",
+            "uuid": "e5972992-9bd4-4975-9e85-c27c2d966f13"
+          }
+        ],
+        "total": 3
+      }
+    },
+    "status": 200
+  },
+  "get_user": {
+    "body": {
+      "response": {
+        "activeInternalSquads": [
+          {
+            "name": "staging",
+            "uuid": "baf9736b-afde-4875-aad1-a2a0ba300d51"
+          }
+        ],
+        "createdAt": "2026-11-03T17:53:02.797Z",
+        "description": null,
+        "email": null,
+        "expireAt": "2026-11-06T00:00:00.000Z",
+        "externalSquadUuid": null,
+        "hwidDeviceLimit": null,
+        "id": 3,
+        "lastTrafficResetAt": null,
+        "lastTriggeredThreshold": 0,
+        "shortUuid": "fixtureshort",
+        "ssPassword": "fixture-ss",
+        "status": "ACTIVE",
+        "subRevokedAt": null,
+        "subscriptionUrl": "https://127.0.0.1:3000/api/sub/fixtureshort",
+        "tag": null,
+        "telegramId": null,
+        "trafficLimitBytes": 0,
+        "trafficLimitStrategy": "NO_RESET",
+        "trojanPassword": "fixture-trojan",
+        "updatedAt": "2026-11-03T17:53:02.797Z",
+        "userTraffic": {
+          "firstConnectedAt": null,
+          "lastConnectedNodeUuid": null,
+          "lifetimeUsedTrafficBytes": 0,
+          "onlineAt": null,
+          "usedTrafficBytes": 0
+        },
+        "username": "tg_990000001",
+        "vlessUuid": "c1000000-0000-4000-8000-000000000001"
+      }
+    },
+    "status": 200
+  },
+  "get_user_not_found": {
+    "body": {
+      "errorCode": "A063",
+      "message": "User with specified params not found",
+      "path": "/api/users/by-username/tg_990000001",
+      "timestamp": "2026-11-03T17:53:02.752Z"
+    },
+    "status": 404
+  },
+  "update_user": {
+    "body": {
+      "response": {
+        "activeInternalSquads": [
+          {
+            "name": "staging",
+            "uuid": "baf9736b-afde-4875-aad1-a2a0ba300d51"
+          }
+        ],
+        "createdAt": "2026-11-03T17:53:02.797Z",
+        "description": null,
+        "email": null,
+        "expireAt": "2026-12-01T00:00:00.000Z",
+        "externalSquadUuid": null,
+        "hwidDeviceLimit": null,
+        "id": 3,
+        "lastTrafficResetAt": null,
+        "lastTriggeredThreshold": 0,
+        "shortUuid": "fixtureshort",
+        "ssPassword": "fixture-ss",
+        "status": "ACTIVE",
+        "subRevokedAt": null,
+        "subscriptionUrl": "https://127.0.0.1:3000/api/sub/fixtureshort",
+        "tag": null,
+        "telegramId": null,
+        "trafficLimitBytes": 107374182400,
+        "trafficLimitStrategy": "NO_RESET",
+        "trojanPassword": "fixture-trojan",
+        "updatedAt": "2026-11-03T17:53:03.169Z",
+        "userTraffic": {
+          "firstConnectedAt": null,
+          "lastConnectedNodeUuid": null,
+          "lifetimeUsedTrafficBytes": 0,
+          "onlineAt": null,
+          "usedTrafficBytes": 0
+        },
+        "username": "tg_990000001",
+        "vlessUuid": "c1000000-0000-4000-8000-000000000001"
+      }
+    },
+    "status": 200
+  },
+  "update_user_not_found": {
+    "body": {
+      "errorCode": "A025",
+      "message": "User not found",
+      "path": "/api/users",
+      "timestamp": "2026-11-03T17:53:03.214Z"
+    },
+    "status": 404
+  }
+}
