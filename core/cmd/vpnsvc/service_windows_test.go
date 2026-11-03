@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Microsoft/go-winio"
 	"github.com/stretchr/testify/require"
@@ -28,7 +29,28 @@ func TestPipeACL(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { require.NoError(t, listener.Close()) }()
 
-	dacl := daclOf(t, name)
+	// Reading the DACL opens the pipe as a client, and go-winio keeps a new pipe
+	// busy until the first Accept, as the service does right after it starts.
+	go func() {
+		for {
+			conn, err := listener.Accept()
+			if err != nil {
+				return
+			}
+			_ = conn.Close()
+		}
+	}()
+
+	var dacl string
+	require.Eventually(t, func() bool {
+		descriptor, err := windows.GetNamedSecurityInfo(name, windows.SE_FILE_OBJECT, windows.DACL_SECURITY_INFORMATION)
+		if err != nil {
+			return false
+		}
+		dacl = descriptor.String()
+		return true
+	}, 5*time.Second, 50*time.Millisecond)
+
 	require.Contains(t, dacl, ";;;SY)", dacl)
 	require.Contains(t, dacl, ";;;BA)", dacl)
 	require.Contains(t, dacl, ";;;AU)", dacl)
