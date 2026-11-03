@@ -26,6 +26,17 @@ class TunnelService : VpnService() {
         get() = TunnelController.get(this)
 
     private var tun: ParcelFileDescriptor? = null
+    private lateinit var network: NetworkMonitor
+
+    override fun onCreate() {
+        super.onCreate()
+        network = NetworkMonitor(this) { controller.onNetworkChanged(it) }
+    }
+
+    override fun onDestroy() {
+        network.close()
+        super.onDestroy()
+    }
 
     override fun onStartCommand(
         intent: Intent?,
@@ -63,7 +74,11 @@ class TunnelService : VpnService() {
         return opened.fd
     }
 
+    /** Starts the reports the core needs to switch to the whitelist on cellular. */
+    fun watchNetwork() = network.start()
+
     fun finish() {
+        network.stop()
         tun?.close()
         tun = null
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
