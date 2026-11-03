@@ -176,7 +176,27 @@ func TestURLTestReportsASetupFailure(t *testing.T) {
 	require.ErrorIs(t, err, failed)
 }
 
-func TestOnNetworkChangedWaitsForS2(_ *testing.T) {
-	core := newCore(&stubEngine{}, &sink{})
-	core.OnNetworkChanged("wifi")
+func TestOnNetworkChangedReachesTheAutoSwitch(t *testing.T) {
+	engine, events := &stubEngine{}, &sink{}
+	core := newCore(engine, events)
+	require.NoError(t, core.Start(request(t)))
+
+	core.OnNetworkChanged("cellular")
+
+	require.Equal(t, [][2]string{{"proxy", "grp-whitelist"}}, engine.selects)
+	var mode contract.CoreEvent
+	require.NoError(t, json.Unmarshal([]byte(events.events[len(events.events)-2]), &mode))
+	require.Equal(t, &contract.ModePayload{
+		From: contract.TunnelModeRegular, To: contract.TunnelModeWhitelist, Reason: contract.ModeSwitchReasonNetworkCellular,
+	}, mode.Mode)
+}
+
+func TestOnNetworkChangedIgnoresWhatItCannotUse(t *testing.T) {
+	engine := &stubEngine{}
+	core := newCore(engine, &sink{})
+	require.NoError(t, core.Start(request(t)))
+	core.OnNetworkChanged("wwan")
+	require.Empty(t, engine.selects)
+
+	(&Core{initErr: errors.New("setup failed")}).OnNetworkChanged("cellular")
 }

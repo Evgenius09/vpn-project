@@ -85,8 +85,16 @@ func (c *Core) SelectServer(group, serverID string) error {
 	return c.runtime.SelectServer(group, serverID)
 }
 
-// OnNetworkChanged reports a NetType. S2-02 implements it.
-func (c *Core) OnNetworkChanged(string) {}
+// OnNetworkChanged reports the active network as a NetType: wifi, cellular,
+// ethernet, other, or none. The frozen signature has no error, and the only
+// failures are a value the core does not know and a selector that refused,
+// which leaves the tunnel as it was and lets the next report retry.
+func (c *Core) OnNetworkChanged(netType string) {
+	if c.initErr != nil {
+		return
+	}
+	_ = c.runtime.OnNetworkChanged(netType)
+}
 
 // URLTest measures the servers of a JSON array of ids and returns a JSON
 // CoreEvent of type url_test (tech.md 31.1).
