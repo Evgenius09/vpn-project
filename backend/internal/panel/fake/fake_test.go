@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
 	"github.com/Evgenius09/vpn-project/backend/internal/panel"
@@ -34,7 +33,7 @@ func TestErrorsFollowTheContract(t *testing.T) {
 	_, err := client.GetUserByUsername(ctx, "tg_1")
 	require.ErrorIs(t, err, panel.ErrNotFound)
 
-	_, err = client.UpdateUser(ctx, uuid.New(), panel.UpdateUserInput{ExpiresAt: time.Now()})
+	_, err = client.UpdateUser(ctx, 999999, panel.UpdateUserInput{ExpiresAt: time.Now()})
 	require.ErrorIs(t, err, panel.ErrNotFound)
 
 	_, err = client.CreateUser(ctx, validInput())
@@ -83,9 +82,9 @@ func TestUpdateSetsAbsoluteValues(t *testing.T) {
 
 	expiry := time.Now().Add(48 * time.Hour)
 	input := panel.UpdateUserInput{ExpiresAt: expiry, TrafficLimit: 100}
-	first, err := client.UpdateUser(ctx, created.UUID, input)
+	first, err := client.UpdateUser(ctx, created.ID, input)
 	require.NoError(t, err)
-	second, err := client.UpdateUser(ctx, created.UUID, input)
+	second, err := client.UpdateUser(ctx, created.ID, input)
 	require.NoError(t, err)
 	require.Equal(t, first, second, "a repeated update changes nothing")
 	require.Equal(t, int64(100), second.TrafficLimit)
