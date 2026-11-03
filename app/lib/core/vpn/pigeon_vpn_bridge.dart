@@ -93,4 +93,7 @@ class PigeonVpnBridge implements VpnBridge {
   @override
   Future<List<String>> syncRuleSets(List<RuleSetRef> ruleSets) async =>
       const [];
+
+  @override
+  Future<void> forgetLastRequest() => _guarded(_host.forgetLastRequest);
 }

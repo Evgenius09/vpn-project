@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:io';
+import 'dart:io' show File;
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -60,6 +60,34 @@ class _ScriptedAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
+/// Answers one scripted response and keeps the request it saw.
+class _AuthAdapter implements HttpClientAdapter {
+  _AuthAdapter(this.status, this.body);
+
+  final int status;
+  final String body;
+  RequestOptions? request;
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<List<int>>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    request = options;
+    return ResponseBody.fromString(
+      body,
+      status,
+      headers: {
+        Headers.contentTypeHeader: ['application/json'],
+      },
+    );
+  }
+
+  @override
+  void close({bool force = false}) {}
+}
+
 String _tunnelRequest() =>
     File('../contracts/fixtures/tunnel_request/android_regular.json')
         .readAsStringSync();
@@ -89,14 +117,20 @@ void main() {
       }
     });
 
-    test('only dev may fake the tunnel or carry a token', () {
+    test('only dev may fake the tunnel', () {
       for (final flavor in ['staging', 'prod']) {
         final env = jsonDecode(
           File('env/$flavor.json').readAsStringSync(),
         ) as Map<String, Object?>;
         expect(env['FAKE_VPN'], isFalse);
         expect(env['FAKE_API'], isFalse);
-        expect(env.containsKey('DEV_TOKEN'), isFalse);
+      }
+    });
+
+    test('no flavor carries a token, because login issues it', () {
+      for (final flavor in ['dev', 'staging', 'prod']) {
+        final env = File('env/$flavor.json').readAsStringSync();
+        expect(env, isNot(contains('DEV_TOKEN')), reason: flavor);
       }
     });
   });
@@ -192,6 +226,192 @@ void main() {
     });
   });
 
+  group('HttpApiClient auth', () {
+    late _AuthAdapter adapter;
+
+    HttpApiClient clientWith(int status, String body) {
+      adapter = _AuthAdapter(status, body);
+      return HttpApiClient(
+        createGeneratedClient(
+          baseUrl: 'https://api.example.invalid',
+          tokens: MemoryTokenStore('t'),
+          adapter: adapter,
+        ),
+      );
+    }
+
+    const start = TelegramLoginStart(
+      username: 'seed_user',
+      installId: '7b0c2f1e-5d0a-4c2b-9f3e-2a1d4c5b6e7f',
+      model: 'Pixel 7',
+    );
+    const verify = TelegramLoginVerify(
+      loginId: '1f0c2f1e-5d0a-4c2b-9f3e-2a1d4c5b6e7f',
+      code: '123456',
+      installId: '7b0c2f1e-5d0a-4c2b-9f3e-2a1d4c5b6e7f',
+      platform: Platform.android,
+      model: 'Pixel 7',
+      appVersion: '0.1.0',
+    );
+
+    TypeMatcher<ApiProblem> problem(ProblemCode code, int status) =>
+        isA<ApiProblem>()
+            .having((p) => p.code, 'code', code)
+            .having((p) => p.status, 'status', status);
+
+    test('start sends the username, install, and model', () async {
+      final client = clientWith(
+        200,
+        '{"loginId":"1f0c2f1e-5d0a-4c2b-9f3e-2a1d4c5b6e7f",'
+        '"expiresAt":"2026-11-03T10:05:00Z","resendAfterSec":60,'
+        '"botUrl":"https://t.me/vpnclient_bot"}',
+      );
+
+      final challenge = await client.startTelegramLogin(start);
+
+      expect(adapter.request!.path, '/v1/auth/telegram/start');
+      expect(adapter.request!.method, 'POST');
+      expect(adapter.request!.data, {
+        'username': 'seed_user',
+        'installId': '7b0c2f1e-5d0a-4c2b-9f3e-2a1d4c5b6e7f',
+        'model': 'Pixel 7',
+      });
+      expect(challenge.resendAfterSec, 60);
+      expect(challenge.botUrl, 'https://t.me/vpnclient_bot');
+    });
+
+    test('an unknown user carries the bot link', () async {
+      final client = clientWith(
+        404,
+        '{"title":"t","status":404,"code":"telegram_user_not_found",'
+        '"botUrl":"https://t.me/vpnclient_bot"}',
+      );
+      await expectLater(
+        client.startTelegramLogin(start),
+        throwsA(
+          problem(
+            ProblemCode.telegramUserNotFound,
+            404,
+          ).having((p) => p.botUrl, 'botUrl', 'https://t.me/vpnclient_bot'),
+        ),
+      );
+    });
+
+    test('a rate limit carries the wait', () async {
+      final client = clientWith(
+        429,
+        '{"title":"t","status":429,"code":"rate_limited","retryAfterSec":42}',
+      );
+      await expectLater(
+        client.startTelegramLogin(start),
+        throwsA(
+          problem(
+            ProblemCode.rateLimited,
+            429,
+          ).having((p) => p.retryAfterSec, 'retryAfterSec', 42),
+        ),
+      );
+    });
+
+    test('verify returns the token', () async {
+      final client = clientWith(
+        200,
+        '{"deviceId":"2f0c2f1e-5d0a-4c2b-9f3e-2a1d4c5b6e7f",'
+        '"accountId":"3f0c2f1e-5d0a-4c2b-9f3e-2a1d4c5b6e7f","token":"tok"}',
+      );
+
+      final result = await client.verifyTelegramLogin(verify);
+
+      expect(adapter.request!.path, '/v1/auth/telegram/verify');
+      expect(
+        (adapter.request!.data as Map<String, Object?>)['platform'],
+        'android',
+      );
+      expect(result.token, 'tok');
+    });
+
+    test('a wrong code carries the attempts left', () async {
+      final client = clientWith(
+        400,
+        '{"title":"t","status":400,"code":"code_invalid","attemptsLeft":3}',
+      );
+      await expectLater(
+        client.verifyTelegramLogin(verify),
+        throwsA(
+          problem(
+            ProblemCode.codeInvalid,
+            400,
+          ).having((p) => p.attemptsLeft, 'attemptsLeft', 3),
+        ),
+      );
+    });
+
+    test('an expired code is a problem, not an outage', () async {
+      final client = clientWith(
+        410,
+        '{"title":"t","status":410,"code":"code_expired"}',
+      );
+      await expectLater(
+        client.verifyTelegramLogin(verify),
+        throwsA(problem(ProblemCode.codeExpired, 410)),
+      );
+    });
+
+    test('logout accepts 204', () async {
+      final client = clientWith(204, '');
+      await client.logout();
+      expect(adapter.request!.path, '/v1/auth/logout');
+      expect(adapter.request!.headers['Authorization'], 'Bearer t');
+    });
+
+    test('a server failure during login is unavailable', () async {
+      await expectLater(
+        clientWith(502, '').startTelegramLogin(start),
+        throwsA(isA<ApiUnavailable>()),
+      );
+    });
+  });
+
+  group('FakeApiClient auth', () {
+    const start = TelegramLoginStart(
+      username: 'anyone',
+      installId: '7b0c2f1e-5d0a-4c2b-9f3e-2a1d4c5b6e7f',
+      model: 'm',
+    );
+
+    test('answers start and verify for any input', () async {
+      final api = FakeApiClient(load: () async => '{}');
+      final challenge = await api.startTelegramLogin(start);
+      final result = await api.verifyTelegramLogin(
+        TelegramLoginVerify(
+          loginId: challenge.loginId,
+          code: '000000',
+          installId: start.installId,
+          platform: Platform.windows,
+          model: 'm',
+          appVersion: '0.1.0',
+        ),
+      );
+      await api.logout();
+
+      expect(challenge.resendAfterSec, greaterThan(0));
+      expect(result.token, isNotEmpty);
+      expect(api.starts.single.username, 'anyone');
+      expect(api.verifies.single.code, '000000');
+      expect(api.logouts, 1);
+    });
+
+    test('fails with the scripted problem', () async {
+      final api = FakeApiClient(load: () async => '{}')
+        ..authFailure = const ApiProblem(404, ProblemCode.telegramUserNotFound);
+      await expectLater(
+        api.startTelegramLogin(start),
+        throwsA(isA<ApiProblem>()),
+      );
+      expect(api.starts, hasLength(1));
+    });
+  });
+
   group('FakeVpnBridge', () {
     late FakeVpnBridge bridge;
 
@@ -262,6 +482,11 @@ void main() {
       final event = await bridge.getState();
       expect(event.state!.userMode, TunnelMode.whitelist);
       expect(event.state!.effectiveMode, TunnelMode.whitelist);
+    });
+
+    test('records forgetLastRequest', () async {
+      await bridge.forgetLastRequest();
+      expect(bridge.calls, ['forgetLastRequest']);
     });
 
     test('syncRuleSets reports each set as ready', () async {

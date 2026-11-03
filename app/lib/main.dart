@@ -13,9 +13,6 @@ Future<void> main() async {
 
   final config = AppConfig.fromEnvironment();
   final tokens = SecureTokenStore();
-  if (config.devToken.isNotEmpty) {
-    await tokens.write(config.devToken);
-  }
   final token = await tokens.read();
 
   runApp(

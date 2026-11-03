@@ -37,4 +37,7 @@ abstract interface class VpnBridge {
   Future<CoreEvent> getState();
   Future<List<SelectableApp>> listSelectableApps();
   Future<List<String>> syncRuleSets(List<RuleSetRef> ruleSets);
+
+  /// Deletes the stored last request on logout (tech.md 26.3).
+  Future<void> forgetLastRequest();
 }

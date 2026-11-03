@@ -112,4 +112,10 @@ void main() {
     expect(apps.single.id, 'org.telegram.messenger');
     expect(apps.single.label, 'Telegram');
   });
+
+  test('forgetLastRequest reaches the host', () async {
+    when(host.forgetLastRequest).thenAnswer((_) async {});
+    await bridge.forgetLastRequest();
+    verify(host.forgetLastRequest).called(1);
+  });
 }

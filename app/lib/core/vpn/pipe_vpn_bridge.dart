@@ -144,4 +144,9 @@ class PipeVpnBridge implements VpnBridge {
     final ready = (result! as Map<String, Object?>)['ready']! as List<Object?>;
     return ready.cast<String>();
   }
+
+  /// The service keeps its own last request for autostart, and IPC v1 has no
+  /// method to delete it (tech.md 26.3).
+  @override
+  Future<void> forgetLastRequest() async {}
 }

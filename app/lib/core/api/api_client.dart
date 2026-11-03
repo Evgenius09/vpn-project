@@ -26,10 +26,25 @@ sealed class ApiException implements Exception {
 
 /// The server answered with a problem (tech.md 5.2).
 final class ApiProblem extends ApiException {
-  const ApiProblem(this.status, this.code);
+  const ApiProblem(
+    this.status,
+    this.code, {
+    this.botUrl,
+    this.attemptsLeft,
+    this.retryAfterSec,
+  });
 
   final int status;
   final ProblemCode? code;
+
+  /// Set for telegram_user_not_found.
+  final String? botUrl;
+
+  /// Set for code_invalid.
+  final int? attemptsLeft;
+
+  /// Set for rate_limited.
+  final int? retryAfterSec;
 
   bool get isUnauthorized =>
       code == ProblemCode.unauthorized || code == ProblemCode.deviceRevoked;
@@ -47,6 +62,13 @@ final class ApiUnavailable extends ApiException {
 /// What features use. The generated client and the fake stay behind it.
 abstract interface class ApiClient {
   Future<ProfileFetch> fetchProfile({String? etag});
+
+  Future<TelegramLoginChallenge> startTelegramLogin(TelegramLoginStart body);
+
+  Future<AuthResult> verifyTelegramLogin(TelegramLoginVerify body);
+
+  /// Revokes the current device. The server answers 204.
+  Future<void> logout();
 }
 
 class HttpApiClient implements ApiClient {
@@ -67,12 +89,45 @@ class HttpApiClient implements ApiClient {
       return const ApiUnavailable();
     }
     final body = response.data;
-    final raw = body is Map<String, Object?> ? body['code'] : null;
+    final fields = body is Map<String, Object?>
+        ? body
+        : const <String, Object?>{};
+    final raw = fields['code'];
     return ApiProblem(
       status,
       ProblemCode.values.where((code) => code.json == raw).firstOrNull,
+      botUrl: fields['botUrl'] is String ? fields['botUrl']! as String : null,
+      attemptsLeft: _int(fields['attemptsLeft']),
+      retryAfterSec: _int(fields['retryAfterSec']),
     );
   }
+
+  static int? _int(Object? value) => value is num ? value.toInt() : null;
+
+  static Future<T> _guard<T>(Future<T> Function() call) async {
+    try {
+      return await call();
+    } on DioException catch (error) {
+      throw _translate(error);
+    }
+  }
+
+  @override
+  Future<TelegramLoginChallenge> startTelegramLogin(TelegramLoginStart body) =>
+      _guard(() async {
+        final response = await _client.auth.startTelegramLogin(body: body);
+        return response.data;
+      });
+
+  @override
+  Future<AuthResult> verifyTelegramLogin(TelegramLoginVerify body) =>
+      _guard(() async {
+        final response = await _client.auth.verifyTelegramLogin(body: body);
+        return response.data;
+      });
+
+  @override
+  Future<void> logout() => _guard(_client.auth.logout);
 
   @override
   Future<ProfileFetch> fetchProfile({String? etag}) async {
@@ -106,6 +161,54 @@ class FakeApiClient implements ApiClient {
   int fetches = 0;
 
   static const _etag = '"fake"';
+
+  /// Thrown by start, verify, and logout instead of answering.
+  ApiException? authFailure;
+  final starts = <TelegramLoginStart>[];
+  final verifies = <TelegramLoginVerify>[];
+  int logouts = 0;
+
+  static const _fakeId = '00000000-0000-4000-8000-000000000001';
+  static const _resendAfterSec = 60;
+  static const _codeLifetime = Duration(minutes: 5);
+
+  void _failIfScripted() {
+    final scriptedFailure = authFailure;
+    if (scriptedFailure != null) {
+      throw scriptedFailure;
+    }
+  }
+
+  @override
+  Future<TelegramLoginChallenge> startTelegramLogin(
+    TelegramLoginStart body,
+  ) async {
+    starts.add(body);
+    _failIfScripted();
+    return TelegramLoginChallenge(
+      loginId: _fakeId,
+      expiresAt: DateTime.now().toUtc().add(_codeLifetime),
+      resendAfterSec: _resendAfterSec,
+      botUrl: 'https://t.me/vpnclient_bot',
+    );
+  }
+
+  @override
+  Future<AuthResult> verifyTelegramLogin(TelegramLoginVerify body) async {
+    verifies.add(body);
+    _failIfScripted();
+    return const AuthResult(
+      deviceId: _fakeId,
+      accountId: _fakeId,
+      token: 'fake-device-token',
+    );
+  }
+
+  @override
+  Future<void> logout() async {
+    logouts++;
+    _failIfScripted();
+  }
 
   @override
   Future<ProfileFetch> fetchProfile({String? etag}) async {
