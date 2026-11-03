@@ -10,16 +10,19 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/riverqueue/river"
 
 	"github.com/Evgenius09/vpn-project/backend/internal/app"
 	"github.com/Evgenius09/vpn-project/backend/internal/config"
 	"github.com/Evgenius09/vpn-project/backend/internal/db/sqlc"
+	"github.com/Evgenius09/vpn-project/backend/internal/domain/account"
 	"github.com/Evgenius09/vpn-project/backend/internal/domain/auth"
 	"github.com/Evgenius09/vpn-project/backend/internal/domain/catalog"
 	"github.com/Evgenius09/vpn-project/backend/internal/jobs"
 	"github.com/Evgenius09/vpn-project/backend/internal/panel"
 	panelfake "github.com/Evgenius09/vpn-project/backend/internal/panel/fake"
+	"github.com/Evgenius09/vpn-project/backend/internal/panel/remnawave"
 	"github.com/Evgenius09/vpn-project/backend/internal/seed"
 	"github.com/Evgenius09/vpn-project/backend/internal/telegram"
 	"github.com/Evgenius09/vpn-project/backend/internal/telegram/botapi"
@@ -54,21 +57,19 @@ func run(ctx context.Context) error {
 	river.AddWorker(workers, &jobs.DemoEchoWorker{Logger: runtime.Logger})
 	river.AddWorker(workers, &auth.SendCodeWorker{Queries: sqlc.New(runtime.Pool), Client: bot, Now: time.Now})
 
-	panelClient, err := catalogPanel(runtime.Config, seed.DefaultPath)
+	panelClient, err := panelFor(runtime.Config, seed.DefaultPath)
 	if err != nil {
 		return fmt.Errorf("panel client: %w", err)
 	}
-	var periodic []*river.PeriodicJob
-	if panelClient != nil {
-		service := catalog.NewService(catalog.NewPostgresStore(runtime.Pool), panelClient, catalog.Options{
-			CatalogFile: runtime.Config.CatalogFile,
-			Logger:      runtime.Logger,
-		})
-		river.AddWorker(workers, &catalog.SyncWorker{Service: service})
-		periodic = append(periodic, catalog.PeriodicJob())
-	} else {
-		runtime.Logger.WarnContext(ctx, "catalog sync is off until the Remnawave client exists")
-	}
+	service := catalog.NewService(catalog.NewPostgresStore(runtime.Pool), panelClient, catalog.Options{
+		CatalogFile: runtime.Config.CatalogFile,
+		Logger:      runtime.Logger,
+	})
+	river.AddWorker(workers, &catalog.SyncWorker{Service: service})
+	river.AddWorker(workers, &account.ProvisionWorker{
+		Service: account.NewService(runtime.Pool, panelClient, runtime.Config.TrialDays, time.Now),
+	})
+	periodic := []*river.PeriodicJob{catalog.PeriodicJob()}
 
 	client, err := jobs.NewClient(runtime.Pool, jobs.Options{Logger: runtime.Logger, Workers: workers, Periodic: periodic})
 	if err != nil {
@@ -101,13 +102,20 @@ func telegramClient(runtime app.Runtime) (telegram.TelegramClient, error) {
 	return client, nil
 }
 
-// catalogPanel returns the panel catalog_sync reads, or nil while there is
-// none: the Remnawave client arrives with S1-10. In dev the fake panel holds
-// the seed hosts, so the sync keeps the seeded servers. Elsewhere the seed is
-// off limits (it carries a published device token) and the fake stays empty.
-func catalogPanel(cfg config.Config, seedPath string) (panel.PanelClient, error) {
-	if cfg.PanelMode != config.PanelFake {
-		return nil, nil
+// panelFor returns the panel of PANEL_MODE. In dev the fake panel holds the
+// seed hosts, so the sync keeps the seeded servers. Elsewhere the seed is off
+// limits (it carries a published device token) and the fake stays empty.
+func panelFor(cfg config.Config, seedPath string) (panel.PanelClient, error) {
+	if cfg.PanelMode == config.PanelRemnawave {
+		squad, err := uuid.Parse(cfg.RemnawaveSquadUUID)
+		if err != nil {
+			return nil, fmt.Errorf("squad: %w", err)
+		}
+		client, err := remnawave.New(cfg.RemnawaveBaseURL, cfg.RemnawaveAPIToken, squad)
+		if err != nil {
+			return nil, fmt.Errorf("remnawave: %w", err)
+		}
+		return client, nil
 	}
 	client := panelfake.New()
 	if cfg.AppEnv == config.EnvDev {
