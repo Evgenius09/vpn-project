@@ -67,6 +67,8 @@ class TunnelController private constructor(private val context: Context) : Event
         platform.service = service
         try {
             core.start(request)
+            // The core forgets the network on every start (tech.md 19.10).
+            service.watchNetwork()
             lastRequest.write(request)
             started?.complete(Unit)
         } catch (error: Exception) {
@@ -104,6 +106,9 @@ class TunnelController private constructor(private val context: Context) : Event
     suspend fun urlTest(serverIdsJson: String): String = withContext(Dispatchers.IO) { core.urlTest(serverIdsJson) }
 
     fun state(): String = core.state()
+
+    /** Takes a NetType. The core ignores it outside connected. */
+    fun onNetworkChanged(netType: String) = core.onNetworkChanged(netType)
 
     suspend fun forgetLastRequest() = withContext(Dispatchers.IO) { lastRequest.clear() }
 
