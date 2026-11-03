@@ -67,12 +67,13 @@ func run(ctx context.Context) error {
 
 	metrics := httpapi.NewMetrics()
 	router := httpapi.NewRouter(httpapi.Deps{
-		Handlers: handlers{profile: profile.NewHandler(service)},
-		Devices:  httpapi.NewPostgresDevices(queries, runtime.Logger),
-		Pepper:   []byte(runtime.Config.TokenPepper),
-		Logger:   runtime.Logger,
-		Metrics:  metrics,
-		Webhook:  webhook,
+		Handlers:       handlers{profile: profile.NewHandler(service)},
+		Devices:        httpapi.NewPostgresDevices(queries, runtime.Logger),
+		Pepper:         []byte(runtime.Config.TokenPepper),
+		Logger:         runtime.Logger,
+		Metrics:        metrics,
+		Webhook:        webhook,
+		AuthRatePerMin: runtime.Config.AuthRatePerMin,
 	})
 
 	group, ctx := errgroup.WithContext(ctx)
