@@ -56,8 +56,11 @@ func run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("listen on pipe: %w", err)
 	}
-	host := hostOptions{DataDir: dir, Protect: protectFile, ListProcesses: listProcesses}
-	return serve(ctx, listener, runtime.NewBoxEngine(), host, newLogger())
+	logger := newLogger()
+	host := hostOptions{
+		DataDir: dir, Protect: protectFile, ListProcesses: listProcesses, WatchNetwork: watchNetwork(logger),
+	}
+	return serve(ctx, listener, runtime.NewBoxEngine(), host, logger)
 }
 
 // enterDataDir moves away from system32, where a service starts. sing-box keeps
