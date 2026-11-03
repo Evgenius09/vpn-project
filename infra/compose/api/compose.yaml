@@ -60,6 +60,37 @@ services:
       migrate:
         condition: service_completed_successfully
 
+  # The panel and node_exporter of the node server listen on loopback only, so
+  # the worker and Prometheus reach them through SSH (tech.md 39.5). The
+  # restricted key on the node opens only these two ports.
+  panel-tunnel:
+    build: ./panel-tunnel
+    image: vpnclient-panel-tunnel:local
+    restart: unless-stopped
+    profiles: [panel]
+    command:
+      - ssh
+      - -N
+      - -i
+      - /run/panel-tunnel/key
+      - -o
+      - UserKnownHostsFile=/run/panel-tunnel/known_hosts
+      - -o
+      - StrictHostKeyChecking=yes
+      - -o
+      - ExitOnForwardFailure=yes
+      - -o
+      - ServerAliveInterval=15
+      - -o
+      - ServerAliveCountMax=3
+      - -L
+      - 0.0.0.0:3000:127.0.0.1:3000
+      - -L
+      - 0.0.0.0:9100:127.0.0.1:9100
+      - panel-tunnel@${NODE_HOST:-unset}
+    volumes:
+      - ../../panel-tunnel:/run/panel-tunnel:ro
+
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
