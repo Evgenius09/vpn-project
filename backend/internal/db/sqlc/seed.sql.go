@@ -71,7 +71,7 @@ func (q *Queries) SeedDevice(ctx context.Context, arg SeedDeviceParams) error {
 
 const seedPanelUser = `-- name: SeedPanelUser :exec
 insert into panel_users (
-    account_id, remnawave_uuid, short_uuid, vless_uuid, hysteria2_auth,
+    account_id, remnawave_id, short_uuid, vless_uuid, hysteria2_auth,
     traffic_limit_bytes, traffic_used_bytes
 )
 values ($1, $2, $3, $4, $5, $6, $7)
@@ -82,7 +82,7 @@ set traffic_limit_bytes = excluded.traffic_limit_bytes,
 
 type SeedPanelUserParams struct {
 	AccountID         uuid.UUID
-	RemnawaveUuid     uuid.UUID
+	RemnawaveID       int64
 	ShortUuid         string
 	VlessUuid         string
 	Hysteria2Auth     string
@@ -93,7 +93,7 @@ type SeedPanelUserParams struct {
 func (q *Queries) SeedPanelUser(ctx context.Context, arg SeedPanelUserParams) error {
 	_, err := q.db.Exec(ctx, seedPanelUser,
 		arg.AccountID,
-		arg.RemnawaveUuid,
+		arg.RemnawaveID,
 		arg.ShortUuid,
 		arg.VlessUuid,
 		arg.Hysteria2Auth,

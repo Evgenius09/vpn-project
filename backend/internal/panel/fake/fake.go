@@ -32,6 +32,7 @@ var usernamePattern = regexp.MustCompile(`^tg_[0-9]+$`)
 type Client struct {
 	mu       sync.Mutex
 	users    map[string]panel.PanelUser
+	nextID   int64
 	hosts    []panel.PanelHost
 	failures map[string][]error
 	calls    map[string]int
@@ -120,8 +121,9 @@ func (c *Client) CreateUser(_ context.Context, in panel.CreateUserInput) (panel.
 	if _, taken := c.users[in.Username]; taken {
 		return panel.PanelUser{}, panel.ErrConflict
 	}
+	c.nextID++
 	user := panel.PanelUser{
-		UUID:          uuid.New(),
+		ID:            1000 + c.nextID,
 		ShortUUID:     uuid.NewString()[:8],
 		Username:      in.Username,
 		ExpiresAt:     in.ExpiresAt,
@@ -134,7 +136,7 @@ func (c *Client) CreateUser(_ context.Context, in panel.CreateUserInput) (panel.
 }
 
 // UpdateUser implements panel.PanelClient.
-func (c *Client) UpdateUser(_ context.Context, id uuid.UUID, in panel.UpdateUserInput) (panel.PanelUser, error) {
+func (c *Client) UpdateUser(_ context.Context, id int64, in panel.UpdateUserInput) (panel.PanelUser, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if err := c.enter(OpUpdateUser); err != nil {
@@ -144,7 +146,7 @@ func (c *Client) UpdateUser(_ context.Context, id uuid.UUID, in panel.UpdateUser
 		return panel.PanelUser{}, fmt.Errorf("%w: update values", ErrInvalidInput)
 	}
 	for username, user := range c.users {
-		if user.UUID == id {
+		if user.ID == id {
 			user.ExpiresAt = in.ExpiresAt
 			user.TrafficLimit = in.TrafficLimit
 			c.users[username] = user
