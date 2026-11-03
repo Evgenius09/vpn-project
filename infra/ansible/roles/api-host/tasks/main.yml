@@ -48,8 +48,26 @@
   no_log: true
   notify: Restart the stack
 
+# The image may be private: the deploy job's token pulls it, and the host
+# never keeps it, even when the start fails.
 - name: Start the stack
-  ansible.builtin.command:
-    cmd: docker compose up -d --remove-orphans --wait
-    chdir: "{{ api_host_dir }}/compose/api"
-  changed_when: true
+  block:
+    - name: Log in to the image registry
+      ansible.builtin.command:
+        cmd: docker login ghcr.io --username {{ registry_user }} --password-stdin
+        stdin: "{{ registry_token }}"
+      when: registry_token is defined
+      no_log: true
+      changed_when: false
+
+    - name: Pull the images and start the services
+      ansible.builtin.command:
+        cmd: docker compose up -d --remove-orphans --wait
+        chdir: "{{ api_host_dir }}/compose/api"
+      changed_when: true
+  always:
+    - name: Log out of the image registry
+      ansible.builtin.command:
+        cmd: docker logout ghcr.io
+      when: registry_token is defined
+      changed_when: false
