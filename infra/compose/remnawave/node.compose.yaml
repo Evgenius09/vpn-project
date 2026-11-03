@@ -20,6 +20,8 @@ services:
     # The binary comes from the official release after a SHA2-256 check.
     volumes:
       - ./xray-v26.6.27/xray:/usr/local/bin/xray:ro
+      # Hysteria2 TLS certificate from certbot on the host; live/ links into archive/.
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     logging:
       driver: json-file
       options:
