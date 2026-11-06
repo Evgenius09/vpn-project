@@ -1,0 +1,27 @@
+name: tmp-goldens
+
+on:
+  push:
+    branches: [design-figma-theme]
+
+permissions:
+  contents: read
+
+jobs:
+  goldens:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: jdx/mise-action@v5.2.5
+        with:
+          install_args: flutter
+      - name: Regenerate goldens
+        working-directory: app
+        run: |
+          flutter pub get
+          flutter test --update-goldens --tags golden
+      - uses: actions/upload-artifact@v4
+        with:
+          name: goldens
+          path: app/test/ui/goldens/
+          retention-days: 1
