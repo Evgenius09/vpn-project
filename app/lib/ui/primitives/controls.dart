@@ -26,35 +26,50 @@ class AppButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final action = loading ? null : onPressed;
+    final foreground = switch (variant) {
+      AppButtonVariant.primary => colors.onPrimary,
+      AppButtonVariant.danger => colors.danger,
+      AppButtonVariant.secondary => colors.text,
+      AppButtonVariant.text => colors.primaryText,
+    };
     final child = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         if (loading) ...[
-          const SizedBox.square(
+          SizedBox.square(
             dimension: AppSizes.spinner,
             child: CircularProgressIndicator(
               strokeWidth: AppSizes.spinnerStroke,
+              strokeCap: StrokeCap.round,
+              color: variant == AppButtonVariant.text
+                  ? colors.primaryText
+                  : colors.textMuted,
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
         ] else if (icon != null) ...[
-          Icon(icon, size: AppSizes.iconSmall),
+          Icon(icon, size: AppSizes.iconSmall + 2),
           const SizedBox(width: AppSpacing.sm),
         ],
-        Flexible(child: Text(label, style: AppText.label)),
+        Flexible(child: Text(label, textAlign: TextAlign.center, maxLines: 2)),
       ],
     );
     return switch (variant) {
-      AppButtonVariant.primary => FilledButton(onPressed: action, child: child),
+      AppButtonVariant.primary => FilledButton(
+        style: FilledButton.styleFrom(foregroundColor: foreground),
+        onPressed: action,
+        child: child,
+      ),
       AppButtonVariant.secondary => OutlinedButton(
         onPressed: action,
         child: child,
       ),
       AppButtonVariant.text => TextButton(onPressed: action, child: child),
       AppButtonVariant.danger => FilledButton(
+        // A tinted fill keeps a destructive action visible without shouting.
         style: FilledButton.styleFrom(
-          backgroundColor: colors.danger,
-          foregroundColor: colors.onPrimary,
+          backgroundColor: colors.danger.withValues(alpha: 0.14),
+          foregroundColor: foreground,
         ),
         onPressed: action,
         child: child,
@@ -71,6 +86,8 @@ class AppTextField extends StatelessWidget {
     this.errorText,
     this.keyboardType,
     this.prefixText,
+    this.icon,
+    this.onChanged,
     super.key,
   });
 
@@ -80,22 +97,40 @@ class AppTextField extends StatelessWidget {
   final String? errorText;
   final TextInputType? keyboardType;
   final String? prefixText;
+  final IconData? icon;
+  final ValueChanged<String>? onChanged;
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      keyboardType: keyboardType,
-      style: AppText.body,
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        errorText: errorText,
-        prefixText: prefixText,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.md),
+    final colors = context.colors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (label != null) ...[
+          Text(
+            label!.toUpperCase(),
+            style: AppText.overline.copyWith(color: colors.textMuted),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+        ],
+        TextField(
+          controller: controller,
+          keyboardType: keyboardType,
+          onChanged: onChanged,
+          style: AppText.bodyStrong.copyWith(color: colors.text),
+          cursorColor: colors.primary,
+          decoration: InputDecoration(
+            hintText: hint,
+            errorText: errorText,
+            prefixText: prefixText,
+            prefixStyle: AppText.bodyStrong.copyWith(color: colors.text),
+            prefixIcon: icon == null
+                ? null
+                : Icon(icon, color: colors.textMuted, size: AppSizes.icon),
+          ),
         ),
-      ),
+      ],
     );
   }
 }
@@ -108,13 +143,17 @@ class CodeInput extends StatefulWidget {
     this.length = 6,
     this.errorText,
     this.enabled = true,
+    this.onChanged,
     super.key,
   });
 
   final int length;
   final ValueChanged<String> onCompleted;
+
+  /// An empty text paints the cells red without a line under them.
   final String? errorText;
   final bool enabled;
+  final ValueChanged<String>? onChanged;
 
   @override
   State<CodeInput> createState() => _CodeInputState();
@@ -122,7 +161,7 @@ class CodeInput extends StatefulWidget {
 
 class _CodeInputState extends State<CodeInput> {
   final _controller = TextEditingController();
-  final _focusNode = FocusNode();
+  late final _focusNode = FocusNode()..addListener(() => setState(() {}));
 
   @override
   void dispose() {
@@ -133,6 +172,7 @@ class _CodeInputState extends State<CodeInput> {
 
   void _onChanged(String value) {
     setState(() {});
+    widget.onChanged?.call(value);
     if (value.length == widget.length) {
       widget.onCompleted(value);
     }
@@ -143,6 +183,7 @@ class _CodeInputState extends State<CodeInput> {
     final colors = context.colors;
     final text = _controller.text;
     final hasError = widget.errorText != null;
+    final focused = _focusNode.hasFocus;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -151,28 +192,17 @@ class _CodeInputState extends State<CodeInput> {
           onTap: widget.enabled ? _focusNode.requestFocus : null,
           child: Stack(
             children: [
+              // The cells share the width of the field.
               Row(
-                mainAxisSize: MainAxisSize.min,
                 children: [
                   for (var i = 0; i < widget.length; i++)
-                    Container(
-                      width: AppSizes.codeCell,
-                      height: AppSizes.codeCellHeight,
-                      margin: const EdgeInsets.only(right: AppSpacing.xs),
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: widget.enabled
-                            ? colors.surface
-                            : colors.surfaceAlt,
-                        borderRadius: BorderRadius.circular(AppRadius.sm),
-                        border: Border.all(
-                          color: hasError ? colors.danger : colors.border,
-                          width: AppSizes.border,
-                        ),
-                      ),
-                      child: Text(
-                        i < text.length ? text[i] : '',
-                        style: AppText.title.copyWith(color: colors.text),
+                    Expanded(
+                      child: _cell(
+                        colors,
+                        digit: i < text.length ? text[i] : '',
+                        active: focused && i == text.length,
+                        error: hasError,
+                        last: i == widget.length - 1,
                       ),
                     ),
                 ],
@@ -197,14 +227,65 @@ class _CodeInputState extends State<CodeInput> {
             ],
           ),
         ),
-        if (hasError) ...[
-          const SizedBox(height: AppSpacing.xs),
+        if (hasError && widget.errorText!.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.sm),
           Text(
             widget.errorText!,
             style: AppText.caption.copyWith(color: colors.danger),
           ),
         ],
       ],
+    );
+  }
+
+  Widget _cell(
+    AppColors colors, {
+    required String digit,
+    required bool active,
+    required bool error,
+    required bool last,
+  }) {
+    final filled = digit.isNotEmpty;
+    final edge = error
+        ? colors.danger
+        : active
+        ? colors.primary
+        : filled
+        ? colors.primary.withValues(alpha: 0.4)
+        : colors.border;
+    return AnimatedContainer(
+      duration: AppDurations.fast,
+      curve: AppCurves.standard,
+      height: AppSizes.codeCellHeight,
+      margin: EdgeInsets.only(right: last ? 0 : AppSpacing.sm),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: !widget.enabled
+            ? colors.surfaceAlt
+            : error
+            ? colors.danger.withValues(alpha: 0.1)
+            : active
+            ? colors.primarySoft
+            : colors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(
+          color: edge,
+          width: active ? AppSizes.borderStrong : AppSizes.border,
+        ),
+      ),
+      child: AnimatedSwitcher(
+        duration: AppDurations.fast,
+        transitionBuilder: (child, animation) =>
+            ScaleTransition(scale: animation, child: child),
+        child: Text(
+          digit,
+          key: ValueKey(digit),
+          style: AppText.title.copyWith(
+            fontSize: 26,
+            color: error ? colors.danger : colors.text,
+          ),
+        ),
+      ),
     );
   }
 }

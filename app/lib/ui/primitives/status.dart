@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../gen/l10n/app_localizations.dart';
 import '../tokens.dart';
@@ -41,16 +42,22 @@ class StatusBanner extends StatelessWidget {
     final colors = context.colors;
     final color = kind.color(colors);
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.md,
+      ),
       decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: color, width: AppSizes.border),
+        color: Color.alphaBlend(color.withValues(alpha: 0.12), colors.surface),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(
+          color: color.withValues(alpha: 0.6),
+          width: AppSizes.border,
+        ),
       ),
       child: Row(
         children: [
           Icon(kind.icon, color: color, size: AppSizes.icon),
-          const SizedBox(width: AppSpacing.sm),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Text(
               text,
@@ -77,37 +84,41 @@ class TrafficCounter extends StatelessWidget {
   final int upBps;
   final int downBps;
 
-  String _format(AppLocalizations strings, int bps) {
+  /// A speed in the units and decimal mark of the current language.
+  static String format(AppLocalizations strings, int bps) {
+    String number(double value) =>
+        NumberFormat('0.0', strings.localeName).format(value);
     if (bps < _kilo) {
       return strings.speedBytes(bps.toString());
     }
     if (bps < _kilo * _kilo) {
-      return strings.speedKilobytes((bps / _kilo).toStringAsFixed(1));
+      return strings.speedKilobytes(number(bps / _kilo));
     }
-    return strings.speedMegabytes((bps / (_kilo * _kilo)).toStringAsFixed(1));
+    return strings.speedMegabytes(number(bps / (_kilo * _kilo)));
   }
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final strings = AppLocalizations.of(context);
-    final style = AppText.caption.copyWith(color: colors.textMuted);
+    final style = AppText.label.copyWith(
+      color: colors.textMuted,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
+    Widget part(IconData icon, int bps) => Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: AppSizes.iconSmall, color: colors.primaryText),
+        const SizedBox(width: AppSpacing.xs),
+        Text(format(strings, bps), style: style),
+      ],
+    );
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(
-          Icons.arrow_upward,
-          size: AppSizes.iconSmall,
-          color: colors.textMuted,
-        ),
-        Text(_format(strings, upBps), style: style),
-        const SizedBox(width: AppSpacing.md),
-        Icon(
-          Icons.arrow_downward,
-          size: AppSizes.iconSmall,
-          color: colors.textMuted,
-        ),
-        Text(_format(strings, downBps), style: style),
+        part(Icons.south_rounded, downBps),
+        const SizedBox(width: AppSpacing.lg),
+        part(Icons.north_rounded, upBps),
       ],
     );
   }
@@ -136,9 +147,10 @@ class PageDots extends StatelessWidget {
             onTap: onTap == null ? null : () => onTap!(i),
             borderRadius: BorderRadius.circular(AppRadius.pill),
             child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.sm),
+              padding: const EdgeInsets.all(AppSizes.dotGap / 2),
               child: AnimatedContainer(
-                duration: AppDurations.fast,
+                duration: AppDurations.page,
+                curve: AppCurves.emphasized,
                 width: AppSizes.dot,
                 height: AppSizes.dot,
                 decoration: BoxDecoration(
@@ -176,11 +188,19 @@ class EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: AppSizes.iconLarge, color: colors.textMuted),
-            const SizedBox(height: AppSpacing.md),
+            Container(
+              width: AppSizes.logoTile,
+              height: AppSizes.logoTile,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: colors.primarySoft,
+              ),
+              child: Icon(icon, size: AppSizes.icon, color: colors.primaryText),
+            ),
+            const SizedBox(height: AppSpacing.lg),
             Text(
               title,
-              style: AppText.title.copyWith(color: colors.text),
+              style: AppText.headline.copyWith(color: colors.text),
               textAlign: TextAlign.center,
             ),
             if (message != null) ...[
@@ -273,6 +293,35 @@ class AppShell extends StatelessWidget {
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: AppLayout.maxContentWidth),
         child: child,
+      ),
+    );
+  }
+}
+
+/// The round Telegram logo of the top bar. It opens the bot.
+class TelegramButton extends StatelessWidget {
+  const TelegramButton({required this.onPressed, super.key});
+
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return IconButton(
+      tooltip: AppLocalizations.of(context).telegramTooltip,
+      onPressed: onPressed,
+      icon: Container(
+        width: AppSizes.topBarIcon,
+        height: AppSizes.topBarIcon,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: colors.telegram,
+        ),
+        child: Icon(
+          Icons.telegram,
+          color: colors.onPrimary,
+          size: AppSizes.topBarIcon - 12,
+        ),
       ),
     );
   }

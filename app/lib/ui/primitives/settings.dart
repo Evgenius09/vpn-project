@@ -3,12 +3,89 @@ import 'package:flutter/material.dart';
 import '../../gen/l10n/app_localizations.dart';
 import '../tokens.dart';
 import 'controls.dart';
+import 'status.dart';
 
 class SelectOption<T> {
   const SelectOption({required this.value, required this.label});
 
   final T value;
   final String label;
+}
+
+/// A screen of the settings tree: a back arrow, a big title and a scrolling
+/// body (tech.md 43).
+class AppScreen extends StatelessWidget {
+  const AppScreen({
+    required this.title,
+    required this.children,
+    this.onBack,
+    super.key,
+  });
+
+  final String title;
+  final List<Widget> children;
+
+  /// Null pops the route.
+  final VoidCallback? onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Scaffold(
+      body: SafeArea(
+        child: AppShell(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.sm,
+                  AppSpacing.sm,
+                  AppSpacing.lg,
+                  AppSpacing.xs,
+                ),
+                child: Row(
+                  children: [
+                    IconButton(
+                      tooltip: MaterialLocalizations.of(context)
+                          .backButtonTooltip,
+                      icon: Icon(
+                        Icons.arrow_back_rounded,
+                        color: colors.text,
+                        size: AppSizes.icon,
+                      ),
+                      onPressed:
+                          onBack ?? () => Navigator.of(context).maybePop(),
+                    ),
+                    const SizedBox(width: AppSpacing.xs),
+                    Expanded(
+                      child: Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppText.screenTitle.copyWith(color: colors.text),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.lg,
+                    AppSpacing.md,
+                    AppSpacing.lg,
+                    AppSpacing.xxl,
+                  ),
+                  children: children,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class SettingsSection extends StatelessWidget {
@@ -27,26 +104,51 @@ class SettingsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.xl),
+      padding: const EdgeInsets.only(bottom: AppSpacing.lg + AppSpacing.xs),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.all(AppSpacing.sm),
-            child: Text(
-              title,
-              style: AppText.label.copyWith(color: colors.textMuted),
+          if (title.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                0,
+                AppSpacing.lg,
+                AppSpacing.sm,
+              ),
+              child: Text(
+                title.toUpperCase(),
+                style: AppText.overline.copyWith(
+                  letterSpacing: 0,
+                  color: colors.textMuted,
+                ),
+              ),
             ),
-          ),
           Material(
             color: colors.surface,
-            borderRadius: BorderRadius.circular(AppRadius.md),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
             clipBehavior: Clip.antiAlias,
-            child: Column(children: children),
+            child: Column(
+              children: [
+                for (var i = 0; i < children.length; i++) ...[
+                  if (i > 0)
+                    const Divider(
+                      indent: AppSpacing.lg,
+                      endIndent: AppSpacing.lg,
+                    ),
+                  children[i],
+                ],
+              ],
+            ),
           ),
           if (footer != null)
             Padding(
-              padding: const EdgeInsets.all(AppSpacing.sm),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                AppSpacing.sm,
+                AppSpacing.lg,
+                0,
+              ),
               child: Text(
                 footer!,
                 style: AppText.caption.copyWith(color: colors.textMuted),
@@ -69,6 +171,8 @@ class _SettingsRow extends StatelessWidget {
     this.onTap,
   });
 
+  static const _height = 64.0;
+
   final String title;
   final String? subtitle;
   final bool locked;
@@ -83,39 +187,100 @@ class _SettingsRow extends StatelessWidget {
         : subtitle;
     return InkWell(
       onTap: locked ? null : onTap,
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: AppText.body.copyWith(
-                      color: locked ? colors.textMuted : colors.text,
-                    ),
-                  ),
-                  if (caption != null)
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: _height),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.md,
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
-                      caption,
-                      style: AppText.caption.copyWith(color: colors.textMuted),
+                      title,
+                      style: AppText.bodyStrong.copyWith(
+                        color: locked ? colors.textMuted : colors.text,
+                      ),
                     ),
-                ],
-              ),
-            ),
-            if (locked)
-              Padding(
-                padding: const EdgeInsets.only(right: AppSpacing.sm),
-                child: Icon(
-                  Icons.lock_outline,
-                  size: AppSizes.iconSmall,
-                  color: colors.textMuted,
+                    if (caption != null && caption.isNotEmpty) ...[
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        caption,
+                        style: AppText.caption.copyWith(
+                          color: colors.textMuted,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
-            ?trailing,
-          ],
+              const SizedBox(width: AppSpacing.md),
+              if (locked)
+                Padding(
+                  padding: const EdgeInsets.only(right: AppSpacing.sm),
+                  child: Icon(
+                    Icons.lock_outline,
+                    size: AppSizes.iconSmall,
+                    color: colors.textMuted,
+                  ),
+                ),
+              ?trailing,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The switch of the design: a 44 by 26 track with a 20 px knob.
+class AppSwitch extends StatelessWidget {
+  const AppSwitch({required this.value, required this.onChanged, super.key});
+
+  static const _width = 44.0;
+  static const _height = 26.0;
+  static const _knob = 20.0;
+
+  final bool value;
+  final ValueChanged<bool>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Semantics(
+      toggled: value,
+      enabled: onChanged != null,
+      child: GestureDetector(
+        onTap: onChanged == null ? null : () => onChanged!(!value),
+        child: AnimatedContainer(
+          duration: AppDurations.normal,
+          curve: AppCurves.standard,
+          width: _width,
+          height: _height,
+          padding: const EdgeInsets.all((_height - _knob) / 2),
+          decoration: BoxDecoration(
+            color: value ? colors.primary : colors.idle,
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+          ),
+          child: AnimatedAlign(
+            duration: AppDurations.normal,
+            curve: AppCurves.standard,
+            alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+            child: AnimatedContainer(
+              duration: AppDurations.normal,
+              width: _knob,
+              height: _knob,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: value ? colors.onPrimary : colors.textMuted,
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -146,7 +311,7 @@ class SettingsToggleTile extends StatelessWidget {
       subtitle: subtitle,
       locked: locked,
       onTap: change == null ? null : () => change(!value),
-      trailing: Switch(value: value, onChanged: change),
+      trailing: AppSwitch(value: value, onChanged: change),
     );
   }
 }
@@ -188,18 +353,25 @@ class SettingsSelectTile<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.colors;
     final current = options.where((option) => option.value == value);
     return _SettingsRow(
       title: title,
+      subtitle: current.isEmpty ? null : current.first.label,
       locked: locked,
       onTap: onChanged == null ? null : () => _open(context),
-      trailing: Text(
-        current.isEmpty ? '' : current.first.label,
-        style: AppText.label.copyWith(color: colors.textMuted),
-      ),
+      trailing: const _Chevron(),
     );
   }
+}
+
+class _Chevron extends StatelessWidget {
+  const _Chevron();
+
+  @override
+  Widget build(BuildContext context) => Text(
+    '›',
+    style: AppText.headline.copyWith(color: context.colors.textMuted),
+  );
 }
 
 class SettingsNavTile extends StatelessWidget {
@@ -207,34 +379,65 @@ class SettingsNavTile extends StatelessWidget {
     required this.title,
     required this.onTap,
     this.value,
+    this.trailing,
     super.key,
   });
 
   final String title;
+
+  /// The current value, under the title as in the design.
   final String? value;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+
+  /// Replaces the chevron, for a row with its own action.
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return _SettingsRow(
+      title: title,
+      subtitle: value,
+      locked: false,
+      onTap: onTap,
+      trailing: trailing ?? const _Chevron(),
+    );
+  }
+}
+
+/// One answer of a single-choice list. The chosen one carries a check mark.
+class SettingsChoiceTile extends StatelessWidget {
+  const SettingsChoiceTile({
+    required this.title,
+    required this.selected,
+    required this.onTap,
+    this.subtitle,
+    super.key,
+  });
+
+  final String title;
+  final String? subtitle;
+  final bool selected;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    return _SettingsRow(
-      title: title,
-      locked: false,
-      onTap: onTap,
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (value != null)
-            Text(
-              value!,
-              style: AppText.label.copyWith(color: colors.textMuted),
-            ),
-          Icon(
-            Icons.chevron_right,
-            size: AppSizes.icon,
-            color: colors.textMuted,
+    return Semantics(
+      selected: selected,
+      child: _SettingsRow(
+        title: title,
+        subtitle: subtitle,
+        locked: false,
+        onTap: onTap,
+        trailing: AnimatedOpacity(
+          duration: AppDurations.fast,
+          opacity: selected ? 1 : 0,
+          child: Icon(
+            Icons.check_rounded,
+            size: AppSizes.iconSmall + 2,
+            color: colors.primaryText,
           ),
-        ],
+        ),
       ),
     );
   }
@@ -280,6 +483,7 @@ class SettingsInputTile extends StatelessWidget {
       subtitle: value,
       locked: locked,
       onTap: onSubmitted == null ? null : () => _open(context),
+      trailing: const _Chevron(),
     );
   }
 }
@@ -337,6 +541,179 @@ class _InputDialogState extends State<_InputDialog> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         AppButton(label: strings.save, onPressed: _submit),
+      ],
+    );
+  }
+}
+
+/// One traffic meter of the account card.
+class AccountMeter {
+  const AccountMeter({
+    required this.label,
+    required this.value,
+    required this.accent,
+    this.progress,
+  });
+
+  final String label;
+  final String value;
+  final AppAccent accent;
+
+  /// Null fills the bar, for a plan without a limit.
+  final double? progress;
+}
+
+/// The account card at the top of settings: who is signed in, the plan, and
+/// the traffic of each mode (tech.md 43).
+class AccountCard extends StatelessWidget {
+  const AccountCard({
+    required this.title,
+    this.subtitle,
+    this.action,
+    this.meters = const [],
+    super.key,
+  });
+
+  static const _avatar = 48.0;
+  static const _bar = 6.0;
+
+  final String title;
+  final String? subtitle;
+  final Widget? action;
+  final List<AccountMeter> meters;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: colors.border, width: AppSizes.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: _avatar,
+                height: _avatar,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: colors.primarySoft,
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  '@',
+                  style: AppText.title.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: colors.primaryText,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppText.bodyStrong.copyWith(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: colors.text,
+                      ),
+                    ),
+                    if (subtitle != null)
+                      Text(
+                        subtitle!,
+                        style: AppText.caption.copyWith(
+                          fontSize: 13,
+                          color: colors.textMuted,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              if (action != null) ...[
+                const SizedBox(width: AppSpacing.sm),
+                action!,
+              ],
+            ],
+          ),
+          if (meters.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.lg),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (var i = 0; i < meters.length; i++) ...[
+                  if (i > 0) const SizedBox(width: AppSpacing.lg),
+                  Expanded(child: _Meter(meters[i], bar: _bar)),
+                ],
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _Meter extends StatelessWidget {
+  const _Meter(this.meter, {required this.bar});
+
+  final AccountMeter meter;
+  final double bar;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          meter.label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: AppText.caption.copyWith(color: colors.textMuted),
+        ),
+        Text(
+          meter.value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: AppText.label.copyWith(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: meter.accent.text,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xs + 2),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(bar / 2),
+          child: SizedBox(
+            height: bar,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                ColoredBox(color: colors.surfaceAlt),
+                TweenAnimationBuilder<double>(
+                  tween: Tween(end: (meter.progress ?? 1).clamp(0.0, 1.0)),
+                  duration: AppDurations.slow,
+                  curve: AppCurves.standard,
+                  builder: (context, value, _) => FractionallySizedBox(
+                    alignment: Alignment.centerLeft,
+                    widthFactor: value,
+                    child: ColoredBox(color: meter.accent.primary),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }

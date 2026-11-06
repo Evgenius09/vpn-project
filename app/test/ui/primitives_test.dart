@@ -229,7 +229,7 @@ void main() {
           locked: true,
         ),
       );
-      await tester.tap(find.byType(Switch));
+      await tester.tap(find.byType(AppSwitch));
       await tester.tap(find.text('T'));
       expect(changes, 0);
       expect(find.text('Set by provider'), findsOneWidget);

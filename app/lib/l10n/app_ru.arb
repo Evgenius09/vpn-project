@@ -55,13 +55,13 @@
   "profileLoadFailed": "Не удалось загрузить профиль",
   "profileFromCache": "Нет связи с сервером, показаны сохранённые данные",
   "loginUsernameTitle": "Вход через Telegram",
-  "loginUsernameMessage": "Введите ваш ник в Telegram. Бот пришлёт код для входа.",
+  "loginUsernameMessage": "Введите свой ник в Telegram. Бот пришлёт код для входа.",
   "loginUsernameLabel": "Ник в Telegram",
   "loginGetCode": "Получить код",
-  "loginInvalidUsername": "Ник: от 4 до 32 латинских букв, цифр или знаков подчёркивания",
+  "loginInvalidUsername": "Ник: от 4 до 32 знаков a–z, 0–9 и _",
   "loginBotTitle": "Откройте бота и нажмите Start",
   "loginBotMessage": "Бот может написать только тем, кто его запустил. Нажмите Start в боте и вернитесь сюда.",
-  "loginOpenBot": "Открыть бота",
+  "loginOpenBot": "Открыть бота в Telegram",
   "loginPressedStart": "Я нажал Start, отправить код",
   "loginChangeUsername": "Изменить ник",
   "loginCodeTitle": "Введите код",
@@ -83,12 +83,12 @@
   },
   "loginResend": "Отправить код снова",
   "loginLinkFailed": "Не удалось открыть ссылку",
-  "loginErrorUnavailable": "Нет связи с сервером. Проверьте интернет и повторите.",
+  "loginErrorUnavailable": "Нет связи с сервером. Попробуйте ещё раз",
   "loginErrorUnexpected": "Неожиданный ответ сервера. Повторите.",
   "loginErrorUnauthorized": "Сессия завершилась. Войдите снова.",
   "loginErrorDeviceRevoked": "Это устройство отключено от аккаунта. Войдите снова.",
   "loginErrorValidationFailed": "Сервер не принял данные. Проверьте ник и код.",
-  "loginErrorRateLimited": "Слишком много попыток. Повторите через {seconds} с.",
+  "loginErrorRateLimited": "Много попыток. Повторите через {seconds} с",
   "@loginErrorRateLimited": {
     "placeholders": {
       "seconds": {
@@ -98,7 +98,7 @@
   },
   "loginErrorRateLimitedLater": "Слишком много попыток. Повторите позже.",
   "loginErrorUserNotFound": "Ник не найден среди пользователей бота. Откройте бота и нажмите Start.",
-  "loginErrorCodeInvalid": "Неверный код. Осталось попыток: {attempts}.",
+  "loginErrorCodeInvalid": "Неверный код. Осталось попыток: {attempts}",
   "@loginErrorCodeInvalid": {
     "placeholders": {
       "attempts": {
@@ -107,17 +107,17 @@
     }
   },
   "loginErrorCodeInvalidNoCount": "Неверный код.",
-  "loginErrorCodeExpired": "Код истёк или попытки закончились. Запросите новый код.",
-  "loginErrorDeviceLimit": "Достигнут лимит устройств аккаунта. Отключите другое устройство и введите код снова.",
-  "loginErrorPanelUnavailable": "Сервис VPN временно недоступен. Повторите позже.",
+  "loginErrorCodeExpired": "Код истёк. Получите новый код",
+  "loginErrorDeviceLimit": "Устройств уже 5. Отключите лишнее в боте",
+  "loginErrorPanelUnavailable": "Нет связи с сервером. Попробуйте ещё раз",
   "loginErrorNotFound": "Сервер не нашёл запрос. Начните вход заново.",
-  "loginErrorInternal": "Ошибка на сервере. Повторите позже.",
+  "loginErrorInternal": "Нет связи с сервером. Попробуйте ещё раз",
   "settingsAccount": "Аккаунт",
   "logoutButton": "Выйти из аккаунта",
   "logoutConfirmTitle": "Выйти из аккаунта?",
   "logoutConfirmMessage": "VPN отключится, а устройство выйдет из аккаунта. Чтобы вернуться, войдите с новым кодом из бота.",
   "logoutConfirm": "Выйти",
-  "connectionDisconnected": "Отключено",
+  "connectionDisconnected": "Не подключено",
   "connectionConnecting": "Подключение…",
   "connectionConnected": "Подключено {time}",
   "@connectionConnected": {
@@ -184,7 +184,307 @@
       }
     }
   },
-  "autoSwitchTitle": "Белые списки в мобильной сети",
-  "autoSwitchSubtitle": "Включать белые списки, когда Wi-Fi сменяется мобильной сетью",
-  "settingsConnection": "Подключение"
+  "autoSwitchTitle": "Автопереход на белые списки",
+  "autoSwitchSubtitle": "Когда Wi-Fi сменяется мобильной сетью",
+  "settingsConnection": "Подключение",
+  "brandWordmark": "СВОИ.",
+  "brandTagline": "Свой VPN без лишних настроек",
+  "telegramTooltip": "Открыть бота в Telegram",
+  "connectionTapToConnect": "Нажмите, чтобы подключиться",
+  "connectionTapToSwitch": "Нажмите, чтобы переключиться сюда",
+  "pingSortByPingShort": "По пингу",
+  "pingSortByOrder": "По порядку",
+  "modeSwitchHint": "Переключить экран режима",
+  "settingsBasics": "Основное",
+  "accountTrial": "Пробный период",
+  "accountActive": "Подписка активна",
+  "accountExpired": "Подписка закончилась",
+  "accountBlocked": "Аккаунт заблокирован",
+  "accountProvisioning": "Готовим доступ…",
+  "accountUntil": "до {date}",
+  "@accountUntil": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "accountTraffic": "Трафик",
+  "accountTrafficUnlimited": "Без ограничений",
+  "accountTrafficUsed": "{used} из {limit}",
+  "@accountTrafficUsed": {
+    "placeholders": {
+      "used": {
+        "type": "String"
+      },
+      "limit": {
+        "type": "String"
+      }
+    }
+  },
+  "accountRenew": "Продлить в боте",
+  "loginCodeLabel": "Код из Telegram",
+  "loginUsernameHint": "Ник есть в Telegram → Настройки → Имя пользователя",
+  "loginBotFooter": "Ещё не запускали бота? Откройте его и нажмите Start",
+  "loginCodeFooter": "Код не пришёл? Проверьте чат с ботом",
+  "protocolVlessReality": "VLESS Reality",
+  "protocolHysteria2": "Hysteria2",
+  "setSectionBasics": "Основное",
+  "setAutoSwitch": "Автопереход на белые списки",
+  "setAutoSwitchHint": "Когда Wi-Fi сменяется мобильной сетью",
+  "setConnectOnOpen": "Подключаться при открытии",
+  "setConnectOnOpenHint": "Сразу после запуска приложения",
+  "setSectionThroughVpn": "Что идёт через VPN",
+  "setTunneling": "Раздельное туннелирование (приложения)",
+  "setRulesProfile": "Профиль правил (сайты)",
+  "setSectionLook": "Внешний вид",
+  "setTheme": "Тема",
+  "setLanguage": "Язык",
+  "setSectionMore": "Дополнительно",
+  "setSupport": "Поддержка",
+  "setSupportHint": "Написать в Telegram",
+  "setAdvanced": "Для опытных",
+  "setAdvancedHint": "Маршрутизация, DNS, сеть, пинг",
+  "setTrafficRegular": "Трафик обычного VPN",
+  "setTrafficWhitelist": "Трафик белых списков",
+  "setUnlimited": "∞  Без ограничений",
+  "tunTitle": "Туннелирование",
+  "tunIntro": "Раздельное туннелирование: выберите приложения, которые пойдут мимо VPN. Например, банки и Госуслуги.",
+  "tunSectionMode": "Режим",
+  "tunOff": "Выключено",
+  "tunOffHint": "Все приложения идут через VPN",
+  "tunExcept": "Все, кроме выбранных",
+  "tunExceptHint": "Отмеченные приложения работают без VPN",
+  "tunOnly": "Только выбранные",
+  "tunOnlyHint": "Через VPN идут только отмеченные",
+  "tunAppsBypass": "Приложения без VPN",
+  "tunAppsThrough": "Приложения через VPN",
+  "tunSearch": "Поиск приложений",
+  "tunNoApps": "Приложения не найдены",
+  "rulesTitle": "Профиль правил",
+  "rulesSection": "Как идут сайты",
+  "rulesRuDirect": "Россия напрямую",
+  "rulesRuDirectHint": "Российские сайты без VPN, остальные через VPN",
+  "rulesRuDirectShort": "Россия напрямую, остальное через VPN",
+  "rulesAll": "Всё через VPN",
+  "rulesAllHint": "Весь трафик идёт через сервер",
+  "rulesCustom": "Только свои правила",
+  "rulesCustomHint": "Работают только ваши правила",
+  "themeSection": "Оформление",
+  "themeDarkName": "Тёмная",
+  "themeDarkHint": "Бережёт глаза и батарею",
+  "themeLightName": "Светлая",
+  "themeLightHint": "Светлый фон, тёмный текст",
+  "themeSystemName": "Как в системе",
+  "themeSystemHint": "Меняется вместе с телефоном",
+  "langSection": "Язык приложения",
+  "langRu": "Русский",
+  "langRuHint": "Русский язык",
+  "langEn": "English",
+  "langEnHint": "Английский",
+  "langSystem": "Как в системе",
+  "langSystemHint": "Язык телефона",
+  "supSectionContact": "Связаться с нами",
+  "supWrite": "Написать в поддержку",
+  "supWriteHint": "@svoi_support в Telegram",
+  "supBot": "Открыть бота",
+  "supBotHint": "Подписка, продление, устройства",
+  "supSectionAbout": "О приложении",
+  "supSite": "Сайт",
+  "supSiteHint": "svoi.app",
+  "supVersion": "Версия",
+  "supVersionValue": "{version} · Android",
+  "@supVersionValue": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "supFooter": "Ответим в Telegram в течение дня.\nМы не храним историю ваших подключений.",
+  "advSectionRouting": "Маршрутизация",
+  "advRouting": "Маршрутизация",
+  "advRoutingHint": "Российские сайты открываются напрямую",
+  "advCustomRules": "Свои правила",
+  "advCustomRulesHint": "{count} правила · домены и IP-адреса",
+  "@advCustomRulesHint": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "advSectionDns": "DNS",
+  "advDnsRemote": "DNS через VPN",
+  "advDnsDirect": "Прямой DNS",
+  "advAddressOrder": "Порядок адресов",
+  "advSectionNetwork": "Сеть",
+  "advIpv6": "IPv6",
+  "advIpv6Hint": "Обычно не нужен, без него стабильнее",
+  "advSniffing": "Определение сайтов (sniffing)",
+  "advSniffingHint": "Помогает правилам маршрутизации",
+  "advTlsFragment": "Фрагментация TLS",
+  "advTlsFragmentHint": "Включите, если сайты не открываются",
+  "advBypassLan": "Обход локальной сети",
+  "advBypassLanHint": "Роутер и принтеры доступны напрямую",
+  "advMtu": "MTU",
+  "advTunMode": "Режим TUN",
+  "advExcluded": "Исключённые адреса",
+  "advExcludedNone": "Не заданы",
+  "advSectionPing": "Пинг",
+  "advPingMethod": "Способ проверки",
+  "advPingUrl": "Адрес проверки",
+  "advPingTimeout": "Таймаут",
+  "advPingOnOpen": "Проверять при открытии",
+  "advPingOnOpenHint": "Пинг серверов при запуске приложения",
+  "advSectionConnect": "Подключение",
+  "advAutoConnect": "Сервер для автоподключения",
+  "addrSection": "Версия IP",
+  "addrV4First": "Сначала IPv4",
+  "addrV4FirstHint": "Рекомендуем: работает в любой сети",
+  "addrV6First": "Сначала IPv6",
+  "addrV6FirstHint": "Если ваша сеть поддерживает IPv6",
+  "addrV4Only": "Только IPv4",
+  "addrV4OnlyHint": "IPv6 не используется",
+  "addrV6Only": "Только IPv6",
+  "addrV6OnlyHint": "Для сетей, где есть только IPv6",
+  "tunModeSection": "Режим работы",
+  "tunGvisorHint": "Надёжный, подходит большинству",
+  "tunSystemHint": "Быстрее, но работает не на всех телефонах",
+  "tunMixedHint": "Смешанный режим",
+  "pingMethodSection": "Как проверять пинг",
+  "pingTcpHint": "Быстро: проверяет, отвечает ли сервер",
+  "pingUrlTest": "URL-тест",
+  "pingUrlTestHint": "Точнее: загружает страницу через сервер",
+  "timeoutSection": "Сколько ждать ответа",
+  "timeout1": "1 секунда",
+  "timeout1Hint": "Быстро, но медленные серверы пропадут",
+  "timeout3": "3 секунды",
+  "timeout3Hint": "Рекомендуем",
+  "timeout5": "5 секунд",
+  "timeout5Hint": "Для медленного интернета",
+  "autoSection": "Какой сервер выбирать",
+  "autoLast": "Последний использованный",
+  "autoLastHint": "Тот, к которому вы подключались в прошлый раз",
+  "autoBest": "С лучшим пингом",
+  "autoBestHint": "Самый быстрый на момент запуска",
+  "autoRandom": "Случайный",
+  "autoRandomHint": "Любой доступный сервер",
+  "inputQuick": "Быстрый выбор",
+  "dnsAddress": "Адрес DNS-сервера",
+  "dnsRemoteNote": "Адрес DoH-сервера. Запросы идут через VPN и не видны оператору связи.",
+  "dnsDirectNote": "IP-адрес или DoH. Используется для сайтов, которые открываются без VPN.",
+  "dnsYandex": "Яндекс",
+  "mtuSection": "Размер пакета",
+  "mtuNote": "От 1280 до 9000. Если сайты грузятся не полностью, попробуйте 1400.",
+  "mtu1500Hint": "Стандарт, рекомендуем",
+  "mtu1400Hint": "Если сайты грузятся не полностью",
+  "mtu1280Hint": "Минимальное значение",
+  "pingUrlSection": "Адрес страницы",
+  "pingUrlNote": "Страница, которую загружает URL-тест, чтобы измерить пинг через сервер.",
+  "crSection": "Правила",
+  "crFooter": "Правила проверяются сверху вниз, срабатывает первое подходящее. Зажмите правило, чтобы поменять порядок.",
+  "crAdd": "Добавить",
+  "crRuleLine": "{match} → {action}",
+  "@crRuleLine": {
+    "placeholders": {
+      "match": {
+        "type": "String"
+      },
+      "action": {
+        "type": "String"
+      }
+    }
+  },
+  "exTitle": "Исключения",
+  "exSection": "Адреса мимо VPN",
+  "exFooter": "Эти адреса и подсети всегда идут мимо VPN. Например, домашний роутер или рабочая сеть.",
+  "exHome": "Домашняя сеть",
+  "exWork": "Рабочая сеть",
+  "exRemove": "Удалить",
+  "nrTitle": "Новое правило",
+  "nrAddress": "Адрес сайта или IP",
+  "nrMatchSection": "Что проверять",
+  "nrSuffix": "Домен и поддомены",
+  "nrSuffixHint": "{host}, m.{host} и другие",
+  "@nrSuffixHint": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "nrExact": "Точный домен",
+  "nrExactHint": "Только {host}",
+  "@nrExactHint": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "nrKeyword": "Содержит слово",
+  "nrKeywordHint": "Любой адрес со словом {word}",
+  "@nrKeywordHint": {
+    "placeholders": {
+      "word": {
+        "type": "String"
+      }
+    }
+  },
+  "nrIp": "IP-адрес или подсеть",
+  "nrIpHint": "Например, 8.8.8.8 или 10.0.0.0/8",
+  "nrActionSection": "Что делать",
+  "nrProxy": "Через VPN",
+  "nrProxyHint": "Открывать через сервер",
+  "nrDirect": "Напрямую",
+  "nrDirectHint": "Открывать без VPN",
+  "nrBlock": "Блокировать",
+  "nrBlockHint": "Не открывать совсем, например рекламу",
+  "nrActionProxyShort": "через VPN",
+  "nrActionDirectShort": "напрямую",
+  "nrActionBlockShort": "блокировать",
+  "connectionNotConnected": "Не подключено",
+  "connectionConnectedShort": "Подключено",
+  "connectionUnavailable": "Недоступно",
+  "pingSortByAlphabet": "По алфавиту",
+  "freeServer": "Бесплатный сервер",
+  "freeServerHint": "Только для Telegram",
+  "freeGetFull": "Получить полный доступ в Telegram-боте",
+  "freeHaveAccount": "Уже есть аккаунт? Войти",
+  "freeWhitelistHint": "В бесплатном режиме нет обхода белых списков",
+  "freeWhitelistTitle": "Белые списки недоступны",
+  "freeWhitelistText": "Режим нужен, когда мобильный интернет ограничен белыми списками. Он откроется после входа через Telegram-бота.",
+  "loginOpenBotTelegram": "Открыть бота в Telegram",
+  "loginSignIn": "Войти",
+  "loginNewCode": "Получить новый код",
+  "loginResendInTimer": "Отправить код повторно через {time}",
+  "@loginResendInTimer": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "loginBotNotFound": "Ник не найден среди пользователей бота",
+  "loginNoNickFooter": "Нет ника в Telegram? Бот подскажет, как его задать",
+  "loginCodeIntro": "Бот отправил 6 цифр в Telegram для @{username}. Код действует 5 минут.",
+  "@loginCodeIntro": {
+    "placeholders": {
+      "username": {
+        "type": "String"
+      }
+    }
+  },
+  "loginBotIntro": "Не нашли @{username} среди пользователей бота. Откройте бота, нажмите Start и вернитесь сюда.",
+  "@loginBotIntro": {
+    "placeholders": {
+      "username": {
+        "type": "String"
+      }
+    }
+  },
+  "loginBotHeading": "Откройте бота",
+  "unitGb": "ГБ",
+  "advAutoConnectTitle": "Автоподключение"
 }

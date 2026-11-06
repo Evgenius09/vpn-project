@@ -6,13 +6,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:glados/glados.dart' hide expect, group, test;
 import 'package:vpnclient/app/app.dart';
 import 'package:vpnclient/app/kitchen_sink.dart';
+import 'package:vpnclient/app/home_screen.dart';
 import 'package:vpnclient/app/routes.dart';
 import 'package:vpnclient/core/api/api_client.dart';
 import 'package:vpnclient/core/providers.dart';
 import 'package:vpnclient/core/storage/token_store.dart';
 import 'package:vpnclient/core/vpn/fake_vpn_bridge.dart';
 import 'package:vpnclient/core/vpn/vpn_bridge.dart';
+import 'package:vpnclient/features/auth/presentation/login_screen.dart';
 import 'package:vpnclient/features/auth/presentation/settings_screen.dart';
+import 'package:vpnclient/features/free/presentation/free_screen.dart';
 import 'package:vpnclient/features/ping/application/ping_controller.dart';
 import 'package:vpnclient/features/ping/data/user_settings_store.dart';
 import 'package:vpnclient/features/profile/application/profile_controller.dart';
@@ -23,20 +26,26 @@ import '../features/ping/ping_harness.dart';
 
 void main() {
   group('redirectFor', () {
-    test('sends a guest to login', () {
-      expect(redirectFor(RoutePaths.home, signedIn: false), RoutePaths.login);
+    test('opens the free mode for a guest and login for settings', () {
+      expect(redirectFor(RoutePaths.home, signedIn: false), RoutePaths.free);
+      expect(
+        redirectFor(RoutePaths.home, signedIn: false, signedOut: true),
+        RoutePaths.login,
+      );
       expect(
         redirectFor(RoutePaths.settings, signedIn: false),
         RoutePaths.login,
       );
     });
 
-    test('keeps a guest on login', () {
+    test('keeps a guest on login and in the free mode', () {
       expect(redirectFor(RoutePaths.login, signedIn: false), isNull);
+      expect(redirectFor(RoutePaths.free, signedIn: false), isNull);
     });
 
-    test('moves a signed-in user off login', () {
+    test('moves a signed-in user off login and the free mode', () {
       expect(redirectFor(RoutePaths.login, signedIn: true), RoutePaths.home);
+      expect(redirectFor(RoutePaths.free, signedIn: true), RoutePaths.home);
     });
 
     test('lets a signed-in user through', () {
@@ -54,6 +63,7 @@ void main() {
           final redirect = redirectFor(destination, signedIn: false);
           final isPublic =
               destination == RoutePaths.login ||
+              destination == RoutePaths.free ||
               destination == RoutePaths.kitchenSink;
           expect(redirect == null, isPublic, reason: destination);
         });
@@ -68,9 +78,11 @@ void main() {
   test('debug builds keep every contract route', () {
     expect(routesFor(debug: true).map((route) => route.path), [
       '/login',
+      '/free',
       '/',
       '/settings',
       '/settings/:section',
+      '/settings/:section/:item',
       '/dev/kitchen-sink',
     ]);
   });
@@ -112,10 +124,10 @@ void main() {
       );
     }
 
-    testWidgets('a guest starts on login', (tester) async {
+    testWidgets('a guest starts in the free mode', (tester) async {
       await pumpApp(tester);
-      expect(find.byIcon(Icons.login), findsOneWidget);
-      expect(find.byType(ModePager), findsNothing);
+      expect(find.byType(FreeScreen), findsOneWidget);
+      expect(find.byType(HomeScreen), findsNothing);
     });
 
     testWidgets('a token opens the mode screens', (tester) async {
@@ -128,12 +140,12 @@ void main() {
 
       await container.read(sessionProvider.notifier).signIn('token');
       await tester.pumpAndSettle();
-      expect(find.byType(ModePager), findsOneWidget);
+      expect(find.byType(HomeScreen), findsOneWidget);
 
       await container.read(sessionProvider.notifier).signOut();
       await tester.pumpAndSettle();
-      expect(find.byType(ModePager), findsNothing);
-      expect(find.byIcon(Icons.login), findsOneWidget);
+      expect(find.byType(HomeScreen), findsNothing);
+      expect(find.byType(LoginScreen), findsOneWidget);
     });
 
     testWidgets('a swipe changes the screen and leaves the tunnel alone', (

@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/settings_screen.dart';
+import '../features/free/presentation/free_screen.dart';
 import 'home_screen.dart';
 import 'kitchen_sink.dart';
-import 'placeholder_screen.dart';
+import '../features/settings/presentation/settings_pages.dart';
 
 /// Navigation as data (tech.md 8). A slice adds a route through a
 /// contract-change, not by editing the router.
@@ -29,9 +30,11 @@ class AppRoute {
 
 abstract final class RoutePaths {
   static const login = '/login';
+  static const free = '/free';
   static const home = '/';
   static const settings = '/settings';
   static const settingsSection = '/settings/:section';
+  static const settingsItem = '/settings/:section/:item';
   static const kitchenSink = '/dev/kitchen-sink';
 }
 
@@ -41,11 +44,20 @@ final List<AppRoute> allRoutes = [
     public: true,
     build: (_) => const LoginScreen(),
   ),
+  AppRoute(
+    path: RoutePaths.free,
+    public: true,
+    build: (_) => const FreeScreen(loginPath: RoutePaths.login),
+  ),
   AppRoute(path: RoutePaths.home, build: (_) => const HomeScreen()),
   AppRoute(path: RoutePaths.settings, build: (_) => const SettingsScreen()),
   AppRoute(
     path: RoutePaths.settingsSection,
-    build: (_) => const SettingsPlaceholderScreen(),
+    build: (_) => const SettingsPageScreen(),
+  ),
+  AppRoute(
+    path: RoutePaths.settingsItem,
+    build: (_) => const SettingsPageScreen(),
   ),
   AppRoute(
     path: RoutePaths.kitchenSink,
@@ -59,15 +71,23 @@ final List<AppRoute> allRoutes = [
 List<AppRoute> routesFor({bool debug = kDebugMode}) =>
     allRoutes.where((route) => debug || !route.debugOnly).toList();
 
-/// The login guard: no token means /login, and a signed-in user skips it.
-String? redirectFor(String path, {required bool signedIn}) {
-  if (path == RoutePaths.login) {
+/// The login guard. Without a token the app opens in the free mode; after a
+/// session ends ([signedOut]), and for any other screen that needs an
+/// account, it goes to login. A signed-in user skips both (tech.md 43).
+String? redirectFor(
+  String path, {
+  required bool signedIn,
+  bool signedOut = false,
+}) {
+  if (path == RoutePaths.login || path == RoutePaths.free) {
     return signedIn ? RoutePaths.home : null;
   }
   if (signedIn || _isPublic(path)) {
     return null;
   }
-  return RoutePaths.login;
+  return path == RoutePaths.home && !signedOut
+      ? RoutePaths.free
+      : RoutePaths.login;
 }
 
 bool _isPublic(String path) =>

@@ -159,7 +159,7 @@ class LoginController extends Notifier<LoginState> {
     final url = switch (current) {
       LoginCode(:final botUrl) => botUrl,
       LoginBotNotStarted(:final botUrl) => botUrl,
-      LoginUsername() => null,
+      LoginUsername() => ref.read(appConfigProvider).botUrl,
     };
     if (url == null) {
       return;

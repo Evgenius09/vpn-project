@@ -15,7 +15,18 @@ Future<void> openSettings(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+/// The settings list builds lazily, so logout is reached by scrolling.
+Future<void> showLogout(WidgetTester tester) async {
+  await tester.scrollUntilVisible(
+    find.text('Log out'),
+    200,
+    scrollable: find.byType(Scrollable).first,
+  );
+  await tester.pumpAndSettle();
+}
+
 Future<void> logOut(WidgetTester tester, {bool confirm = true}) async {
+  await showLogout(tester);
   await tester.tap(find.text('Log out'));
   await tester.pumpAndSettle();
   await tester.tap(find.text(confirm ? 'Log out now' : 'Cancel'));
@@ -28,6 +39,7 @@ void main() {
     await openSettings(tester);
 
     expect(find.byType(SettingsScreen), findsOneWidget);
+    await showLogout(tester);
     expect(find.text('Log out'), findsOneWidget);
   });
 

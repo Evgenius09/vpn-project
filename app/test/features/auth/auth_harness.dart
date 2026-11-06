@@ -70,6 +70,14 @@ class AuthHarness {
     );
     await tester.pumpAndSettle();
   }
+
+  /// A guest opens in the free mode (tech.md 43), so the login tests start
+  /// from its "Sign in" link.
+  Future<void> pumpLogin(WidgetTester tester) async {
+    await pump(tester);
+    await tester.tap(find.text('Have an account? Sign in').first);
+    await tester.pumpAndSettle();
+  }
 }
 
 Future<void> enterUsername(WidgetTester tester, String username) async {

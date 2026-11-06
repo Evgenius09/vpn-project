@@ -408,9 +408,10 @@ void main() {
     });
 
     test('the ordered list follows the toggle and the pings', () async {
+      // Ping order and name order differ here, so the toggle shows.
       final tcp = GatedTcpPing({
-        'nl1.seed.invalid': const ServerPing.delay(20),
-        'de1.seed.invalid': const ServerPing.delay(90),
+        'nl1.seed.invalid': const ServerPing.delay(90),
+        'de1.seed.invalid': const ServerPing.delay(20),
       });
       final app = _App(tcp: tcp);
       await app.start();
@@ -424,10 +425,10 @@ void main() {
         ))
           server.name,
       ];
-      expect(names(), ['Amsterdam', 'Frankfurt', 'Helsinki']);
+      expect(names(), ['Frankfurt', 'Amsterdam', 'Helsinki']);
 
       await app.container.read(sortChoiceProvider.notifier).choose(false);
-      expect(names(), ['Frankfurt', 'Amsterdam', 'Helsinki']);
+      expect(names(), ['Amsterdam', 'Frankfurt', 'Helsinki']);
     });
   });
 }
