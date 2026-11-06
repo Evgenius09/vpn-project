@@ -14,21 +14,115 @@ class LoginScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(loginControllerProvider);
+    final step = switch (state) {
+      LoginUsername() => _UsernameStep(state),
+      LoginBotNotStarted() => _BotStep(state),
+      LoginCode() => _CodeStep(state),
+    };
     return Scaffold(
       body: SafeArea(
         child: AppShell(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: switch (state) {
-              LoginUsername() => _UsernameStep(state),
-              LoginBotNotStarted() => _BotStep(state),
-              LoginCode() => _CodeStep(state),
-            },
+          child: AnimatedSwitcher(
+            duration: AppDurations.slow,
+            switchInCurve: AppCurves.standard,
+            switchOutCurve: Curves.easeIn,
+            transitionBuilder: (child, animation) => FadeTransition(
+              opacity: animation,
+              child: SlideTransition(
+                position: Tween(
+                  begin: const Offset(0.06, 0),
+                  end: Offset.zero,
+                ).animate(animation),
+                child: child,
+              ),
+            ),
+            // A new step slides in; a tick of the resend timer does not.
+            child: KeyedSubtree(key: ValueKey(state.runtimeType), child: step),
           ),
         ),
       ),
     );
   }
+}
+
+/// The frame every login step shares: the brand on top, the step's title and
+/// text, its controls, and a footer pinned to the bottom.
+class _StepLayout extends StatelessWidget {
+  const _StepLayout({
+    required this.title,
+    required this.message,
+    required this.children,
+    this.footer = const [],
+  });
+
+  final String title;
+  final String message;
+  final List<Widget> children;
+  final List<Widget> footer;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final strings = AppLocalizations.of(context);
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: IntrinsicHeight(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: AppSpacing.xxxl),
+                Text(
+                  strings.brandWordmark,
+                  textAlign: TextAlign.center,
+                  style: AppText.wordmark.copyWith(color: colors.text),
+                ),
+                Text(
+                  strings.brandTagline,
+                  textAlign: TextAlign.center,
+                  style: AppText.body.copyWith(color: colors.textMuted),
+                ),
+                const SizedBox(height: AppSpacing.xxxl),
+                Text(
+                  title,
+                  style: AppText.display.copyWith(color: colors.text),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  message,
+                  style: AppText.body.copyWith(color: colors.textMuted),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                ...children,
+                const Spacer(),
+                const SizedBox(height: AppSpacing.xl),
+                ...footer,
+                const SizedBox(height: AppSpacing.lg),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Footnote extends StatelessWidget {
+  const _Footnote(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: AppSpacing.md),
+    child: Text(
+      text,
+      textAlign: TextAlign.center,
+      style: AppText.caption.copyWith(color: context.colors.textMuted),
+    ),
+  );
 }
 
 class _ErrorBanner extends StatelessWidget {
@@ -78,15 +172,11 @@ class _UsernameStepState extends ConsumerState<_UsernameStep> {
     final fieldError = error?.failure == LoginFailure.invalidUsername
         ? loginErrorText(strings, error!)
         : null;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    return _StepLayout(
+      title: strings.loginUsernameTitle,
+      message: strings.loginUsernameMessage,
+      footer: [_Footnote(strings.loginBotFooter)],
       children: [
-        EmptyState(
-          icon: Icons.login,
-          title: strings.loginUsernameTitle,
-          message: strings.loginUsernameMessage,
-        ),
-        const SizedBox(height: AppSpacing.lg),
         if (fieldError == null) _ErrorBanner(error),
         AppTextField(
           controller: _username,
@@ -94,9 +184,15 @@ class _UsernameStepState extends ConsumerState<_UsernameStep> {
           prefixText: '@',
           errorText: fieldError,
         ),
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          strings.loginUsernameHint,
+          style: AppText.caption.copyWith(color: context.colors.textMuted),
+        ),
+        const SizedBox(height: AppSpacing.xl),
         AppButton(
           label: strings.loginGetCode,
+          icon: Icons.login,
           loading: state.busy,
           onPressed: () => ref
               .read(loginControllerProvider.notifier)
@@ -116,23 +212,18 @@ class _BotStep extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final strings = AppLocalizations.of(context);
     final controller = ref.read(loginControllerProvider.notifier);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    return _StepLayout(
+      title: strings.loginBotTitle,
+      message: strings.loginBotMessage,
       children: [
-        EmptyState(
-          icon: Icons.smart_toy_outlined,
-          title: strings.loginBotTitle,
-          message: strings.loginBotMessage,
-        ),
-        const SizedBox(height: AppSpacing.lg),
         _ErrorBanner(state.error),
         if (state.botUrl != null) ...[
           AppButton(
             label: strings.loginOpenBot,
-            icon: Icons.open_in_new,
+            icon: Icons.telegram,
             onPressed: controller.openBot,
           ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: AppSpacing.md),
         ],
         AppButton(
           label: strings.loginPressedStart,
@@ -140,7 +231,6 @@ class _BotStep extends ConsumerWidget {
           loading: state.busy,
           onPressed: controller.retryAfterStart,
         ),
-        const SizedBox(height: AppSpacing.sm),
         AppButton(
           label: strings.loginChangeUsername,
           variant: AppButtonVariant.text,
@@ -161,17 +251,20 @@ class _CodeStep extends ConsumerWidget {
     final strings = AppLocalizations.of(context);
     final controller = ref.read(loginControllerProvider.notifier);
     final canResend = state.resendIn == 0 && !state.busy;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    return _StepLayout(
+      title: strings.loginCodeTitle,
+      message: strings.loginCodeMessage(state.username),
+      footer: [_Footnote(strings.loginCodeFooter)],
       children: [
-        EmptyState(
-          icon: Icons.password,
-          title: strings.loginCodeTitle,
-          message: strings.loginCodeMessage(state.username),
-        ),
-        const SizedBox(height: AppSpacing.lg),
         _ErrorBanner(state.error),
-        Center(
+        Text(
+          strings.loginCodeLabel.toUpperCase(),
+          style: AppText.overline.copyWith(color: context.colors.textMuted),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
           child: CodeInput(
             // A new key after each rejected code empties the cells.
             key: ValueKey(state.attempt),
@@ -179,20 +272,23 @@ class _CodeStep extends ConsumerWidget {
             onCompleted: controller.submitCode,
           ),
         ),
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: AppSpacing.xl),
         AppButton(
           label: strings.loginOpenBot,
-          icon: Icons.open_in_new,
+          icon: Icons.telegram,
           variant: AppButtonVariant.secondary,
           onPressed: controller.openBot,
         ),
         const SizedBox(height: AppSpacing.sm),
-        AppButton(
-          label: state.resendIn > 0
-              ? strings.loginResendIn(state.resendIn)
-              : strings.loginResend,
-          variant: AppButtonVariant.text,
-          onPressed: canResend ? controller.resend : null,
+        Align(
+          alignment: Alignment.center,
+          child: AppButton(
+            label: state.resendIn > 0
+                ? strings.loginResendIn(state.resendIn)
+                : strings.loginResend,
+            variant: AppButtonVariant.text,
+            onPressed: canResend ? controller.resend : null,
+          ),
         ),
         AppButton(
           label: strings.loginChangeUsername,
