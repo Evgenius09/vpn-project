@@ -309,4 +309,84 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsConnection => 'Connection';
+
+  @override
+  String get brandWordmark => 'СВОИ.';
+
+  @override
+  String get brandTagline => 'Your own VPN, no extra settings';
+
+  @override
+  String get telegramTooltip => 'Open the bot in Telegram';
+
+  @override
+  String get connectionTapToConnect => 'Tap to connect';
+
+  @override
+  String get connectionTapToSwitch => 'Tap to switch here';
+
+  @override
+  String get pingSortByPingShort => 'By ping';
+
+  @override
+  String get pingSortByOrder => 'Default order';
+
+  @override
+  String get modeSwitchHint => 'Switch the mode screen';
+
+  @override
+  String get settingsBasics => 'Basics';
+
+  @override
+  String get accountTrial => 'Trial';
+
+  @override
+  String get accountActive => 'Subscription active';
+
+  @override
+  String get accountExpired => 'Subscription ended';
+
+  @override
+  String get accountBlocked => 'Account blocked';
+
+  @override
+  String get accountProvisioning => 'Preparing access…';
+
+  @override
+  String accountUntil(String date) {
+    return 'until $date';
+  }
+
+  @override
+  String get accountTraffic => 'Traffic';
+
+  @override
+  String get accountTrafficUnlimited => 'Unlimited';
+
+  @override
+  String accountTrafficUsed(String used, String limit) {
+    return '$used of $limit';
+  }
+
+  @override
+  String get accountRenew => 'Renew in the bot';
+
+  @override
+  String get loginCodeLabel => 'Code from Telegram';
+
+  @override
+  String get loginUsernameHint =>
+      'Your username is in Telegram → Settings → Username';
+
+  @override
+  String get loginBotFooter => 'Never started the bot? Open it and press Start';
+
+  @override
+  String get loginCodeFooter => 'No code? Check the chat with the bot';
+
+  @override
+  String get protocolVlessReality => 'VLESS Reality';
+
+  @override
+  String get protocolHysteria2 => 'Hysteria2';
 }

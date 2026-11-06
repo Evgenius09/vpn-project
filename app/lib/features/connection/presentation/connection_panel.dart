@@ -1,3 +1,5 @@
+import 'dart:ui' show lerpDouble;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -16,9 +18,12 @@ import 'mode_notice_text.dart';
 /// The PowerButton, its status line, traffic, and the error banner of one
 /// mode screen (tech.md 2.1, 27.1).
 class ConnectionPanel extends ConsumerWidget {
-  const ConnectionPanel({required this.mode, super.key});
+  const ConnectionPanel({required this.mode, this.compact = 0, super.key});
 
   final TunnelMode mode;
+
+  /// 0 shows the full button, 1 the small one of an open server sheet.
+  final double compact;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -41,12 +46,20 @@ class ConnectionPanel extends ConsumerWidget {
         PowerButton(
           state: view.state,
           onPressed: view.action == null ? null : () => controller.tap(mode),
+          size: lerpDouble(
+            AppSizes.powerButton,
+            AppSizes.powerButtonCompact,
+            compact,
+          )!,
           caption: _caption(context, ref, view, connection.tunnel),
         ),
-        if (view.state == PowerState.connected && traffic != null) ...[
-          const SizedBox(height: AppSpacing.sm),
-          TrafficCounter(upBps: traffic.upBps, downBps: traffic.downBps),
-        ],
+        const SizedBox(height: AppSpacing.xs),
+        AnimatedSwitcher(
+          duration: AppDurations.normal,
+          child: view.state == PowerState.connected && traffic != null
+              ? TrafficCounter(upBps: traffic.upBps, downBps: traffic.downBps)
+              : _Hint(view: view),
+        ),
         if (notice != null) ...[
           const SizedBox(height: AppSpacing.md),
           StatusBanner(
@@ -99,5 +112,33 @@ class ConnectionPanel extends ConsumerWidget {
     return connectedSince == null
         ? Duration.zero
         : now.difference(connectedSince);
+  }
+}
+
+/// The quiet line under the status that says what a tap does.
+class _Hint extends StatelessWidget {
+  const _Hint({required this.view});
+
+  final PowerView view;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = AppLocalizations.of(context);
+    final text = switch (view.action) {
+      StartTunnel() => strings.connectionTapToConnect,
+      SwitchUserMode() => strings.connectionTapToSwitch,
+      _ => null,
+    };
+    if (text == null) {
+      return const SizedBox(height: AppSpacing.lg + 2);
+    }
+    return Text(
+      text,
+      textAlign: TextAlign.center,
+      style: AppText.label.copyWith(
+        color: context.colors.textMuted,
+        fontWeight: FontWeight.w400,
+      ),
+    );
   }
 }

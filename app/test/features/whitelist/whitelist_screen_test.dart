@@ -18,10 +18,14 @@ const _whitelistNames = ['Moscow', 'Saint Petersburg'];
 int _shownIndex(WidgetTester tester) =>
     tester.widget<PageDots>(find.byType(PageDots)).index;
 
-/// The page the pager settled on, read from the screen title it shows.
+/// The page the pager settled on, read from the screen title it shows. The
+/// ModeSwitch under the pager names both modes, so only the pager counts.
 TunnelMode _shownScreen(WidgetTester tester) {
-  final regular = find.text('Regular VPN').hitTestable();
-  final whitelist = find.text('Whitelists').hitTestable();
+  Finder title(String text) => find
+      .descendant(of: find.byType(ModePager), matching: find.text(text))
+      .hitTestable();
+  final regular = title('Regular VPN');
+  final whitelist = title('Whitelists');
   final onRegular = regular.evaluate().isNotEmpty;
   final onWhitelist = whitelist.evaluate().isNotEmpty;
   expect(onRegular != onWhitelist, isTrue, reason: 'exactly one screen');
@@ -189,6 +193,45 @@ void main() {
       expect(_shownScreen(tester), TunnelMode.regular);
 
       expect(app.taps, isEmpty);
+    });
+
+    testWidgets('a tap on each ModeSwitch segment', (tester) async {
+      final app = ConnectionHarness();
+      await app.pump(tester);
+      Future<void> tapSegment(String label) async {
+        await tester.tap(
+          find.descendant(
+            of: find.byType(ModeSwitch),
+            matching: find.text(label),
+          ),
+        );
+        await _animate(tester);
+      }
+
+      await tapSegment('Whitelists');
+      expect(_shownScreen(tester), TunnelMode.whitelist);
+      await tapSegment('Whitelists');
+      expect(_shownScreen(tester), TunnelMode.whitelist, reason: 'same one');
+      await tapSegment('Regular VPN');
+      expect(_shownScreen(tester), TunnelMode.regular);
+
+      expect(app.taps, isEmpty);
+    });
+
+    testWidgets('a tap on the ModeSwitch while connected', (tester) async {
+      final app = ConnectionHarness();
+      await app.pump(tester);
+      await app.emitState(tester, TunnelStatus.connected);
+      final before = app.taps.length;
+      await tester.tap(
+        find.descendant(
+          of: find.byType(ModeSwitch),
+          matching: find.text('Whitelists'),
+        ),
+      );
+      await _animate(tester);
+      expect(_shownScreen(tester), TunnelMode.whitelist);
+      expect(app.taps, hasLength(before));
     });
 
     testWidgets('the arrow keys, stopping at the ends', (tester) async {

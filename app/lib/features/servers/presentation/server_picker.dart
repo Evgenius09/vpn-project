@@ -15,24 +15,37 @@ import '../application/server_choice.dart';
 /// chooses a server for this group (tech.md 16 S1-09, 28). The ping feature
 /// supplies the order, the badges, and the header controls (tech.md 31.2).
 class ServerPicker extends ConsumerWidget {
-  const ServerPicker({required this.group, super.key});
+  const ServerPicker({
+    required this.group,
+    this.minExtent = 0.22,
+    this.maxExtent = 0.9,
+    this.onExtent,
+    super.key,
+  });
 
   final TunnelMode group;
+  final double minExtent;
+  final double maxExtent;
+  final ValueChanged<double>? onExtent;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final strings = AppLocalizations.of(context);
     final state = ref.watch(profileControllerProvider);
     return ServerSheet(
-      header: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      minExtent: minExtent,
+      maxExtent: maxExtent,
+      onExtent: onExtent,
+      header: Row(
         children: [
-          Row(
-            children: [
-              Expanded(child: Text(strings.serversTitle, style: AppText.title)),
-              const PingRefreshButton(),
-            ],
+          Expanded(
+            child: Text(
+              strings.serversTitle,
+              style: AppText.headline.copyWith(color: context.colors.text),
+            ),
           ),
+          const PingRefreshButton(),
+          const SizedBox(width: AppSpacing.sm),
           const SortByPingToggle(),
         ],
       ),
@@ -90,10 +103,13 @@ class _Servers extends ConsumerWidget {
         else
           for (final server in servers)
             Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+              padding: const EdgeInsets.only(bottom: AppSpacing.xs / 2),
               child: ServerTile(
                 title: server.name,
-                subtitle: server.city,
+                subtitle: switch (server.protocol) {
+                  ServerProtocol.vlessReality => strings.protocolVlessReality,
+                  ServerProtocol.hysteria2 => strings.protocolHysteria2,
+                },
                 countryCode: server.countryCode,
                 ping: pingValueOf(pings[server.id]),
                 selected: server.id == chosen,

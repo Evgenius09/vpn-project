@@ -186,5 +186,47 @@
   },
   "autoSwitchTitle": "Белые списки в мобильной сети",
   "autoSwitchSubtitle": "Включать белые списки, когда Wi-Fi сменяется мобильной сетью",
-  "settingsConnection": "Подключение"
+  "settingsConnection": "Подключение",
+  "brandWordmark": "СВОИ.",
+  "brandTagline": "Свой VPN без лишних настроек",
+  "telegramTooltip": "Открыть бота в Telegram",
+  "connectionTapToConnect": "Нажмите, чтобы подключиться",
+  "connectionTapToSwitch": "Нажмите, чтобы переключиться сюда",
+  "pingSortByPingShort": "По пингу",
+  "pingSortByOrder": "По порядку",
+  "modeSwitchHint": "Переключить экран режима",
+  "settingsBasics": "Основное",
+  "accountTrial": "Пробный период",
+  "accountActive": "Подписка активна",
+  "accountExpired": "Подписка закончилась",
+  "accountBlocked": "Аккаунт заблокирован",
+  "accountProvisioning": "Готовим доступ…",
+  "accountUntil": "до {date}",
+  "@accountUntil": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "accountTraffic": "Трафик",
+  "accountTrafficUnlimited": "Без ограничений",
+  "accountTrafficUsed": "{used} из {limit}",
+  "@accountTrafficUsed": {
+    "placeholders": {
+      "used": {
+        "type": "String"
+      },
+      "limit": {
+        "type": "String"
+      }
+    }
+  },
+  "accountRenew": "Продлить в боте",
+  "loginCodeLabel": "Код из Telegram",
+  "loginUsernameHint": "Ник есть в Telegram → Настройки → Имя пользователя",
+  "loginBotFooter": "Ещё не запускали бота? Откройте его и нажмите Start",
+  "loginCodeFooter": "Код не пришёл? Проверьте чат с ботом",
+  "protocolVlessReality": "VLESS Reality",
+  "protocolHysteria2": "Hysteria2"
 }

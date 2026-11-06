@@ -308,4 +308,85 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get settingsConnection => 'Подключение';
+
+  @override
+  String get brandWordmark => 'СВОИ.';
+
+  @override
+  String get brandTagline => 'Свой VPN без лишних настроек';
+
+  @override
+  String get telegramTooltip => 'Открыть бота в Telegram';
+
+  @override
+  String get connectionTapToConnect => 'Нажмите, чтобы подключиться';
+
+  @override
+  String get connectionTapToSwitch => 'Нажмите, чтобы переключиться сюда';
+
+  @override
+  String get pingSortByPingShort => 'По пингу';
+
+  @override
+  String get pingSortByOrder => 'По порядку';
+
+  @override
+  String get modeSwitchHint => 'Переключить экран режима';
+
+  @override
+  String get settingsBasics => 'Основное';
+
+  @override
+  String get accountTrial => 'Пробный период';
+
+  @override
+  String get accountActive => 'Подписка активна';
+
+  @override
+  String get accountExpired => 'Подписка закончилась';
+
+  @override
+  String get accountBlocked => 'Аккаунт заблокирован';
+
+  @override
+  String get accountProvisioning => 'Готовим доступ…';
+
+  @override
+  String accountUntil(String date) {
+    return 'до $date';
+  }
+
+  @override
+  String get accountTraffic => 'Трафик';
+
+  @override
+  String get accountTrafficUnlimited => 'Без ограничений';
+
+  @override
+  String accountTrafficUsed(String used, String limit) {
+    return '$used из $limit';
+  }
+
+  @override
+  String get accountRenew => 'Продлить в боте';
+
+  @override
+  String get loginCodeLabel => 'Код из Telegram';
+
+  @override
+  String get loginUsernameHint =>
+      'Ник есть в Telegram → Настройки → Имя пользователя';
+
+  @override
+  String get loginBotFooter =>
+      'Ещё не запускали бота? Откройте его и нажмите Start';
+
+  @override
+  String get loginCodeFooter => 'Код не пришёл? Проверьте чат с ботом';
+
+  @override
+  String get protocolVlessReality => 'VLESS Reality';
+
+  @override
+  String get protocolHysteria2 => 'Hysteria2';
 }

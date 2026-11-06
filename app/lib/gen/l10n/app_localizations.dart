@@ -595,6 +595,156 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Подключение'**
   String get settingsConnection;
+
+  /// No description provided for @brandWordmark.
+  ///
+  /// In ru, this message translates to:
+  /// **'СВОИ.'**
+  String get brandWordmark;
+
+  /// No description provided for @brandTagline.
+  ///
+  /// In ru, this message translates to:
+  /// **'Свой VPN без лишних настроек'**
+  String get brandTagline;
+
+  /// No description provided for @telegramTooltip.
+  ///
+  /// In ru, this message translates to:
+  /// **'Открыть бота в Telegram'**
+  String get telegramTooltip;
+
+  /// No description provided for @connectionTapToConnect.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нажмите, чтобы подключиться'**
+  String get connectionTapToConnect;
+
+  /// No description provided for @connectionTapToSwitch.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нажмите, чтобы переключиться сюда'**
+  String get connectionTapToSwitch;
+
+  /// No description provided for @pingSortByPingShort.
+  ///
+  /// In ru, this message translates to:
+  /// **'По пингу'**
+  String get pingSortByPingShort;
+
+  /// No description provided for @pingSortByOrder.
+  ///
+  /// In ru, this message translates to:
+  /// **'По порядку'**
+  String get pingSortByOrder;
+
+  /// No description provided for @modeSwitchHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Переключить экран режима'**
+  String get modeSwitchHint;
+
+  /// No description provided for @settingsBasics.
+  ///
+  /// In ru, this message translates to:
+  /// **'Основное'**
+  String get settingsBasics;
+
+  /// No description provided for @accountTrial.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пробный период'**
+  String get accountTrial;
+
+  /// No description provided for @accountActive.
+  ///
+  /// In ru, this message translates to:
+  /// **'Подписка активна'**
+  String get accountActive;
+
+  /// No description provided for @accountExpired.
+  ///
+  /// In ru, this message translates to:
+  /// **'Подписка закончилась'**
+  String get accountExpired;
+
+  /// No description provided for @accountBlocked.
+  ///
+  /// In ru, this message translates to:
+  /// **'Аккаунт заблокирован'**
+  String get accountBlocked;
+
+  /// No description provided for @accountProvisioning.
+  ///
+  /// In ru, this message translates to:
+  /// **'Готовим доступ…'**
+  String get accountProvisioning;
+
+  /// No description provided for @accountUntil.
+  ///
+  /// In ru, this message translates to:
+  /// **'до {date}'**
+  String accountUntil(String date);
+
+  /// No description provided for @accountTraffic.
+  ///
+  /// In ru, this message translates to:
+  /// **'Трафик'**
+  String get accountTraffic;
+
+  /// No description provided for @accountTrafficUnlimited.
+  ///
+  /// In ru, this message translates to:
+  /// **'Без ограничений'**
+  String get accountTrafficUnlimited;
+
+  /// No description provided for @accountTrafficUsed.
+  ///
+  /// In ru, this message translates to:
+  /// **'{used} из {limit}'**
+  String accountTrafficUsed(String used, String limit);
+
+  /// No description provided for @accountRenew.
+  ///
+  /// In ru, this message translates to:
+  /// **'Продлить в боте'**
+  String get accountRenew;
+
+  /// No description provided for @loginCodeLabel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Код из Telegram'**
+  String get loginCodeLabel;
+
+  /// No description provided for @loginUsernameHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ник есть в Telegram → Настройки → Имя пользователя'**
+  String get loginUsernameHint;
+
+  /// No description provided for @loginBotFooter.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ещё не запускали бота? Откройте его и нажмите Start'**
+  String get loginBotFooter;
+
+  /// No description provided for @loginCodeFooter.
+  ///
+  /// In ru, this message translates to:
+  /// **'Код не пришёл? Проверьте чат с ботом'**
+  String get loginCodeFooter;
+
+  /// No description provided for @protocolVlessReality.
+  ///
+  /// In ru, this message translates to:
+  /// **'VLESS Reality'**
+  String get protocolVlessReality;
+
+  /// No description provided for @protocolHysteria2.
+  ///
+  /// In ru, this message translates to:
+  /// **'Hysteria2'**
+  String get protocolHysteria2;
 }
 
 class _AppLocalizationsDelegate

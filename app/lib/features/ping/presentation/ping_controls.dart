@@ -23,25 +23,37 @@ class PingRefreshButton extends ConsumerWidget {
     final running = ref.watch(
       pingControllerProvider.select((state) => state.running),
     );
-    return AppButton(
-      label: AppLocalizations.of(context).pingRefresh,
-      icon: Icons.refresh,
-      variant: AppButtonVariant.text,
+    return SheetChip(
+      icon: Icons.refresh_rounded,
+      tooltip: AppLocalizations.of(context).pingRefresh,
       loading: running,
       onPressed: ref.read(pingControllerProvider.notifier).run,
     );
   }
 }
 
-/// The `ui.sortByPing` toggle of the ServerSheet header (tech.md 31.2).
+/// The `ui.sortByPing` switch of the ServerSheet header, drawn as a chip
+/// that flips between ping order and the default order (tech.md 31.2, 43).
 class SortByPingToggle extends ConsumerWidget {
   const SortByPingToggle({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) => SettingsToggleTile(
-    title: AppLocalizations.of(context).pingSortByPing,
-    value: ref.watch(sortByPingProvider),
-    locked: ref.watch(sortByPingLockedProvider),
-    onChanged: ref.read(sortChoiceProvider.notifier).choose,
-  );
+  Widget build(BuildContext context, WidgetRef ref) {
+    final strings = AppLocalizations.of(context);
+    final value = ref.watch(sortByPingProvider);
+    final locked = ref.watch(sortByPingLockedProvider);
+    return SheetChip(
+      icon: locked
+          ? Icons.lock_outline_rounded
+          : value
+          ? Icons.south_rounded
+          : Icons.sort_rounded,
+      label: value ? strings.pingSortByPingShort : strings.pingSortByOrder,
+      tooltip: locked ? strings.lockedByProvider : strings.pingSortByPing,
+      active: value,
+      onPressed: locked
+          ? null
+          : () => ref.read(sortChoiceProvider.notifier).choose(!value),
+    );
+  }
 }

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vpnclient/core/vpn/vpn_bridge.dart';
+import 'package:vpnclient/features/ping/presentation/ping_controls.dart';
 import 'package:vpnclient/features/whitelist/presentation/auto_switch_toggle.dart';
 import 'package:vpnclient/gen/api/export.dart';
 import 'package:vpnclient/ui/ui.dart';
@@ -130,7 +131,7 @@ void main() {
       await app.pump(tester);
       await app.showScreen(tester, _whitelist);
 
-      expect(find.byType(SettingsToggleTile).hitTestable(), findsOneWidget);
+      expect(find.byType(SortByPingToggle).hitTestable(), findsOneWidget);
       expect(find.text(_toggleTitle), findsNothing);
 
       await tester.tap(find.byIcon(Icons.settings));

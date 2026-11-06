@@ -78,6 +78,77 @@ final List<Showcase> showcases = [
     ),
   ),
   Showcase(
+    'mode_switch',
+    (context) => Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const ModeSwitch(
+          labels: ['Regular VPN', 'Whitelists'],
+          index: 0,
+          onChanged: _ignore,
+        ),
+        _gap,
+        AccentTheme(
+          accent: context.colors.whitelist,
+          child: const ModeSwitch(
+            labels: ['Regular VPN', 'Whitelists'],
+            index: 1,
+            onChanged: _ignore,
+          ),
+        ),
+      ],
+    ),
+  ),
+  Showcase(
+    'sheet_chip',
+    (_) => const Wrap(
+      spacing: AppSpacing.sm,
+      runSpacing: AppSpacing.sm,
+      children: [
+        SheetChip(icon: Icons.refresh_rounded, onPressed: _noop),
+        SheetChip(icon: Icons.refresh_rounded, loading: true, onPressed: _noop),
+        SheetChip(
+          icon: Icons.south_rounded,
+          label: 'By ping',
+          onPressed: _noop,
+        ),
+        SheetChip(
+          icon: Icons.sort_rounded,
+          label: 'Default order',
+          active: false,
+          onPressed: _noop,
+        ),
+        SheetChip(
+          icon: Icons.lock_outline_rounded,
+          label: 'Locked',
+          onPressed: null,
+        ),
+      ],
+    ),
+  ),
+  Showcase(
+    'account_card',
+    (_) => const Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        AccountCard(
+          title: '@seed_user',
+          subtitle: 'Trial · until November 12',
+          action: SheetChip(label: 'Renew', onPressed: _noop),
+          meterLabel: 'Traffic',
+          meterValue: '3.2 of 10 GB',
+          progress: 0.32,
+        ),
+        _gap,
+        AccountCard(
+          title: '@seed_user',
+          meterLabel: 'Traffic',
+          meterValue: 'Unlimited',
+        ),
+      ],
+    ),
+  ),
+  Showcase(
     'page_dots',
     (_) => const Column(
       mainAxisSize: MainAxisSize.min,

@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vpnclient/features/ping/data/user_settings_store.dart';
 import 'package:vpnclient/features/ping/domain/server_ping.dart';
+import 'package:vpnclient/features/ping/presentation/ping_controls.dart';
 import 'package:vpnclient/gen/api/export.dart';
 import 'package:vpnclient/gen/l10n/app_localizations.dart';
 import 'package:vpnclient/ui/ui.dart';
@@ -27,8 +28,16 @@ PingValue _pingOf(WidgetTester tester, String title) => tester
     .widget<ServerTile>(find.widgetWithText(ServerTile, title).first)
     .ping;
 
-SettingsToggleTile _toggle(WidgetTester tester) =>
-    tester.widget<SettingsToggleTile>(find.byType(SettingsToggleTile));
+/// The sort chip of the sheet header (tech.md 31.2, 43): on means ping order.
+({bool value, bool locked}) _toggle(WidgetTester tester) {
+  final chip = tester.widget<SheetChip>(
+    find.descendant(
+      of: find.byType(SortByPingToggle),
+      matching: find.byType(SheetChip),
+    ),
+  );
+  return (value: chip.active, locked: chip.onPressed == null);
+}
 
 /// The seed profile with [change] applied to its policy.
 String _withPolicy(void Function(Map<String, Object?> policy) change) {
@@ -88,7 +97,7 @@ void main() {
     expect(_toggle(tester).value, isTrue);
     expect(_titles(tester), ['Amsterdam', 'Frankfurt', 'Helsinki']);
 
-    await tester.tap(find.text('Sort by ping'));
+    await tester.tap(find.byType(SortByPingToggle));
     await tester.pumpAndSettle();
 
     expect(_toggle(tester).value, isFalse);
@@ -115,7 +124,7 @@ void main() {
     await _openSheet(tester);
 
     expect(_toggle(tester).locked, isTrue);
-    await tester.tap(find.text('Sort by ping'));
+    await tester.tap(find.byType(SortByPingToggle));
     await tester.pumpAndSettle();
     expect(_toggle(tester).value, isTrue);
     expect(app.settings.value.ui, isNull);
@@ -128,7 +137,7 @@ void main() {
     await _openSheet(tester);
     expect(tcp.hosts, hasLength(4));
 
-    await tester.tap(find.text('Check ping'));
+    await tester.tap(find.byTooltip('Check ping'));
     await tester.pumpAndSettle();
 
     expect(tcp.hosts, hasLength(8));
@@ -151,7 +160,7 @@ void main() {
     await _openSheet(tester);
     tcp.hosts.clear();
 
-    await tester.tap(find.text('Check ping'));
+    await tester.tap(find.byTooltip('Check ping'));
     await tester.pump();
     await tester.pump();
 
