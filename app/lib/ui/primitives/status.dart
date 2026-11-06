@@ -41,16 +41,22 @@ class StatusBanner extends StatelessWidget {
     final colors = context.colors;
     final color = kind.color(colors);
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.md,
+      ),
       decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: color, width: AppSizes.border),
+        color: Color.alphaBlend(color.withValues(alpha: 0.12), colors.surface),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(
+          color: color.withValues(alpha: 0.6),
+          width: AppSizes.border,
+        ),
       ),
       child: Row(
         children: [
           Icon(kind.icon, color: color, size: AppSizes.icon),
-          const SizedBox(width: AppSpacing.sm),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Text(
               text,
@@ -91,23 +97,24 @@ class TrafficCounter extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final strings = AppLocalizations.of(context);
-    final style = AppText.caption.copyWith(color: colors.textMuted);
+    final style = AppText.label.copyWith(
+      color: colors.textMuted,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
+    Widget part(IconData icon, int bps) => Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: AppSizes.iconSmall, color: colors.primaryText),
+        const SizedBox(width: AppSpacing.xs),
+        Text(_format(strings, bps), style: style),
+      ],
+    );
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(
-          Icons.arrow_upward,
-          size: AppSizes.iconSmall,
-          color: colors.textMuted,
-        ),
-        Text(_format(strings, upBps), style: style),
-        const SizedBox(width: AppSpacing.md),
-        Icon(
-          Icons.arrow_downward,
-          size: AppSizes.iconSmall,
-          color: colors.textMuted,
-        ),
-        Text(_format(strings, downBps), style: style),
+        part(Icons.south_rounded, downBps),
+        const SizedBox(width: AppSpacing.lg),
+        part(Icons.north_rounded, upBps),
       ],
     );
   }
@@ -136,13 +143,14 @@ class PageDots extends StatelessWidget {
             onTap: onTap == null ? null : () => onTap!(i),
             borderRadius: BorderRadius.circular(AppRadius.pill),
             child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.sm),
+              padding: const EdgeInsets.all(AppSpacing.xs + AppSizes.border),
               child: AnimatedContainer(
-                duration: AppDurations.fast,
-                width: AppSizes.dot,
+                duration: AppDurations.page,
+                curve: AppCurves.emphasized,
+                width: i == index ? AppSizes.dotActive : AppSizes.dot,
                 height: AppSizes.dot,
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle,
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
                   color: i == index ? colors.primary : colors.border,
                 ),
               ),
@@ -176,11 +184,19 @@ class EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: AppSizes.iconLarge, color: colors.textMuted),
-            const SizedBox(height: AppSpacing.md),
+            Container(
+              width: AppSizes.logoTile,
+              height: AppSizes.logoTile,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: colors.primarySoft,
+              ),
+              child: Icon(icon, size: AppSizes.icon, color: colors.primaryText),
+            ),
+            const SizedBox(height: AppSpacing.lg),
             Text(
               title,
-              style: AppText.title.copyWith(color: colors.text),
+              style: AppText.headline.copyWith(color: colors.text),
               textAlign: TextAlign.center,
             ),
             if (message != null) ...[

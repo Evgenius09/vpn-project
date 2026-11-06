@@ -32,17 +32,36 @@ class SettingsSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.all(AppSpacing.sm),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.xs,
+              0,
+              AppSpacing.xs,
+              AppSpacing.sm,
+            ),
             child: Text(
               title,
-              style: AppText.label.copyWith(color: colors.textMuted),
+              style: AppText.overline.copyWith(color: colors.textMuted),
             ),
           ),
           Material(
             color: colors.surface,
-            borderRadius: BorderRadius.circular(AppRadius.md),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              side: BorderSide(color: colors.border, width: AppSizes.border),
+            ),
             clipBehavior: Clip.antiAlias,
-            child: Column(children: children),
+            child: Column(
+              children: [
+                for (var i = 0; i < children.length; i++) ...[
+                  if (i > 0)
+                    const Divider(
+                      indent: AppSpacing.lg,
+                      endIndent: AppSpacing.lg,
+                    ),
+                  children[i],
+                ],
+              ],
+            ),
           ),
           if (footer != null)
             Padding(
@@ -84,7 +103,10 @@ class _SettingsRow extends StatelessWidget {
     return InkWell(
       onTap: locked ? null : onTap,
       child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.lg,
+          vertical: AppSpacing.md + 2,
+        ),
         child: Row(
           children: [
             Expanded(
@@ -93,18 +115,21 @@ class _SettingsRow extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: AppText.body.copyWith(
+                    style: AppText.bodyStrong.copyWith(
                       color: locked ? colors.textMuted : colors.text,
                     ),
                   ),
-                  if (caption != null)
+                  if (caption != null) ...[
+                    const SizedBox(height: 2),
                     Text(
                       caption,
                       style: AppText.caption.copyWith(color: colors.textMuted),
                     ),
+                  ],
                 ],
               ),
             ),
+            const SizedBox(width: AppSpacing.md),
             if (locked)
               Padding(
                 padding: const EdgeInsets.only(right: AppSpacing.sm),
@@ -338,6 +363,139 @@ class _InputDialogState extends State<_InputDialog> {
         ),
         AppButton(label: strings.save, onPressed: _submit),
       ],
+    );
+  }
+}
+
+/// The account card at the top of settings: who is signed in, the plan, and
+/// how much traffic is left (tech.md 43). [progress] null draws a full bar for
+/// an unlimited plan.
+class AccountCard extends StatelessWidget {
+  const AccountCard({
+    required this.title,
+    this.subtitle,
+    this.action,
+    this.meterLabel,
+    this.meterValue,
+    this.progress,
+    super.key,
+  });
+
+  final String title;
+  final String? subtitle;
+  final Widget? action;
+  final String? meterLabel;
+  final String? meterValue;
+  final double? progress;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: colors.border, width: AppSizes.border),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [colors.primarySoft, colors.surface],
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: AppSizes.topBarButton,
+                height: AppSizes.topBarButton,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: colors.primary,
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  '@',
+                  style: AppText.title.copyWith(color: colors.onPrimary),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppText.headline.copyWith(color: colors.text),
+                    ),
+                    if (subtitle != null)
+                      Text(
+                        subtitle!,
+                        style: AppText.caption.copyWith(
+                          color: colors.textMuted,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              if (action != null) ...[
+                const SizedBox(width: AppSpacing.sm),
+                action!,
+              ],
+            ],
+          ),
+          if (meterLabel != null) ...[
+            const SizedBox(height: AppSpacing.lg),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    meterLabel!,
+                    style: AppText.caption.copyWith(color: colors.textMuted),
+                  ),
+                ),
+                if (meterValue != null)
+                  Text(
+                    meterValue!,
+                    style: AppText.label.copyWith(color: colors.primaryText),
+                  ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(AppRadius.pill),
+              child: SizedBox(
+                height: AppSizes.pingDot - 2,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    ColoredBox(color: colors.surfaceAlt),
+                    TweenAnimationBuilder<double>(
+                      tween: Tween(end: (progress ?? 1).clamp(0.0, 1.0)),
+                      duration: AppDurations.slow,
+                      curve: AppCurves.standard,
+                      builder: (context, value, _) => FractionallySizedBox(
+                        alignment: Alignment.centerLeft,
+                        widthFactor: value,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [colors.primary, colors.primaryText],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
