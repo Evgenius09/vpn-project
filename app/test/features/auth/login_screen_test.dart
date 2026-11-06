@@ -13,7 +13,7 @@ void main() {
     testWidgets('a guest lands on the nick field with an @ prefix', (
       tester,
     ) async {
-      await AuthHarness().pump(tester);
+      await AuthHarness().pumpLogin(tester);
 
       expect(find.byType(LoginScreen), findsOneWidget);
       final field = tester.widget<AppTextField>(find.byType(AppTextField));
@@ -24,7 +24,7 @@ void main() {
       tester,
     ) async {
       final harness = AuthHarness();
-      await harness.pump(tester);
+      await harness.pumpLogin(tester);
 
       await enterUsername(tester, 'ab-c');
 
@@ -39,7 +39,7 @@ void main() {
       tester,
     ) async {
       final harness = AuthHarness();
-      await harness.pump(tester);
+      await harness.pumpLogin(tester);
 
       await enterUsername(tester, '@Seed_User');
 
@@ -58,7 +58,7 @@ void main() {
         ProblemCode.rateLimited,
         retryAfterSec: 42,
       );
-      await harness.pump(tester);
+      await harness.pumpLogin(tester);
 
       await enterUsername(tester, 'seed_user');
 
@@ -72,7 +72,7 @@ void main() {
     testWidgets('an outage shows its text and keeps the nick', (tester) async {
       final harness = AuthHarness();
       harness.api.authFailure = const ApiUnavailable();
-      await harness.pump(tester);
+      await harness.pumpLogin(tester);
 
       await enterUsername(tester, 'seed_user');
 
@@ -94,7 +94,7 @@ void main() {
         ProblemCode.telegramUserNotFound,
         botUrl: 'https://t.me/vpnclient_bot?start=login',
       );
-      await harness.pump(tester);
+      await harness.pumpLogin(tester);
       await enterUsername(tester, 'seed_user');
       return harness;
     }
@@ -104,7 +104,7 @@ void main() {
     ) async {
       await notFound(tester);
 
-      expect(find.text('Open the bot and press Start'), findsOneWidget);
+      expect(find.text('Open the bot'), findsOneWidget);
       expect(find.byType(CodeInput), findsNothing);
     });
 
@@ -145,7 +145,7 @@ void main() {
   group('code step', () {
     Future<AuthHarness> atCode(WidgetTester tester) async {
       final harness = AuthHarness();
-      await harness.pump(tester);
+      await harness.pumpLogin(tester);
       await enterUsername(tester, 'seed_user');
       return harness;
     }
@@ -155,19 +155,19 @@ void main() {
     ) async {
       final harness = await atCode(tester);
 
-      expect(find.text('Send again in 60 s'), findsOneWidget);
-      await tester.tap(find.text('Send again in 60 s'));
+      expect(find.text('Send the code again in 1:00'), findsOneWidget);
+      await tester.tap(find.text('Send the code again in 1:00'));
       await tester.pump();
       expect(harness.api.starts, hasLength(1));
 
       await tester.pump(const Duration(seconds: 59));
-      expect(find.text('Send again in 1 s'), findsOneWidget);
+      expect(find.text('Send the code again in 0:01'), findsOneWidget);
       await tester.pump(const Duration(seconds: 1));
       await tester.tap(find.text('Send the code again'));
       await tester.pumpAndSettle();
 
       expect(harness.api.starts, hasLength(2));
-      expect(find.text('Send again in 60 s'), findsOneWidget);
+      expect(find.text('Send the code again in 1:00'), findsOneWidget);
     });
 
     testWidgets('a rate limited resend restarts the timer', (tester) async {
@@ -182,13 +182,14 @@ void main() {
       await tester.tap(find.text('Send the code again'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Send again in 30 s'), findsOneWidget);
+      expect(find.text('Send the code again in 0:30'), findsOneWidget);
       expect(find.byType(CodeInput), findsOneWidget);
     });
 
     testWidgets('Open bot uses the link from the challenge', (tester) async {
       final harness = await atCode(tester);
 
+      await tester.ensureVisible(find.text('Open bot'));
       await tester.tap(find.text('Open bot'));
       await tester.pumpAndSettle();
 
@@ -214,7 +215,8 @@ void main() {
       expect(find.byType(ModePager), findsOneWidget);
     });
 
-    testWidgets('a wrong code shows the attempts left and clears the cells', (
+    // The design keeps the wrong digits on screen, painted red.
+    testWidgets('a wrong code shows the attempts left and keeps the digits', (
       tester,
     ) async {
       final harness = await atCode(tester);
@@ -228,7 +230,7 @@ void main() {
 
       expect(find.text('Wrong code. Attempts left: 4.'), findsOneWidget);
       final field = tester.widget<TextField>(find.byType(TextField));
-      expect(field.controller!.text, isEmpty);
+      expect(field.controller!.text, '000000');
       expect(await harness.tokens.read(), isNull);
 
       harness.api.authFailure = null;
@@ -276,6 +278,7 @@ void main() {
     ) async {
       await atCode(tester);
 
+      await tester.ensureVisible(find.text('Change username'));
       await tester.tap(find.text('Change username'));
       await tester.pumpAndSettle();
 

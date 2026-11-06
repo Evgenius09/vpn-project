@@ -268,6 +268,11 @@ abstract final class AppText {
     fontWeight: FontWeight.w600,
   );
   static const label = TextStyle(fontSize: 14, fontWeight: FontWeight.w600);
+  static const modeLabel = TextStyle(fontSize: 16, fontWeight: FontWeight.w700);
+  static const screenTitle = TextStyle(
+    fontSize: 24,
+    fontWeight: FontWeight.w800,
+  );
   static const caption = TextStyle(fontSize: 12, fontWeight: FontWeight.w400);
   static const overline = TextStyle(
     fontSize: 12,
@@ -307,8 +312,8 @@ abstract final class AppSizes {
   static const double iconLarge = 48;
   static const double border = 1;
   static const double borderStrong = 1.5;
-  static const double dot = 8;
-  static const double dotActive = 22;
+  static const double dot = 11;
+  static const double dotGap = 7;
   static const double spinner = 20;
   static const double spinnerStroke = 2;
   static const double codeCell = 48;
@@ -319,12 +324,12 @@ abstract final class AppSizes {
   static const double powerButtonCompact = 160;
   static const double modeSwitchHeight = 64;
   static const double modeSwitchInset = 6;
-  static const double serverTileHeight = 56;
+  static const double serverTileHeight = 52;
   static const double flag = 32;
-  static const double chip = 30;
+  static const double chip = 28;
   static const double pingDot = 8;
   static const double topBarButton = 44;
-  static const double topBarIcon = 28;
+  static const double topBarIcon = 40;
   static const double buttonHeight = 54;
   static const double fieldHeight = 54;
   static const double logoTile = 72;

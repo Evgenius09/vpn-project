@@ -7,7 +7,8 @@ import '../application/login_controller.dart';
 import '../domain/login_state.dart';
 import 'login_error_text.dart';
 
-/// Login through the Telegram bot (tech.md 2.2): nick, then code.
+/// Login through the Telegram bot (tech.md 2.2), laid out as the Figma login
+/// row: nick, code, open the bot (tech.md 43).
 class LoginScreen extends ConsumerWidget {
   const LoginScreen({super.key});
 
@@ -45,19 +46,21 @@ class LoginScreen extends ConsumerWidget {
   }
 }
 
-/// The frame every login step shares: the brand on top, the step's title and
-/// text, its controls, and a footer pinned to the bottom.
+/// The frame every login step shares: an optional back arrow, the brand,
+/// the step's title and text, its controls, and a footer at the bottom.
 class _StepLayout extends StatelessWidget {
   const _StepLayout({
     required this.title,
     required this.message,
     required this.children,
+    this.onBack,
     this.footer = const [],
   });
 
   final String title;
   final String message;
   final List<Widget> children;
+  final VoidCallback? onBack;
   final List<Widget> footer;
 
   @override
@@ -73,6 +76,25 @@ class _StepLayout extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                SizedBox(
+                  height: AppSizes.topBarButton + AppSpacing.md,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: onBack == null
+                        ? null
+                        : IconButton(
+                            padding: EdgeInsets.zero,
+                            alignment: Alignment.centerLeft,
+                            tooltip: MaterialLocalizations.of(context)
+                                .backButtonTooltip,
+                            icon: Icon(
+                              Icons.arrow_back_rounded,
+                              color: colors.text,
+                            ),
+                            onPressed: onBack,
+                          ),
+                  ),
+                ),
                 const SizedBox(height: AppSpacing.xxxl),
                 Text(
                   strings.brandWordmark,
@@ -84,10 +106,10 @@ class _StepLayout extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: AppText.body.copyWith(color: colors.textMuted),
                 ),
-                const SizedBox(height: AppSpacing.xxxl),
+                const SizedBox(height: AppSpacing.xxxl + AppSpacing.sm),
                 Text(
                   title,
-                  style: AppText.display.copyWith(color: colors.text),
+                  style: AppText.screenTitle.copyWith(color: colors.text),
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
@@ -120,11 +142,34 @@ class _Footnote extends StatelessWidget {
     child: Text(
       text,
       textAlign: TextAlign.center,
-      style: AppText.caption.copyWith(color: context.colors.textMuted),
+      style: AppText.caption.copyWith(
+        fontSize: 13,
+        color: context.colors.textMuted,
+      ),
     ),
   );
 }
 
+class _FieldLabel extends StatelessWidget {
+  const _FieldLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+    child: Text(
+      text.toUpperCase(),
+      style: AppText.overline.copyWith(
+        letterSpacing: 0,
+        color: context.colors.textMuted,
+      ),
+    ),
+  );
+}
+
+/// The banner under the nick or the code. A failure that waiting fixes is a
+/// warning, the rest are errors (the "Ошибки входа" frame).
 class _ErrorBanner extends StatelessWidget {
   const _ErrorBanner(this.error);
 
@@ -136,10 +181,18 @@ class _ErrorBanner extends StatelessWidget {
     if (error == null) {
       return const SizedBox.shrink();
     }
+    final warning = switch (error.failure) {
+      LoginFailure.rateLimited ||
+      LoginFailure.unavailable ||
+      LoginFailure.panelUnavailable ||
+      LoginFailure.internal ||
+      LoginFailure.telegramUserNotFound => true,
+      _ => false,
+    };
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      padding: const EdgeInsets.only(top: AppSpacing.lg),
       child: StatusBanner(
-        kind: BannerKind.error,
+        kind: warning ? BannerKind.warning : BannerKind.error,
         text: loginErrorText(AppLocalizations.of(context), error),
       ),
     );
@@ -168,35 +221,35 @@ class _UsernameStepState extends ConsumerState<_UsernameStep> {
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context);
     final state = widget.state;
-    final error = state.error;
-    final fieldError = error?.failure == LoginFailure.invalidUsername
-        ? loginErrorText(strings, error!)
-        : null;
+    final controller = ref.read(loginControllerProvider.notifier);
     return _StepLayout(
       title: strings.loginUsernameTitle,
       message: strings.loginUsernameMessage,
-      footer: [_Footnote(strings.loginBotFooter)],
+      footer: [
+        _Footnote(strings.loginBotFooter),
+        AppButton(
+          label: strings.loginOpenBot,
+          variant: AppButtonVariant.secondary,
+          onPressed: controller.openBot,
+        ),
+      ],
       children: [
-        if (fieldError == null) _ErrorBanner(error),
         AppTextField(
           controller: _username,
           label: strings.loginUsernameLabel,
           prefixText: '@',
-          errorText: fieldError,
         ),
         const SizedBox(height: AppSpacing.sm),
         Text(
           strings.loginUsernameHint,
           style: AppText.caption.copyWith(color: context.colors.textMuted),
         ),
+        _ErrorBanner(state.error),
         const SizedBox(height: AppSpacing.xl),
         AppButton(
           label: strings.loginGetCode,
-          icon: Icons.login,
           loading: state.busy,
-          onPressed: () => ref
-              .read(loginControllerProvider.notifier)
-              .submitUsername(_username.text),
+          onPressed: () => controller.submitUsername(_username.text),
         ),
       ],
     );
@@ -213,16 +266,20 @@ class _BotStep extends ConsumerWidget {
     final strings = AppLocalizations.of(context);
     final controller = ref.read(loginControllerProvider.notifier);
     return _StepLayout(
-      title: strings.loginBotTitle,
-      message: strings.loginBotMessage,
+      title: strings.loginBotHeading,
+      message: strings.loginBotIntro(state.username),
+      onBack: state.busy ? null : controller.changeUsername,
+      footer: [_Footnote(strings.loginNoNickFooter)],
       children: [
-        _ErrorBanner(state.error),
+        StatusBanner(
+          kind: BannerKind.warning,
+          text: state.error == null
+              ? strings.loginBotNotFound
+              : loginErrorText(strings, state.error!),
+        ),
+        const SizedBox(height: AppSpacing.xl),
         if (state.botUrl != null) ...[
-          AppButton(
-            label: strings.loginOpenBot,
-            icon: Icons.telegram,
-            onPressed: controller.openBot,
-          ),
+          AppButton(label: strings.loginOpenBot, onPressed: controller.openBot),
           const SizedBox(height: AppSpacing.md),
         ],
         AppButton(
@@ -231,70 +288,104 @@ class _BotStep extends ConsumerWidget {
           loading: state.busy,
           onPressed: controller.retryAfterStart,
         ),
-        AppButton(
-          label: strings.loginChangeUsername,
-          variant: AppButtonVariant.text,
-          onPressed: state.busy ? null : controller.changeUsername,
-        ),
       ],
     );
   }
 }
 
-class _CodeStep extends ConsumerWidget {
+class _CodeStep extends ConsumerStatefulWidget {
   const _CodeStep(this.state);
 
   final LoginCode state;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_CodeStep> createState() => _CodeStepState();
+}
+
+class _CodeStepState extends ConsumerState<_CodeStep> {
+  static const _length = 6;
+
+  String _code = '';
+
+  String _timer(int seconds) =>
+      '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}';
+
+  @override
+  Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context);
+    final colors = context.colors;
+    final state = widget.state;
     final controller = ref.read(loginControllerProvider.notifier);
     final canResend = state.resendIn == 0 && !state.busy;
+    final codeFailed = switch (state.error?.failure) {
+      LoginFailure.codeInvalid || LoginFailure.codeExpired => true,
+      _ => false,
+    };
     return _StepLayout(
       title: strings.loginCodeTitle,
-      message: strings.loginCodeMessage(state.username),
-      footer: [_Footnote(strings.loginCodeFooter)],
-      children: [
-        _ErrorBanner(state.error),
-        Text(
-          strings.loginCodeLabel.toUpperCase(),
-          style: AppText.overline.copyWith(color: context.colors.textMuted),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: Alignment.centerLeft,
-          child: CodeInput(
-            // A new key after each rejected code empties the cells.
-            key: ValueKey(state.attempt),
-            enabled: !state.busy,
-            onCompleted: controller.submitCode,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.xl),
+      message: strings.loginCodeIntro(state.username),
+      onBack: state.busy ? null : controller.changeUsername,
+      footer: [
+        _Footnote(strings.loginCodeFooter),
         AppButton(
           label: strings.loginOpenBot,
-          icon: Icons.telegram,
           variant: AppButtonVariant.secondary,
           onPressed: controller.openBot,
         ),
+      ],
+      children: [
+        _FieldLabel(strings.loginCodeLabel),
+        CodeInput(
+          length: _length,
+          enabled: !state.busy,
+          errorText: codeFailed ? '' : null,
+          onChanged: (value) => setState(() => _code = value),
+          onCompleted: controller.submitCode,
+        ),
+        _ErrorBanner(state.error),
+        if (!codeFailed) ...[
+          const SizedBox(height: AppSpacing.md),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: state.resendIn > 0
+                ? Text(
+                    strings.loginResendInTimer(_timer(state.resendIn)),
+                    style: AppText.caption.copyWith(
+                      fontSize: 13,
+                      color: colors.textMuted,
+                    ),
+                  )
+                : AppButton(
+                    label: strings.loginResend,
+                    variant: AppButtonVariant.text,
+                    onPressed: canResend ? controller.resend : null,
+                  ),
+          ),
+        ],
+        const SizedBox(height: AppSpacing.xl),
+        AppButton(
+          label: strings.loginSignIn,
+          loading: state.busy,
+          // Drawn enabled as in the design; an unfinished code waits.
+          onPressed: () {
+            if (_code.length == _length) {
+              controller.submitCode(_code);
+            }
+          },
+        ),
         const SizedBox(height: AppSpacing.sm),
-        Align(
-          alignment: Alignment.center,
-          child: AppButton(
-            label: state.resendIn > 0
-                ? strings.loginResendIn(state.resendIn)
-                : strings.loginResend,
+        if (codeFailed)
+          AppButton(
+            label: strings.loginNewCode,
             variant: AppButtonVariant.text,
             onPressed: canResend ? controller.resend : null,
+          )
+        else
+          AppButton(
+            label: strings.loginChangeUsername,
+            variant: AppButtonVariant.text,
+            onPressed: state.busy ? null : controller.changeUsername,
           ),
-        ),
-        AppButton(
-          label: strings.loginChangeUsername,
-          variant: AppButtonVariant.text,
-          onPressed: state.busy ? null : controller.changeUsername,
-        ),
       ],
     );
   }

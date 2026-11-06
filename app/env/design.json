@@ -1,1 +1,1 @@
-{"FLAVOR": "dev", "API_BASE_URLS": "http://localhost:8080", "FAKE_VPN": true, "FAKE_API": true}
+{"FLAVOR": "dev", "API_BASE_URLS": "http://localhost:8080", "FAKE_VPN": true, "FAKE_API": true, "BOT_URL": "https://t.me/vpnclient_dev_bot"}

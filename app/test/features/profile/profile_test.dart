@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:vpnclient/app/home_screen.dart';
+import 'package:vpnclient/features/auth/presentation/login_screen.dart';
 import 'package:vpnclient/app/app.dart';
 import 'package:vpnclient/core/api/api_client.dart';
 import 'package:vpnclient/core/api/fallback_api_client.dart';
@@ -13,7 +14,6 @@ import 'package:vpnclient/features/profile/application/profile_controller.dart';
 import 'package:vpnclient/features/profile/data/profile_repository.dart';
 import 'package:vpnclient/features/profile/domain/profile_state.dart';
 import 'package:vpnclient/gen/api/export.dart';
-import 'package:vpnclient/ui/ui.dart';
 
 String _fixtureJson() =>
     File('../contracts/fixtures/profile/seed.json').readAsStringSync();
@@ -244,7 +244,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byIcon(Icons.login), findsOneWidget);
-    expect(find.byType(ModePager), findsNothing);
+    expect(find.byType(LoginScreen), findsOneWidget);
+    expect(find.byType(HomeScreen), findsNothing);
   });
 }

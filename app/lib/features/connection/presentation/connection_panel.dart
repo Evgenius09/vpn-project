@@ -10,7 +10,6 @@ import '../../profile/application/profile_controller.dart';
 import '../../profile/domain/profile_state.dart';
 import '../application/connection_controller.dart';
 import '../application/power_view.dart';
-import '../domain/connection_state.dart';
 import '../domain/elapsed.dart';
 import 'connection_error_text.dart';
 import 'mode_notice_text.dart';
@@ -40,6 +39,24 @@ class ConnectionPanel extends ConsumerWidget {
     final issue = connection.issue;
     final notice = connection.notice;
     final controller = ref.read(connectionControllerProvider.notifier);
+    // The open sheet folds the status into one line (Figma, tech.md 43).
+    final folded = compact >= 0.5;
+    final elapsed = view.state == PowerState.connected
+        ? formatElapsed(_since(ref, connection.tunnel.connectedSince))
+        : null;
+    final hint = switch (view.state) {
+      PowerState.connected => [
+        ?elapsed,
+        if (traffic != null)
+          '↓ ${TrafficCounter.format(strings, traffic.downBps)}  '
+              '↑ ${TrafficCounter.format(strings, traffic.upBps)}',
+      ].join('  ·  '),
+      _ => switch (view.action) {
+        StartTunnel() => strings.connectionTapToConnect,
+        SwitchUserMode() => strings.connectionTapToSwitch,
+        _ => '',
+      },
+    };
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -51,14 +68,29 @@ class ConnectionPanel extends ConsumerWidget {
             AppSizes.powerButtonCompact,
             compact,
           )!,
-          caption: _caption(context, ref, view, connection.tunnel),
+          caption: folded && elapsed != null
+              ? '${strings.connectionConnectedShort} · $elapsed'
+              : _caption(context, view),
         ),
-        const SizedBox(height: AppSpacing.xs),
-        AnimatedSwitcher(
-          duration: AppDurations.normal,
-          child: view.state == PowerState.connected && traffic != null
-              ? TrafficCounter(upBps: traffic.upBps, downBps: traffic.downBps)
-              : _Hint(view: view),
+        ClipRect(
+          child: Align(
+            heightFactor: (1 - compact * 2).clamp(0.0, 1.0),
+            child: Opacity(
+              opacity: (1 - compact * 2).clamp(0.0, 1.0),
+              child: Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.sm - 2),
+                child: Text(
+                  hint,
+                  textAlign: TextAlign.center,
+                  style: AppText.label.copyWith(
+                    fontWeight: FontWeight.w400,
+                    color: context.colors.textMuted,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
         if (notice != null) ...[
           const SizedBox(height: AppSpacing.md),
@@ -80,12 +112,7 @@ class ConnectionPanel extends ConsumerWidget {
     );
   }
 
-  String _caption(
-    BuildContext context,
-    WidgetRef ref,
-    PowerView view,
-    TunnelSnapshot tunnel,
-  ) {
+  String _caption(BuildContext context, PowerView view) {
     final strings = AppLocalizations.of(context);
     final elsewhere = view.activeElsewhere;
     return switch (view.state) {
@@ -98,9 +125,7 @@ class ConnectionPanel extends ConsumerWidget {
       PowerState.connecting => strings.connectionConnecting,
       PowerState.disconnecting => strings.connectionDisconnecting,
       PowerState.error => strings.connectionFailed,
-      PowerState.connected => strings.connectionConnected(
-        formatElapsed(_since(ref, tunnel.connectedSince)),
-      ),
+      PowerState.connected => strings.connectionConnectedShort,
     };
   }
 
@@ -112,33 +137,5 @@ class ConnectionPanel extends ConsumerWidget {
     return connectedSince == null
         ? Duration.zero
         : now.difference(connectedSince);
-  }
-}
-
-/// The quiet line under the status that says what a tap does.
-class _Hint extends StatelessWidget {
-  const _Hint({required this.view});
-
-  final PowerView view;
-
-  @override
-  Widget build(BuildContext context) {
-    final strings = AppLocalizations.of(context);
-    final text = switch (view.action) {
-      StartTunnel() => strings.connectionTapToConnect,
-      SwitchUserMode() => strings.connectionTapToSwitch,
-      _ => null,
-    };
-    if (text == null) {
-      return const SizedBox(height: AppSpacing.lg + 2);
-    }
-    return Text(
-      text,
-      textAlign: TextAlign.center,
-      style: AppText.label.copyWith(
-        color: context.colors.textMuted,
-        fontWeight: FontWeight.w400,
-      ),
-    );
   }
 }

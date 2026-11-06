@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../gen/l10n/app_localizations.dart';
 import '../tokens.dart';
@@ -83,14 +84,17 @@ class TrafficCounter extends StatelessWidget {
   final int upBps;
   final int downBps;
 
-  String _format(AppLocalizations strings, int bps) {
+  /// A speed in the units and decimal mark of the current language.
+  static String format(AppLocalizations strings, int bps) {
+    String number(double value) =>
+        NumberFormat('0.0', strings.localeName).format(value);
     if (bps < _kilo) {
       return strings.speedBytes(bps.toString());
     }
     if (bps < _kilo * _kilo) {
-      return strings.speedKilobytes((bps / _kilo).toStringAsFixed(1));
+      return strings.speedKilobytes(number(bps / _kilo));
     }
-    return strings.speedMegabytes((bps / (_kilo * _kilo)).toStringAsFixed(1));
+    return strings.speedMegabytes(number(bps / (_kilo * _kilo)));
   }
 
   @override
@@ -106,7 +110,7 @@ class TrafficCounter extends StatelessWidget {
       children: [
         Icon(icon, size: AppSizes.iconSmall, color: colors.primaryText),
         const SizedBox(width: AppSpacing.xs),
-        Text(_format(strings, bps), style: style),
+        Text(format(strings, bps), style: style),
       ],
     );
     return Row(
@@ -143,14 +147,14 @@ class PageDots extends StatelessWidget {
             onTap: onTap == null ? null : () => onTap!(i),
             borderRadius: BorderRadius.circular(AppRadius.pill),
             child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.xs + AppSizes.border),
+              padding: const EdgeInsets.all(AppSizes.dotGap / 2),
               child: AnimatedContainer(
                 duration: AppDurations.page,
                 curve: AppCurves.emphasized,
-                width: i == index ? AppSizes.dotActive : AppSizes.dot,
+                width: AppSizes.dot,
                 height: AppSizes.dot,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                  shape: BoxShape.circle,
                   color: i == index ? colors.primary : colors.border,
                 ),
               ),
@@ -289,6 +293,35 @@ class AppShell extends StatelessWidget {
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: AppLayout.maxContentWidth),
         child: child,
+      ),
+    );
+  }
+}
+
+/// The round Telegram logo of the top bar. It opens the bot.
+class TelegramButton extends StatelessWidget {
+  const TelegramButton({required this.onPressed, super.key});
+
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return IconButton(
+      tooltip: AppLocalizations.of(context).telegramTooltip,
+      onPressed: onPressed,
+      icon: Container(
+        width: AppSizes.topBarIcon,
+        height: AppSizes.topBarIcon,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: colors.telegram,
+        ),
+        child: Icon(
+          Icons.telegram,
+          color: colors.onPrimary,
+          size: AppSizes.topBarIcon - 12,
+        ),
       ),
     );
   }

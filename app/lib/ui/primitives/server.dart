@@ -139,12 +139,16 @@ class ServerTile extends StatefulWidget {
     this.countryCode,
     this.onTap,
     this.trailing,
+    this.leading,
     super.key,
   });
 
   final String title;
   final String? subtitle;
   final String? countryCode;
+
+  /// Replaces the country code circle, for a server without a country.
+  final Widget? leading;
   final PingValue ping;
   final bool selected;
   final VoidCallback? onTap;
@@ -199,18 +203,25 @@ class _ServerTileState extends State<ServerTile> {
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: selected ? colors.bg : colors.surfaceAlt,
+                    color: colors.surfaceAlt,
                   ),
-                  child: widget.countryCode == null
-                      ? Icon(
-                          Icons.public,
-                          size: AppSizes.iconSmall,
-                          color: colors.textMuted,
-                        )
-                      : FlagIcon(
-                          countryCode: widget.countryCode!,
-                          size: AppSizes.iconSmall + 2,
-                        ),
+                  // The design names the country by its code, which reads the
+                  // same on every platform, unlike emoji flags.
+                  child:
+                      widget.leading ??
+                      (widget.countryCode == null
+                          ? Icon(
+                              Icons.public,
+                              size: AppSizes.iconSmall,
+                              color: colors.textMuted,
+                            )
+                          : Text(
+                              widget.countryCode!.toUpperCase(),
+                              style: AppText.overline.copyWith(
+                                letterSpacing: 0,
+                                color: colors.textMuted,
+                              ),
+                            )),
                 ),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
@@ -319,7 +330,10 @@ class SheetChip extends StatelessWidget {
                     child: Text(
                       text,
                       key: ValueKey(text),
-                      style: AppText.label.copyWith(color: foreground),
+                      style: AppText.label.copyWith(
+                        fontSize: 13,
+                        color: foreground,
+                      ),
                     ),
                   ),
               ],
@@ -417,28 +431,38 @@ class _ServerSheetState extends State<ServerSheet> {
             ),
             child: ClipRRect(
               borderRadius: radius,
-              child: CustomScrollView(
+              child: RawScrollbar(
                 controller: controller,
-                slivers: [
-                  SliverPersistentHeader(
-                    pinned: true,
-                    delegate: _SheetHeader(
-                      color: colors.surface,
-                      handleColor: colors.border,
-                      onHandleTap: _toggle,
-                      child: widget.header,
+                thickness: AppSizes.sheetHandleHeight,
+                radius: const Radius.circular(AppRadius.pill),
+                thumbColor: colors.textMuted.withValues(alpha: 0.6),
+                padding: const EdgeInsets.symmetric(
+                  vertical: ServerSheet.headerHeight,
+                  horizontal: AppSpacing.xs / 2,
+                ),
+                child: CustomScrollView(
+                  controller: controller,
+                  slivers: [
+                    SliverPersistentHeader(
+                      pinned: true,
+                      delegate: _SheetHeader(
+                        color: colors.surface,
+                        handleColor: colors.border,
+                        onHandleTap: _toggle,
+                        child: widget.header,
+                      ),
                     ),
-                  ),
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.sm,
-                      0,
-                      AppSpacing.sm,
-                      AppSpacing.sm,
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.sm,
+                        0,
+                        AppSpacing.sm,
+                        AppSpacing.sm,
+                      ),
+                      sliver: SliverToBoxAdapter(child: widget.body),
                     ),
-                    sliver: SliverToBoxAdapter(child: widget.body),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

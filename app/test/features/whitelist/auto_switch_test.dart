@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vpnclient/core/vpn/vpn_bridge.dart';
-import 'package:vpnclient/features/ping/presentation/ping_controls.dart';
 import 'package:vpnclient/features/whitelist/presentation/auto_switch_toggle.dart';
 import 'package:vpnclient/gen/api/export.dart';
 import 'package:vpnclient/ui/ui.dart';
@@ -46,6 +45,18 @@ SettingsToggleTile? _toggle(WidgetTester tester) {
   return found.evaluate().isEmpty
       ? null
       : tester.widget<SettingsToggleTile>(found);
+}
+
+Future<void> _openSettings(WidgetTester tester) async {
+  await tester.tap(find.byIcon(Icons.settings));
+  await tester.pump();
+  await tester.pump(AppDurations.slow * 2);
+}
+
+Future<void> _closeSettings(WidgetTester tester) async {
+  await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+  await tester.pump();
+  await tester.pump(AppDurations.slow * 2);
 }
 
 Future<void> _flipToggle(WidgetTester tester) async {
@@ -93,15 +104,16 @@ Future<ConnectionHarness> _connected(
 
 void main() {
   group('the toggle', () {
-    testWidgets('sits on the whitelist screen, not the regular one', (
-      tester,
-    ) async {
+    // The design keeps the toggle in settings only (tech.md 43).
+    testWidgets('sits in settings, not on the mode screens', (tester) async {
       final app = ConnectionHarness();
       await app.pump(tester);
 
       expect(_toggle(tester), isNull, reason: 'regular screen');
-
       await app.showScreen(tester, _whitelist);
+      expect(_toggle(tester), isNull, reason: 'whitelist screen');
+
+      await _openSettings(tester);
 
       final toggle = _toggle(tester)!;
       expect(toggle.title, _toggleTitle);
@@ -109,13 +121,12 @@ void main() {
       expect(toggle.locked, isFalse);
     });
 
-    testWidgets('sits in settings', (tester) async {
+    testWidgets('flips in settings and stores the choice', (tester) async {
       final app = ConnectionHarness();
       await app.pump(tester);
-      await tester.tap(find.byIcon(Icons.settings));
-      await tester.pumpAndSettle();
+      await _openSettings(tester);
 
-      expect(find.text('Connection'), findsOneWidget);
+      expect(find.text('BASICS'), findsOneWidget);
       expect(_toggle(tester)?.value, isTrue);
 
       await _flipToggle(tester);
@@ -129,17 +140,10 @@ void main() {
     ) async {
       final app = ConnectionHarness(profile: _profile(flag: false));
       await app.pump(tester);
-      await app.showScreen(tester, _whitelist);
-
-      expect(find.byType(SortByPingToggle).hitTestable(), findsOneWidget);
-      expect(find.text(_toggleTitle), findsNothing);
-
-      await tester.tap(find.byIcon(Icons.settings));
-      await tester.pumpAndSettle();
+      await _openSettings(tester);
 
       expect(find.text(_toggleTitle), findsNothing);
-      expect(find.text('Connection'), findsNothing);
-      expect(find.text('Log out'), findsOneWidget);
+      expect(find.text('BASICS'), findsOneWidget, reason: 'other rows stay');
     });
 
     testWidgets('a locked key shows the policy value and ignores taps', (
@@ -152,7 +156,7 @@ void main() {
         whitelist: WhitelistPatch(autoOnCellular: true),
       );
       await app.pump(tester);
-      await app.showScreen(tester, _whitelist);
+      await _openSettings(tester);
 
       expect(_toggle(tester)?.locked, isTrue);
       expect(_toggle(tester)?.value, isFalse);
@@ -168,13 +172,14 @@ void main() {
     ) async {
       final app = ConnectionHarness();
       await app.pump(tester);
-      await app.showScreen(tester, _whitelist);
+      await _openSettings(tester);
 
       await _flipToggle(tester);
 
       expect(app.taps, isEmpty, reason: 'nothing runs to update');
       expect(app.settings.value.whitelist?.autoOnCellular, isFalse);
 
+      await _closeSettings(tester);
       await tapPower(tester);
 
       expect(app.taps, ['prepare', 'start']);
@@ -185,6 +190,7 @@ void main() {
       tester,
     ) async {
       final app = await _connected(tester, screen: _whitelist);
+      await _openSettings(tester);
 
       await _flipToggle(tester);
       await _flipToggle(tester);
@@ -199,8 +205,10 @@ void main() {
     testWidgets('a rejected update shows the error banner', (tester) async {
       final app = await _connected(tester, screen: _whitelist);
       app.bridge.failNext(CoreErrorCode.configInvalid);
+      await _openSettings(tester);
 
       await _flipToggle(tester);
+      await _closeSettings(tester);
 
       expect(_banners(tester), [
         (

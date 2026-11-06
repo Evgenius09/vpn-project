@@ -15,7 +15,10 @@ void main() {
             LoginError(failure, attemptsLeft: 3, retryAfterSec: 42),
           ),
       };
-      expect(texts, hasLength(LoginFailure.values.length));
+      // The design gives every outage on the server side one text:
+      // no connection, a panel outage, and an internal error.
+      final shared = locale.languageCode == 'ru' ? 2 : 0;
+      expect(texts, hasLength(LoginFailure.values.length - shared));
       expect(texts.every((text) => text.trim().isNotEmpty), isTrue);
     });
 

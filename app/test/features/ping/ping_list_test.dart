@@ -36,7 +36,7 @@ PingValue _pingOf(WidgetTester tester, String title) => tester
       matching: find.byType(SheetChip),
     ),
   );
-  return (value: chip.active, locked: chip.onPressed == null);
+  return (value: chip.label == 'By ping', locked: chip.onPressed == null);
 }
 
 /// The seed profile with [change] applied to its policy.
@@ -82,9 +82,7 @@ void main() {
     expect(_pingOf(tester, 'Amsterdam'), isA<PingMs>());
   });
 
-  testWidgets('the toggle switches the list back to the sortWeight order', (
-    tester,
-  ) async {
+  testWidgets('the toggle switches the list to the name order', (tester) async {
     final tcp = GatedTcpPing({
       'nl1.seed.invalid': const ServerPing.delay(20),
       'de1.seed.invalid': const ServerPing.delay(90),
@@ -101,7 +99,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(_toggle(tester).value, isFalse);
-    expect(_titles(tester), ['Frankfurt', 'Amsterdam', 'Helsinki']);
+    expect(_titles(tester), ['Amsterdam', 'Frankfurt', 'Helsinki']);
     expect(app.settings.value.ui?.sortByPing, isFalse);
   });
 

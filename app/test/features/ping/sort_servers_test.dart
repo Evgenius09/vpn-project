@@ -85,8 +85,8 @@ void main() {
     ]);
   });
 
-  test('switched off it keeps the sortWeight order whatever the ping', () {
-    final servers = [_server(0, 3), _server(1, 1), _server(2, 2)];
+  test('switched off it sorts by name whatever the ping', () {
+    final servers = [_server(2, 1), _server(0, 3), _server(1, 2)];
     final pings = <String, ServerPing>{
       'srv-0': const ServerPing.delay(1),
       'srv-1': const ServerPing.unreachable(),
@@ -94,7 +94,7 @@ void main() {
 
     final sorted = sortServers(servers, pings, byPing: false);
 
-    expect(sorted.map((s) => s.id), ['srv-1', 'srv-2', 'srv-0']);
+    expect(sorted.map((s) => s.id), ['srv-0', 'srv-1', 'srv-2']);
   });
 
   // Short lists sort stably by chance, so this one is long.
@@ -104,12 +104,10 @@ void main() {
       for (final server in servers) server.id: const ServerPing.delay(40),
     };
 
-    for (final byPing in [true, false]) {
-      expect(sortServers(servers, pings, byPing: byPing).map((s) => s.id), [
-        for (var i = 0; i < 100; i += 2) 'srv-$i',
-        for (var i = 1; i < 100; i += 2) 'srv-$i',
-      ]);
-    }
+    expect(sortServers(servers, pings, byPing: true).map((s) => s.id), [
+      for (var i = 0; i < 100; i += 2) 'srv-$i',
+      for (var i = 1; i < 100; i += 2) 'srv-$i',
+    ]);
   });
 
   Glados2<(List<ServerNode>, Map<String, ServerPing>), bool>(
@@ -185,12 +183,14 @@ void main() {
     }
   });
 
-  Glados(any.pinged)
-      .test('switched off it keeps the sortWeight order', (input) {
-        final (servers, pings) = input;
+  Glados(any.pinged).test('switched off it goes by name', (input) {
+    final (servers, pings) = input;
 
-        final sorted = sortServers(servers, pings, byPing: false);
+    final names = [
+      for (final server in sortServers(servers, pings, byPing: false))
+        server.name.toLowerCase(),
+    ];
 
-        expect(sorted.map((s) => s.id), _byWeight(servers));
-      });
+    expect(names, [...names]..sort());
+  });
 }

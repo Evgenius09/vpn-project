@@ -31,7 +31,7 @@ class _PowerButtonState extends State<PowerButton>
   static const _haloRatio = 1.0;
   static const _ringRatio = 200 / 240;
   static const _buttonRatio = 160 / 240;
-  static const _iconRatio = 64 / 240;
+  static const _iconRatio = 76 / 240;
   static const _pressedScale = 0.94;
   static const _hoverScale = 1.03;
   static const _waveReach = 0.22;
@@ -75,12 +75,20 @@ class _PowerButtonState extends State<PowerButton>
     final buttonEdge = switch (state) {
       PowerState.connected => colors.primaryText,
       PowerState.error => colors.danger,
+      _ when widget.onPressed == null && state == PowerState.idle =>
+        colors.textMuted,
       _ => colors.primary,
     };
+    final enabled = widget.onPressed != null;
+    // A button that can never act, like the whitelists of the free mode,
+    // drops its accent.
+    final dead = !enabled && state == PowerState.idle;
     final iconColor = connected || _busy
         ? colors.onPrimary
         : error
         ? colors.danger
+        : dead
+        ? colors.textMuted
         : colors.primaryText;
     final haloColor = connected || _busy
         ? colors.primarySoft.withValues(alpha: 0.5)
@@ -88,7 +96,6 @@ class _PowerButtonState extends State<PowerButton>
     final ringColor = connected || _busy
         ? colors.primarySoft
         : colors.surfaceAlt;
-    final enabled = widget.onPressed != null;
     final scale = _pressed
         ? _pressedScale
         : _hovered && enabled
@@ -107,23 +114,7 @@ class _PowerButtonState extends State<PowerButton>
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: buttonFill,
-          gradient: connected || _busy
-              ? LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [colors.primary, colors.primaryDeep],
-                )
-              : null,
           border: Border.all(color: buttonEdge, width: AppSizes.borderStrong),
-          boxShadow: connected
-              ? [
-                  BoxShadow(
-                    color: colors.primary.withValues(alpha: 0.45),
-                    blurRadius: size * 0.18,
-                    spreadRadius: size * 0.01,
-                  ),
-                ]
-              : const [],
         ),
         child: Material(
           type: MaterialType.transparency,
@@ -138,10 +129,9 @@ class _PowerButtonState extends State<PowerButton>
               child: TweenAnimationBuilder<Color?>(
                 tween: ColorTween(end: iconColor),
                 duration: AppDurations.slow,
-                builder: (context, color, _) => Icon(
-                  Icons.power_settings_new_rounded,
-                  color: color,
-                  size: size * _iconRatio,
+                builder: (context, color, _) => CustomPaint(
+                  size: Size.square(size * _iconRatio),
+                  painter: _PowerGlyph(color!),
                 ),
               ),
             ),
@@ -250,4 +240,43 @@ class _Disc extends StatelessWidget {
     height: diameter,
     decoration: BoxDecoration(shape: BoxShape.circle, color: color),
   );
+}
+
+/// The power glyph of the design: a ring open at the top and a bar through
+/// the gap, drawn to scale with the button.
+class _PowerGlyph extends CustomPainter {
+  const _PowerGlyph(this.color);
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Measured on a 76 px box: the ring is 56 px wide, the bar 34 px long.
+    final unit = size.width / 76;
+    final stroke = 5.5 * unit;
+    final center = Offset(size.width / 2, size.height / 2 + 9 * unit);
+    final radius = 28 * unit - stroke / 2;
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..strokeCap = StrokeCap.round;
+    const gap = 0.52;
+    canvas
+      ..drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        -1.5708 + gap,
+        6.2832 - gap * 2,
+        false,
+        paint,
+      )
+      ..drawLine(
+        Offset(center.dx, center.dy - 38 * unit + stroke / 2),
+        Offset(center.dx, center.dy - 4 * unit - stroke / 2),
+        paint..strokeWidth = 6 * unit,
+      );
+  }
+
+  @override
+  bool shouldRepaint(_PowerGlyph oldDelegate) => oldDelegate.color != color;
 }

@@ -106,12 +106,13 @@ void main() {
       ),
     );
 
-    expect(powerButton(tester).caption, 'Connected 00:12:31');
+    expect(powerButton(tester).caption, 'Connected');
+    expect(find.textContaining('00:12:31'), findsOneWidget);
 
     app.now = app.now.add(const Duration(seconds: 1));
     await tester.pump(const Duration(seconds: 1));
 
-    expect(powerButton(tester).caption, 'Connected 00:12:32');
+    expect(find.textContaining('00:12:32'), findsOneWidget);
   });
 
   testWidgets('traffic shows only while connected', (tester) async {
@@ -136,16 +137,19 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('2.0 KB/s'), findsOneWidget);
-    expect(find.text('512 B/s'), findsOneWidget);
+    expect(find.textContaining('↓ 512 B/s  ↑ 2.0 KB/s'), findsOneWidget);
 
     await app.showScreen(tester, _whitelist);
-    expect(find.byType(TrafficCounter), findsNothing, reason: 'not active');
+    expect(
+      find.textContaining('2.0 KB/s').hitTestable(),
+      findsNothing,
+      reason: 'not active',
+    );
     await app.showScreen(tester, _regular);
 
     await app.emitState(tester, TunnelStatus.disconnected);
 
-    expect(find.byType(TrafficCounter), findsNothing);
+    expect(find.textContaining('KB/s'), findsNothing);
   });
 
   group('errors', () {
@@ -352,6 +356,7 @@ void main() {
     await app.pump(tester);
 
     expect(powerButton(tester).state, PowerState.connected);
-    expect(powerButton(tester).caption, 'Connected 00:00:07');
+    expect(powerButton(tester).caption, 'Connected');
+    expect(find.textContaining('00:00:07'), findsOneWidget);
   });
 }

@@ -128,22 +128,21 @@ final List<Showcase> showcases = [
   ),
   Showcase(
     'account_card',
-    (_) => const Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        AccountCard(
-          title: '@seed_user',
-          subtitle: 'Trial · until November 12',
-          action: SheetChip(label: 'Renew', onPressed: _noop),
-          meterLabel: 'Traffic',
-          meterValue: '3.2 of 10 GB',
-          progress: 0.32,
+    (context) => AccountCard(
+      title: '@seed_user',
+      subtitle: 'Trial · until November 12',
+      action: const SheetChip(label: 'Renew', onPressed: _noop),
+      meters: [
+        AccountMeter(
+          label: 'Regular VPN',
+          value: 'Unlimited',
+          accent: context.colors.regular,
         ),
-        _gap,
-        AccountCard(
-          title: '@seed_user',
-          meterLabel: 'Traffic',
-          meterValue: 'Unlimited',
+        AccountMeter(
+          label: 'Whitelists',
+          value: '3.2 of 10 GB',
+          accent: context.colors.whitelist,
+          progress: 0.32,
         ),
       ],
     ),

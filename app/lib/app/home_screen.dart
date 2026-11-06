@@ -1,6 +1,5 @@
 import 'dart:ui' show lerpDouble;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,8 +10,6 @@ import '../features/connection/presentation/connection_panel.dart';
 import '../features/profile/application/profile_controller.dart';
 import '../features/profile/domain/profile_state.dart';
 import '../features/servers/presentation/server_picker.dart';
-import '../features/whitelist/application/auto_switch_controller.dart';
-import '../features/whitelist/presentation/auto_switch_toggle.dart';
 import '../features/whitelist/presentation/mode_screen_keys.dart';
 import '../gen/api/export.dart';
 import '../gen/l10n/app_localizations.dart';
@@ -101,7 +98,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          Positioned.fill(child: _Backdrop(position: _position)),
           SafeArea(
             child: AppShell(
               // The arrows also work from the settings button and the dots,
@@ -123,7 +119,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             IconButton(
                               icon: const Icon(
                                 Icons.settings,
-                                size: AppSizes.topBarIcon,
+                                size: AppSizes.topBarIcon - 4,
                               ),
                               tooltip: strings.settingsTooltip,
                               onPressed: () =>
@@ -176,51 +172,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 }
 
-/// A soft light of the mode accent behind the PowerButton. The two lights
-/// cross-fade with the swipe; blending the hues would pass through mud.
-class _Backdrop extends StatelessWidget {
-  const _Backdrop({required this.position});
-
-  static const _glow = 0.24;
-
-  final ValueListenable<double> position;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    Widget light(AppAccent accent) => DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: RadialGradient(
-          center: const Alignment(0, -0.45),
-          radius: 0.85,
-          colors: [
-            accent.primary.withValues(alpha: _glow),
-            accent.primary.withValues(alpha: 0),
-          ],
-        ),
-      ),
-    );
-    final regular = light(colors.regular);
-    final whitelist = light(colors.whitelist);
-    return ColoredBox(
-      color: colors.bg,
-      child: ValueListenableBuilder<double>(
-        valueListenable: position,
-        builder: (context, page, _) {
-          final t = page.clamp(0.0, 1.0);
-          return Stack(
-            fit: StackFit.expand,
-            children: [
-              Opacity(opacity: 1 - t, child: regular),
-              Opacity(opacity: t, child: whitelist),
-            ],
-          );
-        },
-      ),
-    );
-  }
-}
-
 /// Opens the bot of the profile. The bot sells and renews access, so it sits
 /// one tap away on the main screen.
 class _TelegramButton extends ConsumerWidget {
@@ -228,29 +179,12 @@ class _TelegramButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final colors = context.colors;
     final profile = ref.watch(profileControllerProvider);
     final bot = profile is ProfileReady ? profile.profile.endpoints.bot : null;
     final uri = bot == null ? null : Uri.tryParse(bot);
-    if (uri == null) {
-      return const SizedBox.square(dimension: AppSpacing.xxxl);
-    }
-    return IconButton(
-      tooltip: AppLocalizations.of(context).telegramTooltip,
-      onPressed: () => ref.read(urlOpenerProvider)(uri),
-      icon: Container(
-        width: AppSizes.topBarIcon + AppSpacing.sm,
-        height: AppSizes.topBarIcon + AppSpacing.sm,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: colors.telegram,
-        ),
-        child: Icon(
-          Icons.telegram,
-          color: colors.onPrimary,
-          size: AppSizes.topBarIcon,
-        ),
-      ),
+    // The button stays even without a profile, as the design shows it.
+    return TelegramButton(
+      onPressed: uri == null ? null : () => ref.read(urlOpenerProvider)(uri),
     );
   }
 }
@@ -380,52 +314,19 @@ class _Header extends StatelessWidget {
               Text(
                 title,
                 style: AppText.bodyStrong.copyWith(
-                  color: colors.primaryText,
+                  fontSize: lerpDouble(15, 13, fold),
+                  color: Color.lerp(colors.primaryText, colors.textMuted, fold),
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              SizedBox(height: lerpDouble(AppSpacing.lg, AppSpacing.sm, open)),
+              SizedBox(
+                height: lerpDouble(AppSpacing.xl - 4, AppSpacing.sm, open),
+              ),
               ConnectionPanel(mode: mode, compact: open),
-              if (mode == TunnelMode.whitelist && fold < 1)
-                Opacity(
-                  opacity: 1 - fold,
-                  child: ClipRect(
-                    child: Align(
-                      heightFactor: 1 - fold,
-                      child: const Padding(
-                        padding: EdgeInsets.only(top: AppSpacing.sm),
-                        child: _AutoSwitchCard(),
-                      ),
-                    ),
-                  ),
-                ),
             ],
           ),
         ),
       ),
-    );
-  }
-}
-
-/// The auto switch toggle of the whitelist screen in a card, so it reads as a
-/// control and not as loose text (tech.md 34.1).
-class _AutoSwitchCard extends ConsumerWidget {
-  const _AutoSwitchCard();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    if (ref.watch(autoSwitchToggleProvider) == null) {
-      return const SizedBox.shrink();
-    }
-    final colors = context.colors;
-    return Material(
-      color: colors.surface.withValues(alpha: 0.7),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        side: BorderSide(color: colors.border, width: AppSizes.border),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: const AutoSwitchToggle(),
     );
   }
 }

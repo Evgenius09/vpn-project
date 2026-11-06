@@ -200,15 +200,7 @@ class ModeSwitch extends StatelessWidget {
                 child: DecoratedBox(
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(AppRadius.pill),
-                    gradient: LinearGradient(
-                      colors: [colors.primary, colors.primaryDeep],
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: colors.primary.withValues(alpha: 0.35),
-                        blurRadius: AppSpacing.lg,
-                      ),
-                    ],
+                    color: colors.primary,
                   ),
                 ),
               ),
@@ -263,7 +255,7 @@ class _Segment extends StatelessWidget {
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: AppText.bodyStrong.copyWith(
+              style: AppText.modeLabel.copyWith(
                 color: Color.lerp(
                   colors.textMuted,
                   colors.onPrimary,
